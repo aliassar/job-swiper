@@ -1,7 +1,7 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { JobProvider } from '@/context/JobContext';
-import BottomNav from '@/components/BottomNav';
+import HamburgerMenu from '@/components/HamburgerMenu';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -16,13 +16,13 @@ export default function RootLayout({ children }) {
       <body className={`${inter.className} overflow-x-hidden`}>
         <JobProvider>
           <div className="flex flex-col h-full">
-            {/* Main content - now takes full height minus bottom nav */}
-            <main className="flex-1 overflow-hidden" style={{ paddingBottom: 'var(--bottom-nav-height)' }}>
+            {/* Hamburger menu */}
+            <HamburgerMenu />
+            
+            {/* Main content - now takes full height */}
+            <main className="flex-1 overflow-hidden">
               {children}
             </main>
-
-            {/* Bottom navigation */}
-            <BottomNav />
           </div>
         </JobProvider>
       </body>

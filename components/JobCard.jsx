@@ -37,10 +37,10 @@ export default function JobCard({ job, style, onSwipe }) {
 
   return (
     <div 
-      className="absolute w-full h-full select-none"
+      className="absolute inset-0 w-full h-full select-none"
       style={style}
     >
-      <div className="bg-white rounded-3xl shadow-2xl overflow-hidden h-full flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl overflow-hidden h-full flex flex-col m-4">
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 relative">
           <button

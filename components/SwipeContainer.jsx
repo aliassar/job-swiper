@@ -6,7 +6,7 @@ import JobCard from './JobCard';
 import { useJobs } from '@/context/JobContext';
 
 export default function SwipeContainer() {
-  const { currentJob, jobs, acceptJob, rejectJob, loading, remainingJobs } = useJobs();
+  const { currentJob, jobs, acceptJob, rejectJob, skipJob, loading, remainingJobs, sessionActions, rollbackLastAction } = useJobs();
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -79,12 +79,13 @@ export default function SwipeContainer() {
   const visibleJobs = jobs.slice(currentIndex, currentIndex + 3);
 
   return (
-      <div className="relative h-full w-full overflow-hidden px-4 py-6">
+      <div className="relative h-full w-full overflow-hidden">
         <div className="relative h-full max-w-md mx-auto overflow-hidden">
 
-          <div className="text-center mb-4">
-            <p className="text-sm font-medium text-gray-600">
-              {remainingJobs} {remainingJobs === 1 ? 'job' : 'jobs'} remaining
+          {/* Minimal jobs remaining counter in top-left */}
+          <div className="absolute top-4 left-4 z-30">
+            <p className="text-xs text-gray-400">
+              {remainingJobs} left
             </p>
           </div>
 
@@ -136,7 +137,7 @@ export default function SwipeContainer() {
             </AnimatePresence>
           </div>
 
-          <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-8 z-20">
+          <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-6 z-20">
             <button
                 onClick={() => {
                   setExit({ x: -600, y: 0 });
@@ -149,6 +150,16 @@ export default function SwipeContainer() {
 
             <button
                 onClick={() => {
+                  setExit({ x: 0, y: 600 });
+                  skipJob(currentJob);
+                }}
+                className="w-16 h-16 rounded-full bg-white shadow-xl flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
+            >
+              <span className="text-3xl">⏭️</span>
+            </button>
+
+            <button
+                onClick={() => {
                   setExit({ x: 600, y: 0 });
                   acceptJob(currentJob);
                 }}
@@ -157,6 +168,22 @@ export default function SwipeContainer() {
               <span className="text-3xl">✅</span>
             </button>
           </div>
+
+          {/* Rollback button */}
+          {sessionActions.length > 0 && (
+            <div className="absolute bottom-28 left-0 right-0 flex justify-center z-20">
+              <button
+                  onClick={rollbackLastAction}
+                  className="bg-white shadow-lg rounded-full px-6 py-3 flex items-center gap-2 hover:shadow-xl transition-shadow"
+              >
+                <span className="text-xl">↩️</span>
+                <span className="text-sm font-medium text-gray-700">Undo</span>
+                <span className="bg-blue-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {sessionActions.length}
+                </span>
+              </button>
+            </div>
+          )}
 
         </div>
       </div>
