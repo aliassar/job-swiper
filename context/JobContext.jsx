@@ -103,6 +103,7 @@ export function JobProvider({ children }) {
       setHistory(prev => prev.filter(item => item.id !== historyItem.id));
       
       // Add back to jobs queue at current position
+      // This places the job as the next card to be swiped
       setJobs(prev => {
         const newJobs = [...prev];
         newJobs.splice(currentIndex, 0, historyItem);

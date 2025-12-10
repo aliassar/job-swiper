@@ -51,7 +51,8 @@ export default function SwipeContainer() {
   };
 
   // Get next few jobs for stack effect
-  const visibleJobs = jobs.slice(jobs.indexOf(currentJob), jobs.indexOf(currentJob) + 3);
+  const currentJobIndex = jobs.indexOf(currentJob);
+  const visibleJobs = jobs.slice(currentJobIndex, currentJobIndex + 3);
 
   return (
     <div className="relative h-full w-full px-4 py-6">
