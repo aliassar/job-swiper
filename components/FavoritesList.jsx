@@ -26,7 +26,7 @@ export default function FavoritesList() {
         return (
           <div 
             key={job.id}
-            className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow"
+            className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow overflow-hidden"
           >
             <div className="flex items-start gap-4">
               <img 
@@ -35,21 +35,22 @@ export default function FavoritesList() {
                 className="w-14 h-14 rounded-xl flex-shrink-0"
               />
               
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 overflow-hidden">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0 overflow-hidden">
                     <h3 className="font-semibold text-gray-900 truncate">
                       {job.position}
                     </h3>
                     <p className="text-sm text-gray-600 truncate">{job.company}</p>
-                    <p className="text-xs text-gray-500 mt-1">{job.location}</p>
+                    <p className="text-xs text-gray-500 mt-1 truncate">{job.location}</p>
                   </div>
                   
                   <button
                     onClick={() => toggleFavorite(job)}
                     className="flex-shrink-0 p-2 rounded-full hover:bg-red-50 transition-colors"
+                    aria-label="Remove from favorites"
                   >
-                    <HeartIcon className="h-5 w-5 text-red-500" />
+                    <HeartIcon className="h-5 w-5 text-red-500 flex-shrink-0" />
                   </button>
                 </div>
                 
