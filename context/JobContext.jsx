@@ -114,6 +114,7 @@ export function JobProvider({ children }) {
 
   const toggleFavorite = async (job) => {
     const isFavorite = favorites.some(fav => fav.id === job.id);
+    const newFavoriteState = !isFavorite;
     
     // Optimistically update UI
     if (isFavorite) {
@@ -123,14 +124,16 @@ export function JobProvider({ children }) {
     }
     
     try {
-      await jobsApi.toggleFavorite(job.id, !isFavorite);
+      await jobsApi.toggleFavorite(job.id, newFavoriteState);
     } catch (error) {
       console.error('Error toggling favorite:', error);
       // Revert optimistic update on error
-      if (isFavorite) {
-        setFavorites(prev => [...prev, job]);
-      } else {
+      if (newFavoriteState) {
+        // If we tried to add it but failed, remove it
         setFavorites(prev => prev.filter(fav => fav.id !== job.id));
+      } else {
+        // If we tried to remove it but failed, add it back
+        setFavorites(prev => [...prev, job]);
       }
     }
   };

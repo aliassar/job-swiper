@@ -7,6 +7,12 @@ import FloatingActions from './FloatingActions';
 import { useJobs } from '@/context/JobContext';
 import { ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 
+// Constants
+const SWIPE_THRESHOLD = 120;
+const VELOCITY_THRESHOLD = 500;
+const EXIT_DISTANCE = 1200;
+const DRAG_CONSTRAINTS = { top: 0, bottom: 0, left: 0, right: 0 };
+
 export default function SwipeContainer() {
   const { 
     currentJob, 
@@ -53,17 +59,16 @@ export default function SwipeContainer() {
   }
 
   const handleDragEnd = (_event, info) => {
-    const threshold = 120;
     const velocity = Math.abs(info.velocity.x);
     const offset = info.offset.x;
 
     // Determine action based on drag offset and velocity
-    const shouldAccept = offset > threshold || (velocity > 500 && offset > 50);
-    const shouldReject = offset < -threshold || (velocity > 500 && offset < -50);
+    const shouldAccept = offset > SWIPE_THRESHOLD || (velocity > VELOCITY_THRESHOLD && offset > 50);
+    const shouldReject = offset < -SWIPE_THRESHOLD || (velocity > VELOCITY_THRESHOLD && offset < -50);
 
     if (shouldAccept) {
-      // Animate off to the right (using large pixel value to work in SSR)
-      setExitX(1200);
+      // Animate off to the right
+      setExitX(EXIT_DISTANCE);
       setTimeout(() => {
         acceptJob(currentJob);
         setExitX(0);
@@ -73,7 +78,7 @@ export default function SwipeContainer() {
 
     if (shouldReject) {
       // Animate off to the left
-      setExitX(-1200);
+      setExitX(-EXIT_DISTANCE);
       setTimeout(() => {
         rejectJob(currentJob);
         setExitX(0);
@@ -86,7 +91,7 @@ export default function SwipeContainer() {
   };
 
   const handleAccept = () => {
-    setExitX(1200);
+    setExitX(EXIT_DISTANCE);
     setTimeout(() => {
       acceptJob(currentJob);
       setExitX(0);
@@ -94,7 +99,7 @@ export default function SwipeContainer() {
   };
 
   const handleReject = () => {
-    setExitX(-1200);
+    setExitX(-EXIT_DISTANCE);
     setTimeout(() => {
       rejectJob(currentJob);
       setExitX(0);
@@ -102,7 +107,7 @@ export default function SwipeContainer() {
   };
 
   const handleSkip = () => {
-    setExitX(1200);
+    setExitX(EXIT_DISTANCE);
     setTimeout(() => {
       skipJob(currentJob);
       setExitX(0);
@@ -155,7 +160,7 @@ export default function SwipeContainer() {
                   }
                   drag={isTopCard}
                   dragElastic={0.15}
-                  dragConstraints={{ top: 0, bottom: 0, left: 0, right: 0 }}
+                  dragConstraints={DRAG_CONSTRAINTS}
                   onDragEnd={handleDragEnd}
                   initial={{ scale: 0.95, opacity: 0 }}
                   animate={{ scale: isTopCard ? 1 : scale, opacity: 1 }}
