@@ -17,7 +17,7 @@ export default function RootLayout({ children }) {
         <JobProvider>
           <div className="flex flex-col h-full">
             {/* Main content - now takes full height minus bottom nav */}
-            <main className="flex-1 overflow-hidden pb-14">
+            <main className="flex-1 overflow-hidden" style={{ paddingBottom: 'var(--bottom-nav-height)' }}>
               {children}
             </main>
 
