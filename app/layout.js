@@ -1,9 +1,6 @@
-import { Inter } from 'next/font/google';
 import './globals.css';
 import { JobProvider } from '@/context/JobContext';
 import HamburgerMenu from '@/components/HamburgerMenu';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'Job Swiper - Find Your Dream Job',
@@ -13,7 +10,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className="overflow-x-hidden">
-      <body className={`${inter.className} overflow-x-hidden`}>
+      <body className="font-sans overflow-x-hidden">
         <JobProvider>
           <div className="flex flex-col h-full">
             {/* Hamburger menu */}
