@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { jobsStorage } from '../route';
+import { jobsStorage } from '../../route';
 
 export async function POST(request, { params }) {
-  const jobId = parseInt(params?.id || (await request.json()).jobId);
+  const jobId = parseInt(params.id);
   
   const job = jobsStorage.jobs.find(j => j.id === jobId);
   if (!job) {

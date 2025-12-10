@@ -2,54 +2,38 @@ import { NextResponse } from 'next/server';
 import { mockJobs } from '@/lib/mockJobs';
 
 // In-memory storage for demo purposes only
-// Note: This implementation uses module-level variables which have limitations:
-// - Data is lost on server restart
-// - Not suitable for production (use a database instead)
-// - May have concurrency issues in high-traffic scenarios
-let jobsData = [...mockJobs];
-let acceptedJobs = [];
-let rejectedJobs = [];
-let favoritedJobs = [];
+// In production, replace with database (see docs/API_SPECIFICATION.md)
+export const jobsStorage = {
+  jobs: [...mockJobs],
+  userJobStatus: new Map(), // jobId -> { status, favorite, acceptedAt, rejectedAt, skippedAt }
+  applications: new Map(), // applicationId -> { id, jobId, stage, appliedAt, updatedAt }
+  history: [], // Array of action history
+};
+
+// Helper to get job with status
+function getJobWithStatus(jobId) {
+  const job = jobsStorage.jobs.find(j => j.id === jobId);
+  const status = jobsStorage.userJobStatus.get(jobId) || { 
+    status: 'pending', 
+    favorite: false 
+  };
+  return { job, status };
+}
 
 export async function GET() {
-  // Sort jobs by date (newest first)
-  const sortedJobs = [...jobsData].sort((a, b) => 
+  // Return only pending jobs (not accepted, rejected, or skipped)
+  const pendingJobs = jobsStorage.jobs.filter(job => {
+    const status = jobsStorage.userJobStatus.get(job.id);
+    return !status || status.status === 'pending';
+  });
+  
+  // Sort by date (newest first)
+  const sortedJobs = pendingJobs.sort((a, b) => 
     new Date(b.postedDate) - new Date(a.postedDate)
   );
   
-  return NextResponse.json({ jobs: sortedJobs });
-}
-
-export async function POST(request) {
-  const body = await request.json();
-  const { action, jobId, favorite } = body;
-
-  if (action === 'accept') {
-    acceptedJobs.push(jobId);
-    return NextResponse.json({ success: true, message: 'Job accepted' });
-  }
-
-  if (action === 'reject') {
-    rejectedJobs.push(jobId);
-    return NextResponse.json({ success: true, message: 'Job rejected' });
-  }
-
-  if (action === 'favorite') {
-    if (favorite) {
-      if (!favoritedJobs.includes(jobId)) {
-        favoritedJobs.push(jobId);
-      }
-    } else {
-      favoritedJobs = favoritedJobs.filter(id => id !== jobId);
-    }
-    return NextResponse.json({ success: true, message: 'Favorite toggled' });
-  }
-
-  if (action === 'rollback') {
-    acceptedJobs = acceptedJobs.filter(id => id !== jobId);
-    rejectedJobs = rejectedJobs.filter(id => id !== jobId);
-    return NextResponse.json({ success: true, message: 'Decision rolled back' });
-  }
-
-  return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+  return NextResponse.json({ 
+    jobs: sortedJobs,
+    total: sortedJobs.length 
+  });
 }
