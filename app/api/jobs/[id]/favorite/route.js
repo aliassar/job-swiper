@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { jobsStorage } from '../../route';
+import { generateId } from '@/lib/utils';
 
 export async function POST(request, { params }) {
   const jobId = parseInt(params.id);
@@ -25,7 +26,7 @@ export async function POST(request, { params }) {
 
   // Log action
   jobsStorage.history.push({
-    id: `history-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    id: generateId('history'),
     jobId,
     action: favorite ? 'favorited' : 'unfavorited',
     timestamp: new Date().toISOString(),

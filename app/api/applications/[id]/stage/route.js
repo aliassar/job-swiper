@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { jobsStorage } from '../../../jobs/route';
+import { generateId } from '@/lib/utils';
 
 const VALID_STAGES = [
   'Applied',
@@ -38,7 +39,7 @@ export async function PUT(request, { params }) {
 
   // Log action
   jobsStorage.history.push({
-    id: `history-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    id: generateId('history'),
     jobId: application.jobId,
     action: 'stage_updated',
     timestamp: new Date().toISOString(),
