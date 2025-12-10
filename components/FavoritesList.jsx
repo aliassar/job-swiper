@@ -2,6 +2,7 @@
 
 import { HeartIcon } from '@heroicons/react/24/solid';
 import { useJobs } from '@/context/JobContext';
+import { getCompanyLogoUrl } from '@/lib/utils';
 
 export default function FavoritesList() {
   const { favorites, toggleFavorite } = useJobs();
@@ -21,7 +22,7 @@ export default function FavoritesList() {
   return (
     <div className="space-y-3">
       {favorites.map((job) => {
-        const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
+        const logoUrl = getCompanyLogoUrl(job.company, 60);
         
         return (
           <div 

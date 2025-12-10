@@ -3,6 +3,7 @@
 import { HeartIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import { useJobs } from '@/context/JobContext';
+import { getCompanyLogoUrl } from '@/lib/utils';
 
 export default function JobCard({ job, style, onSwipe }) {
   const { favorites, toggleFavorite } = useJobs();
@@ -33,7 +34,7 @@ export default function JobCard({ job, style, onSwipe }) {
     : job.description;
 
   // Generate company logo URL
-  const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=80&background=0D8ABC&color=fff&bold=true`;
+  const logoUrl = getCompanyLogoUrl(job.company, 80);
 
   return (
     <div 

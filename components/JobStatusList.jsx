@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useJobs } from '@/context/JobContext';
+import { getCompanyLogoUrl, getRelativeTime } from '@/lib/utils';
 import StatusBadge from './StatusBadge';
 
 export default function JobStatusList() {
@@ -22,22 +23,6 @@ export default function JobStatusList() {
       </div>
     );
   }
-
-  const getRelativeTime = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInMs = now - date;
-    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-    
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
-    
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
-    
-    const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
-  };
 
   const handleStatusChange = (jobId, newStatus) => {
     updateJobStatus(jobId, newStatus);
@@ -78,7 +63,7 @@ export default function JobStatusList() {
             
             <div className="space-y-3">
               {jobs.map((job) => {
-                const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
+                const logoUrl = getCompanyLogoUrl(job.company, 60);
                 const isExpanded = expandedJobId === job.id;
                 
                 return (

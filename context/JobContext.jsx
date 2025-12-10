@@ -196,12 +196,15 @@ export function JobProvider({ children }) {
         setSkippedJobs(prev => prev.filter(item => item.id !== lastAction.jobId));
       }
       
-      // Add back to jobs queue at current position
+      // Add back to jobs queue at current position and decrement index
       setJobs(prev => {
         const newJobs = [...prev];
         newJobs.splice(currentIndex, 0, lastAction.job);
         return newJobs;
       });
+      
+      // Decrement current index to show the rolled-back job immediately
+      setCurrentIndex(prev => Math.max(0, prev));
     } catch (error) {
       console.error('Error rolling back action:', error);
     }

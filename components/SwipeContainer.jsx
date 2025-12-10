@@ -84,7 +84,7 @@ export default function SwipeContainer() {
 
           {/* Minimal jobs remaining counter in top-left */}
           <div className="absolute top-4 left-4 z-30">
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-600 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full">
               {remainingJobs} left
             </p>
           </div>
