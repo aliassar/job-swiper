@@ -40,7 +40,8 @@ export default function SwipeContainer() {
     const swipeThreshold = 100;
     
     if (Math.abs(info.offset.x) > swipeThreshold) {
-      setExitX(info.offset.x);
+      // Set exit direction based on swipe
+      setExitX(info.offset.x > 0 ? 500 : -500);
       
       if (info.offset.x > 0) {
         acceptJob(currentJob);
@@ -55,8 +56,8 @@ export default function SwipeContainer() {
   const visibleJobs = jobs.slice(currentJobIndex, currentJobIndex + 3);
 
   return (
-    <div className="relative h-full w-full px-4 py-6">
-      <div className="relative h-full max-w-md mx-auto">
+    <div className="relative h-full w-full overflow-hidden px-4 py-6">
+      <div className="relative h-full max-w-md mx-auto overflow-hidden">
         {/* Job counter */}
         <div className="text-center mb-4">
           <p className="text-sm font-medium text-gray-600">
@@ -65,7 +66,7 @@ export default function SwipeContainer() {
         </div>
 
         {/* Card stack */}
-        <div className="relative h-full">
+        <div className="relative h-full overflow-hidden">
           <AnimatePresence>
             {visibleJobs.map((job, index) => {
               const isTopCard = index === 0;
@@ -86,7 +87,7 @@ export default function SwipeContainer() {
                     exit={{ 
                       x: exitX, 
                       opacity: 0,
-                      transition: { duration: 0.2 }
+                      transition: { duration: 0.3 }
                     }}
                     style={{
                       x,
@@ -122,7 +123,7 @@ export default function SwipeContainer() {
         <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-8 z-10">
           <button
             onClick={() => {
-              setExitX(-200);
+              setExitX(-500);
               rejectJob(currentJob);
             }}
             className="w-16 h-16 rounded-full bg-white shadow-xl flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
@@ -132,7 +133,7 @@ export default function SwipeContainer() {
           
           <button
             onClick={() => {
-              setExitX(200);
+              setExitX(500);
               acceptJob(currentJob);
             }}
             className="w-16 h-16 rounded-full bg-white shadow-xl flex items-center justify-center hover:scale-110 transition-transform active:scale-95"

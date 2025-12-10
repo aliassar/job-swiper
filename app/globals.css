@@ -3,8 +3,14 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --bottom-nav-height: 3.5rem; /* 56px with 16px base font size */
+    --swipe-transition-duration: 0.3s;
+  }
+
   html, body {
     @apply h-full;
+    overflow-x: hidden;
   }
   
   body {
@@ -24,11 +30,11 @@
   
   [style*="translateX("] .swipe-accept {
     opacity: 1;
-    transition: opacity 0.2s;
+    transition: opacity var(--swipe-transition-duration);
   }
   
   [style*="translateX(-"] .swipe-reject {
     opacity: 1;
-    transition: opacity 0.2s;
+    transition: opacity var(--swipe-transition-duration);
   }
 }
