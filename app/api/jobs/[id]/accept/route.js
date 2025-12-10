@@ -20,7 +20,7 @@ export async function POST(request, { params }) {
   });
 
   // Create application
-  const applicationId = `app-${jobId}-${Date.now()}`;
+  const applicationId = `app-${jobId}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   const application = {
     id: applicationId,
     jobId,
@@ -32,7 +32,7 @@ export async function POST(request, { params }) {
 
   // Log action
   jobsStorage.history.push({
-    id: `history-${Date.now()}`,
+    id: `history-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     jobId,
     action: 'accepted',
     timestamp: now,

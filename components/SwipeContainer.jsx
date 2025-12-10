@@ -62,8 +62,8 @@ export default function SwipeContainer() {
     const shouldReject = offset < -threshold || (velocity > 500 && offset < -50);
 
     if (shouldAccept) {
-      // Animate off to the right
-      setExitX(window.innerWidth * 1.2);
+      // Animate off to the right (using large pixel value to work in SSR)
+      setExitX(1200);
       setTimeout(() => {
         acceptJob(currentJob);
         setExitX(0);
@@ -73,7 +73,7 @@ export default function SwipeContainer() {
 
     if (shouldReject) {
       // Animate off to the left
-      setExitX(-window.innerWidth * 1.2);
+      setExitX(-1200);
       setTimeout(() => {
         rejectJob(currentJob);
         setExitX(0);
@@ -86,7 +86,7 @@ export default function SwipeContainer() {
   };
 
   const handleAccept = () => {
-    setExitX(window.innerWidth * 1.2);
+    setExitX(1200);
     setTimeout(() => {
       acceptJob(currentJob);
       setExitX(0);
@@ -94,7 +94,7 @@ export default function SwipeContainer() {
   };
 
   const handleReject = () => {
-    setExitX(-window.innerWidth * 1.2);
+    setExitX(-1200);
     setTimeout(() => {
       rejectJob(currentJob);
       setExitX(0);
@@ -102,7 +102,7 @@ export default function SwipeContainer() {
   };
 
   const handleSkip = () => {
-    setExitX(window.innerWidth * 1.2);
+    setExitX(1200);
     setTimeout(() => {
       skipJob(currentJob);
       setExitX(0);
