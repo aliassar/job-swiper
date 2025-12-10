@@ -4,13 +4,13 @@
 
 @layer base {
   :root {
-    --bottom-nav-height: 3.5rem; /* 56px with 16px base font size */
     --swipe-transition-duration: 0.3s;
   }
 
-  html, body {
-    @apply h-full;
+  html, body, #__next {
+    @apply h-full w-full;
     overflow-x: hidden;
+    overscroll-behavior: none;
   }
   
   body {
