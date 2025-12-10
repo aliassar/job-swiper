@@ -28,7 +28,9 @@ export default function JobCard({ job, style, onSwipe }) {
   };
 
   // Get first line of description
-  const descriptionPreview = job.description.split('.')[0] + '.';
+  const descriptionPreview = job.description.includes('.') 
+    ? job.description.split('.')[0] + '.' 
+    : job.description;
 
   // Generate company logo URL
   const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=80&background=0D8ABC&color=fff&bold=true`;

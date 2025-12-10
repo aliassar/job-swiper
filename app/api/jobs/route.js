@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { mockJobs } from '@/lib/mockJobs';
 
-// In-memory storage for demo purposes
+// In-memory storage for demo purposes only
+// Note: This implementation uses module-level variables which have limitations:
+// - Data is lost on server restart
+// - Not suitable for production (use a database instead)
+// - May have concurrency issues in high-traffic scenarios
 let jobsData = [...mockJobs];
 let acceptedJobs = [];
 let rejectedJobs = [];
