@@ -85,19 +85,18 @@ export default function HamburgerMenu() {
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="fixed top-0 left-0 bottom-0 w-80 bg-white z-50 shadow-2xl overflow-y-auto"
           >
-            {/* Menu Header */}
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-2xl font-bold text-gray-900">Menu</h2>
+            {/* Menu Header - Minimal */}
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">Navigation</h2>
                 <button
                   onClick={closeMenu}
-                  className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                  className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
                   aria-label="Close menu"
                 >
-                  <XMarkIcon className="h-6 w-6 text-gray-600" />
+                  <XMarkIcon className="h-5 w-5 text-gray-600" />
                 </button>
               </div>
-              <p className="text-sm text-gray-600">Job Swiper - Find Your Dream Job</p>
             </div>
 
             {/* Menu Items */}
