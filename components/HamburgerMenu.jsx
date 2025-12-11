@@ -54,16 +54,16 @@ export default function HamburgerMenu() {
 
   return (
     <>
-      {/* Hamburger Button - positioned in header */}
+      {/* Hamburger Button - styled for card header */}
       <button
         onClick={toggleMenu}
-        className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
+        className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
         aria-label="Open menu"
       >
         <div className="w-6 flex flex-col gap-1.5">
-          <span className={`h-0.5 bg-gray-800 rounded-full transition-all ${isOpen ? 'rotate-45 translate-y-2' : ''}`} />
-          <span className={`h-0.5 bg-gray-800 rounded-full transition-all ${isOpen ? 'opacity-0' : ''}`} />
-          <span className={`h-0.5 bg-gray-800 rounded-full transition-all ${isOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+          <span className={`h-0.5 bg-white rounded-full transition-all ${isOpen ? 'rotate-45 translate-y-2' : ''}`} />
+          <span className={`h-0.5 bg-white rounded-full transition-all ${isOpen ? 'opacity-0' : ''}`} />
+          <span className={`h-0.5 bg-white rounded-full transition-all ${isOpen ? '-rotate-45 -translate-y-2' : ''}`} />
         </div>
       </button>
 

@@ -191,12 +191,20 @@ export default function SwipeContainer() {
     <div className="relative h-full w-full overflow-hidden">
       <div className="relative h-full max-w-md mx-auto">
         
+        {/* Jobs remaining counter - small and subtle at top-left */}
+        <div className="absolute top-2 left-6 z-30 pointer-events-none">
+          <span className="text-xs text-gray-400 font-medium">
+            {remainingJobs} {remainingJobs === 1 ? 'job' : 'jobs'} remaining
+          </span>
+        </div>
+        
         {/* Card stack container with padding for floating actions */}
-        <div className="relative h-full px-4 pt-4 pb-28">
+        <div className="relative h-full px-4 pb-28">
           {visibleJobs.map((job, index) => {
             const isTopCard = index === 0;
             const scale = 1 - index * 0.05;
             const yOffset = index * 12;
+            const opacity = index === 0 ? 1 : (index === 1 ? 0.7 : 0.5);
 
             return (
               <div
@@ -206,7 +214,7 @@ export default function SwipeContainer() {
                 style={{
                   transform: isTopCard ? 'translate(0, 0) rotate(0deg)' : `scale(${scale}) translateY(${yOffset}px)`,
                   pointerEvents: isTopCard ? 'auto' : 'none',
-                  opacity: 0.95,
+                  opacity: opacity,
                   zIndex: 10 - index,
                   touchAction: 'none',
                 }}
@@ -215,6 +223,7 @@ export default function SwipeContainer() {
                   job={job} 
                   showAcceptIndicator={isTopCard && showAcceptIndicator}
                   showRejectIndicator={isTopCard && showRejectIndicator}
+                  isTopCard={isTopCard}
                 />
               </div>
             );
