@@ -149,18 +149,15 @@ export default function SwipeContainer() {
   }
 
   const handleDragEnd = useCallback((_event, info) => {
-    const thresholdX = SWIPE_THRESHOLD;
-    const thresholdY = SWIPE_THRESHOLD;
-
     // Check for velocity-based swipes (flicks)
     const flickedRight = info.velocity.x > VELOCITY_THRESHOLD;
     const flickedLeft = info.velocity.x < -VELOCITY_THRESHOLD;
     const flickedUp = info.velocity.y < -VELOCITY_THRESHOLD;
 
     // Check for position-based swipes
-    const draggedRight = info.offset.x > thresholdX;
-    const draggedLeft = info.offset.x < -thresholdX;
-    const draggedUp = info.offset.y < -thresholdY;
+    const draggedRight = info.offset.x > SWIPE_THRESHOLD;
+    const draggedLeft = info.offset.x < -SWIPE_THRESHOLD;
+    const draggedUp = info.offset.y < -SWIPE_THRESHOLD;
 
     if (draggedRight || flickedRight) {
       setExit({ x: EXIT_DISTANCE, y: 0 });
@@ -176,13 +173,13 @@ export default function SwipeContainer() {
 
     if (draggedUp || flickedUp) {
       setExit({ x: 0, y: -EXIT_DISTANCE });
-      rejectJob(currentJob);
+      skipJob(currentJob);
       return;
     }
 
     setExit({ x: 0, y: 0 }); // reset if not passed threshold
     setSwipeDirection(''); // reset swipe direction
-  }, [currentJob, acceptJob, rejectJob]);
+  }, [currentJob, acceptJob, rejectJob, skipJob]);
 
   const handleAccept = useCallback(() => {
     setExit({ x: EXIT_DISTANCE, y: 0 });
