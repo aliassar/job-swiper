@@ -37,4 +37,38 @@
     opacity: 1;
     transition: opacity var(--swipe-transition-duration);
   }
+
+  /* Card exit animations for Hammer.js */
+  .card-exit-right {
+    animation: swipeRight 0.3s ease-out forwards;
+  }
+
+  .card-exit-left {
+    animation: swipeLeft 0.3s ease-out forwards;
+  }
+
+  .card-exit-up {
+    animation: swipeUp 0.3s ease-out forwards;
+  }
+
+  @keyframes swipeRight {
+    to { 
+      transform: translateX(150%) rotate(20deg); 
+      opacity: 0; 
+    }
+  }
+
+  @keyframes swipeLeft {
+    to { 
+      transform: translateX(-150%) rotate(-20deg); 
+      opacity: 0; 
+    }
+  }
+
+  @keyframes swipeUp {
+    to { 
+      transform: translateY(-150%); 
+      opacity: 0; 
+    }
+  }
 }

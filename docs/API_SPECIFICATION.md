@@ -189,6 +189,66 @@ Get all skipped jobs for the current user.
 
 ---
 
+#### POST /api/jobs/report
+Report a job listing (spam, inappropriate, fake, etc.).
+
+**Request Body:**
+```json
+{
+  "jobId": "1",
+  "description": "This job posting appears to be spam",
+  "reason": "spam"
+}
+```
+
+**Request Parameters:**
+- `jobId` (required): ID of the job to report
+- `description` (required): Description of why the job is being reported
+- `reason` (optional): One of `spam`, `inappropriate`, `fake`, or `other` (default: `other`)
+
+**Response:**
+```json
+{
+  "success": true,
+  "reportedJob": {
+    "id": "report-1234567890-abc123",
+    "jobId": 1,
+    "description": "This job posting appears to be spam",
+    "reason": "spam",
+    "reportedAt": "2024-01-20T14:30:00Z"
+  }
+}
+```
+
+---
+
+#### GET /api/jobs/report
+Get all jobs reported by the user.
+
+**Response:**
+```json
+{
+  "reportedJobs": [
+    {
+      "id": "report-1234567890-abc123",
+      "jobId": 1,
+      "job": {
+        "id": 1,
+        "company": "Example Corp",
+        "position": "Software Engineer",
+        "location": "Remote"
+      },
+      "description": "This job posting appears to be spam",
+      "reason": "spam",
+      "reportedAt": "2024-01-20T14:30:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+---
+
 ### Favorites
 
 #### GET /api/favorites
@@ -347,8 +407,9 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  jobStatuses  UserJobStatus[]
-  applications Application[]
+  jobStatuses   UserJobStatus[]
+  applications  Application[]
+  reportedJobs  ReportedJob[]
   actionHistory ActionHistory[]
 
   @@map("users")
@@ -437,6 +498,32 @@ enum ApplicationStage {
   WITHDRAWN
 }
 
+// Reported jobs
+model ReportedJob {
+  id          String   @id @default(uuid())
+  userId      String
+  jobId       Int
+  description String   @db.Text
+  reason      ReportReason @default(OTHER)
+  jobSnapshot Json     // Snapshot of job data at time of report
+  
+  reportedAt  DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("reported_jobs")
+  @@index([userId, reportedAt])
+  @@index([jobId])
+}
+
+enum ReportReason {
+  SPAM
+  INAPPROPRIATE
+  FAKE
+  OTHER
+}
+
 // Action history for logging
 model ActionHistory {
   id        String   @id @default(uuid())
@@ -463,6 +550,7 @@ enum ActionType {
   UNFAVORITED
   ROLLBACK
   STAGE_UPDATED
+  REPORTED
 }
 ```
 
@@ -534,10 +622,28 @@ CREATE TABLE applications (
 
 CREATE INDEX idx_applications_user ON applications(user_id);
 
+-- Reported jobs table
+CREATE TYPE report_reason AS ENUM (
+  'SPAM', 'INAPPROPRIATE', 'FAKE', 'OTHER'
+);
+
+CREATE TABLE reported_jobs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  job_id INTEGER NOT NULL,
+  description TEXT NOT NULL,
+  reason report_reason DEFAULT 'OTHER',
+  job_snapshot JSONB NOT NULL,
+  reported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_reported_jobs_user_reported ON reported_jobs(user_id, reported_at);
+CREATE INDEX idx_reported_jobs_job ON reported_jobs(job_id);
+
 -- Action history table
 CREATE TYPE action_type AS ENUM (
   'ACCEPTED', 'REJECTED', 'SKIPPED', 
-  'FAVORITED', 'UNFAVORITED', 'ROLLBACK', 'STAGE_UPDATED'
+  'FAVORITED', 'UNFAVORITED', 'ROLLBACK', 'STAGE_UPDATED', 'REPORTED'
 );
 
 CREATE TABLE action_history (
