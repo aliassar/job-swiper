@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import { jobsApi, favoritesApi, applicationsApi } from '@/lib/api';
+import { jobsApi, favoritesApi, applicationsApi, reportedApi } from '@/lib/api';
 
 const JobContext = createContext();
 
@@ -10,6 +10,7 @@ export function JobProvider({ children }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [favorites, setFavorites] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [reportedJobs, setReportedJobs] = useState([]);
   const [sessionActions, setSessionActions] = useState([]); // For rollback functionality
   const [loading, setLoading] = useState(true);
 
@@ -18,6 +19,7 @@ export function JobProvider({ children }) {
     fetchJobs();
     fetchFavorites();
     fetchApplications();
+    fetchReportedJobs();
   }, []);
 
   const fetchJobs = async () => {
@@ -47,6 +49,15 @@ export function JobProvider({ children }) {
       setApplications(data.applications);
     } catch (error) {
       console.error('Error fetching applications:', error);
+    }
+  };
+
+  const fetchReportedJobs = async () => {
+    try {
+      const data = await reportedApi.getReportedJobs();
+      setReportedJobs(data.reportedJobs);
+    } catch (error) {
+      console.error('Error fetching reported jobs:', error);
     }
   };
 
@@ -182,6 +193,25 @@ export function JobProvider({ children }) {
     }
   };
 
+  const reportJob = async (job) => {
+    try {
+      await reportedApi.reportJob(job.id);
+      
+      // Add to local reported jobs state
+      setReportedJobs(prev => [{
+        id: `report-${job.id}-${Date.now()}`,
+        jobId: job.id,
+        reportedAt: new Date().toISOString(),
+        job: job,
+      }, ...prev]);
+      
+      // Show feedback to user (you could add a toast notification here)
+      console.log('Job reported successfully');
+    } catch (error) {
+      console.error('Error reporting job:', error);
+    }
+  };
+
   const currentJob = jobs[currentIndex];
   const remainingJobs = jobs.length - currentIndex;
 
@@ -193,15 +223,18 @@ export function JobProvider({ children }) {
         remainingJobs,
         favorites,
         applications,
+        reportedJobs,
         sessionActions,
         loading,
         acceptJob,
         rejectJob,
         skipJob,
         toggleFavorite,
+        reportJob,
         rollbackLastAction,
         updateApplicationStage,
         fetchApplications,
+        fetchReportedJobs,
       }}
     >
       {children}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
 import JobCard from './JobCard';
 import FloatingActions from './FloatingActions';
@@ -8,9 +8,8 @@ import { useJobs } from '@/context/JobContext';
 import { ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 
 // Constants
-const SWIPE_THRESHOLD = 120;
-const VELOCITY_THRESHOLD = 500;
-const EXIT_DISTANCE = 1200;
+const SWIPE_THRESHOLD = 130;
+const EXIT_DISTANCE = 600;
 const DRAG_CONSTRAINTS = { top: 0, bottom: 0, left: 0, right: 0 };
 
 export default function SwipeContainer() {
@@ -32,7 +31,13 @@ export default function SwipeContainer() {
   const rotate = useTransform(x, [-300, 300], [-20, 20]);
   const opacity = useTransform(x, [-300, -150, 0, 150, 300], [0, 1, 1, 1, 0]);
 
-  const [exitX, setExitX] = useState(0);
+  const [exit, setExit] = useState({ x: 0, y: 0 });
+
+  // Reset motion values when currentJob changes
+  useEffect(() => {
+    x.set(0);
+    setExit({ x: 0, y: 0 });
+  }, [currentJob, x]);
 
   if (loading) {
     return (
@@ -59,59 +64,47 @@ export default function SwipeContainer() {
   }
 
   const handleDragEnd = (_event, info) => {
-    const velocity = Math.abs(info.velocity.x);
-    const offset = info.offset.x;
+    const thresholdX = SWIPE_THRESHOLD;
+    const thresholdY = SWIPE_THRESHOLD;
 
-    // Determine action based on drag offset and velocity
-    const shouldAccept = offset > SWIPE_THRESHOLD || (velocity > VELOCITY_THRESHOLD && offset > 50);
-    const shouldReject = offset < -SWIPE_THRESHOLD || (velocity > VELOCITY_THRESHOLD && offset < -50);
+    const draggedRight = info.offset.x > thresholdX;
+    const draggedLeft = info.offset.x < -thresholdX;
+    const draggedUp = info.offset.y < -thresholdY;
 
-    if (shouldAccept) {
-      // Animate off to the right
-      setExitX(EXIT_DISTANCE);
-      setTimeout(() => {
-        acceptJob(currentJob);
-        setExitX(0);
-      }, 300);
+    if (draggedRight) {
+      setExit({ x: EXIT_DISTANCE, y: 0 });
+      acceptJob(currentJob);
       return;
     }
 
-    if (shouldReject) {
-      // Animate off to the left
-      setExitX(-EXIT_DISTANCE);
-      setTimeout(() => {
-        rejectJob(currentJob);
-        setExitX(0);
-      }, 300);
+    if (draggedLeft) {
+      setExit({ x: -EXIT_DISTANCE, y: 0 });
+      rejectJob(currentJob);
       return;
     }
 
-    // Spring back to center if threshold not met
-    x.set(0);
+    if (draggedUp) {
+      setExit({ x: 0, y: -EXIT_DISTANCE });
+      rejectJob(currentJob);
+      return;
+    }
+
+    setExit({ x: 0, y: 0 }); // reset if not passed threshold
   };
 
   const handleAccept = () => {
-    setExitX(EXIT_DISTANCE);
-    setTimeout(() => {
-      acceptJob(currentJob);
-      setExitX(0);
-    }, 300);
+    setExit({ x: EXIT_DISTANCE, y: 0 });
+    acceptJob(currentJob);
   };
 
   const handleReject = () => {
-    setExitX(-EXIT_DISTANCE);
-    setTimeout(() => {
-      rejectJob(currentJob);
-      setExitX(0);
-    }, 300);
+    setExit({ x: -EXIT_DISTANCE, y: 0 });
+    rejectJob(currentJob);
   };
 
   const handleSkip = () => {
-    setExitX(EXIT_DISTANCE);
-    setTimeout(() => {
-      skipJob(currentJob);
-      setExitX(0);
-    }, 300);
+    setExit({ x: EXIT_DISTANCE, y: 0 });
+    skipJob(currentJob);
   };
 
   const handleFavorite = () => {
@@ -165,7 +158,8 @@ export default function SwipeContainer() {
                   initial={{ scale: 0.95, opacity: 0 }}
                   animate={{ scale: isTopCard ? 1 : scale, opacity: 1 }}
                   exit={{
-                    x: exitX,
+                    x: exit.x,
+                    y: exit.y,
                     opacity: 0,
                     transition: { duration: 0.3, ease: 'easeOut' }
                   }}
@@ -191,7 +185,7 @@ export default function SwipeContainer() {
         {sessionActions.length > 0 && (
           <button
             onClick={rollbackLastAction}
-            className="fixed bottom-6 right-6 z-40 bg-gray-800 text-white rounded-full p-3 shadow-xl hover:scale-110 transition-transform active:scale-95 flex items-center gap-2"
+            className="fixed bottom-24 right-6 z-40 bg-gray-800 text-white rounded-full p-3 shadow-xl hover:scale-110 transition-transform active:scale-95 flex items-center gap-2"
             aria-label="Undo last action"
           >
             <ArrowUturnLeftIcon className="h-6 w-6" />

@@ -1,15 +1,12 @@
 'use client';
 
-import { HeartIcon } from '@heroicons/react/24/outline';
-import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
+import { FlagIcon } from '@heroicons/react/24/outline';
 import { useJobs } from '@/context/JobContext';
 
 export default function JobCard({ job, style, onSwipe }) {
-  const { favorites, toggleFavorite } = useJobs();
+  const { reportJob } = useJobs();
   
   if (!job) return null;
-
-  const isFavorite = favorites.some(fav => fav.id === job.id);
   
   const getRelativeTime = (dateString) => {
     const date = new Date(dateString);
@@ -22,9 +19,9 @@ export default function JobCard({ job, style, onSwipe }) {
     return `Posted ${diffInDays} days ago`;
   };
 
-  const handleFavoriteClick = (e) => {
+  const handleReportClick = (e) => {
     e.stopPropagation();
-    toggleFavorite(job);
+    reportJob(job);
   };
 
   // Get first line of description
@@ -44,14 +41,11 @@ export default function JobCard({ job, style, onSwipe }) {
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 relative overflow-hidden">
           <button
-            onClick={handleFavoriteClick}
+            onClick={handleReportClick}
             className="absolute top-4 right-4 z-10 bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors"
+            aria-label="Report job"
           >
-            {isFavorite ? (
-              <HeartIconSolid className="h-6 w-6 text-white flex-shrink-0" />
-            ) : (
-              <HeartIcon className="h-6 w-6 text-white flex-shrink-0" />
-            )}
+            <FlagIcon className="h-6 w-6 text-white flex-shrink-0" />
           </button>
           
           <div className="flex items-center space-x-4">
@@ -77,9 +71,6 @@ export default function JobCard({ job, style, onSwipe }) {
             <p className="text-sm text-gray-500 mb-3">
               {getRelativeTime(job.postedDate)}
             </p>
-            <p className="text-gray-700 leading-relaxed">
-              {descriptionPreview}
-            </p>
           </div>
 
           <div className="mb-4">
@@ -94,6 +85,12 @@ export default function JobCard({ job, style, onSwipe }) {
                 </span>
               ))}
             </div>
+          </div>
+
+          <div className="mb-4">
+            <p className="text-gray-700 leading-relaxed">
+              {descriptionPreview}
+            </p>
           </div>
         </div>
 
