@@ -10,6 +10,7 @@ export function JobProvider({ children }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [favorites, setFavorites] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [reportedJobs, setReportedJobs] = useState([]);
   const [sessionActions, setSessionActions] = useState([]); // For rollback functionality
   const [loading, setLoading] = useState(true);
 
@@ -18,6 +19,7 @@ export function JobProvider({ children }) {
     fetchJobs();
     fetchFavorites();
     fetchApplications();
+    fetchReportedJobs();
   }, []);
 
   const fetchJobs = async () => {
@@ -47,6 +49,31 @@ export function JobProvider({ children }) {
       setApplications(data.applications);
     } catch (error) {
       console.error('Error fetching applications:', error);
+    }
+  };
+
+  const fetchReportedJobs = async () => {
+    try {
+      const data = await jobsApi.getReportedJobs();
+      setReportedJobs(data.reportedJobs);
+    } catch (error) {
+      console.error('Error fetching reported jobs:', error);
+    }
+  };
+
+  const reportJob = async (jobId, description, reason = 'other') => {
+    try {
+      const result = await jobsApi.reportJob(jobId, description, reason);
+      
+      if (result.success) {
+        // Refresh reported jobs list
+        await fetchReportedJobs();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error reporting job:', error);
+      return false;
     }
   };
 
@@ -193,6 +220,7 @@ export function JobProvider({ children }) {
         remainingJobs,
         favorites,
         applications,
+        reportedJobs,
         sessionActions,
         loading,
         acceptJob,
@@ -202,6 +230,8 @@ export function JobProvider({ children }) {
         rollbackLastAction,
         updateApplicationStage,
         fetchApplications,
+        reportJob,
+        fetchReportedJobs,
       }}
     >
       {children}

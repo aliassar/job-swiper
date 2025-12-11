@@ -1,15 +1,18 @@
 'use client';
 
-import { HeartIcon } from '@heroicons/react/24/outline';
-import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
+import { useState } from 'react';
+import { FlagIcon } from '@heroicons/react/24/outline';
 import { useJobs } from '@/context/JobContext';
 
 export default function JobCard({ job, style, onSwipe, showAcceptIndicator, showRejectIndicator }) {
-  const { favorites, toggleFavorite } = useJobs();
+  const { reportJob } = useJobs();
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportDescription, setReportDescription] = useState('');
+  const [reportReason, setReportReason] = useState('spam');
+  const [isReporting, setIsReporting] = useState(false);
+  const [reportSuccess, setReportSuccess] = useState(false);
   
   if (!job) return null;
-
-  const isFavorite = favorites.some(fav => fav.id === job.id);
   
   const getRelativeTime = (dateString) => {
     const date = new Date(dateString);
@@ -22,9 +25,37 @@ export default function JobCard({ job, style, onSwipe, showAcceptIndicator, show
     return `Posted ${diffInDays} days ago`;
   };
 
-  const handleFavoriteClick = (e) => {
+  const handleReportClick = (e) => {
     e.stopPropagation();
-    toggleFavorite(job);
+    setShowReportDialog(true);
+  };
+
+  const handleReportSubmit = async (e) => {
+    e.preventDefault();
+    if (!reportDescription.trim()) return;
+
+    setIsReporting(true);
+    const success = await reportJob(job.id, reportDescription, reportReason);
+    setIsReporting(false);
+
+    if (success) {
+      setReportSuccess(true);
+      setTimeout(() => {
+        setShowReportDialog(false);
+        setReportSuccess(false);
+        setReportDescription('');
+        setReportReason('spam');
+      }, 1500);
+    }
+  };
+
+  const handleCloseDialog = () => {
+    if (!isReporting) {
+      setShowReportDialog(false);
+      setReportDescription('');
+      setReportReason('spam');
+      setReportSuccess(false);
+    }
   };
 
   // Get first line of description
@@ -44,14 +75,11 @@ export default function JobCard({ job, style, onSwipe, showAcceptIndicator, show
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 relative overflow-hidden">
           <button
-            onClick={handleFavoriteClick}
+            onClick={handleReportClick}
             className="absolute top-4 right-4 z-10 bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors"
+            aria-label="Report job"
           >
-            {isFavorite ? (
-              <HeartIconSolid className="h-6 w-6 text-white flex-shrink-0" />
-            ) : (
-              <HeartIcon className="h-6 w-6 text-white flex-shrink-0" />
-            )}
+            <FlagIcon className="h-6 w-6 text-white flex-shrink-0" />
           </button>
           
           <div className="flex items-center space-x-4">
@@ -112,6 +140,75 @@ export default function JobCard({ job, style, onSwipe, showAcceptIndicator, show
             </div>
           </div>
         </div>
+
+        {/* Report Dialog */}
+        {showReportDialog && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              {reportSuccess ? (
+                <div className="text-center">
+                  <div className="text-5xl mb-3">✅</div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Report Submitted</h3>
+                  <p className="text-sm text-gray-600">Thank you for your feedback!</p>
+                </div>
+              ) : (
+                <form onSubmit={handleReportSubmit}>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Report Job</h3>
+                  
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Reason
+                    </label>
+                    <select
+                      value={reportReason}
+                      onChange={(e) => setReportReason(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={isReporting}
+                    >
+                      <option value="spam">Spam</option>
+                      <option value="inappropriate">Inappropriate</option>
+                      <option value="fake">Fake Job</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      value={reportDescription}
+                      onChange={(e) => setReportDescription(e.target.value)}
+                      placeholder="Please describe the issue..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      rows="3"
+                      required
+                      disabled={isReporting}
+                    />
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={handleCloseDialog}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                      disabled={isReporting}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+                      disabled={isReporting || !reportDescription.trim()}
+                    >
+                      {isReporting ? 'Reporting...' : 'Report'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -41,6 +41,12 @@ export default function HamburgerMenu() {
       icon: ArrowPathIcon,
       description: 'Review jobs you skipped',
     },
+    {
+      name: 'Reported',
+      href: '/reported',
+      icon: XMarkIcon,
+      description: 'View jobs you reported',
+    },
   ];
 
   const toggleMenu = () => setIsOpen(!isOpen);
