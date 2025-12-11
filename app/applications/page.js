@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useJobs } from '@/context/JobContext';
 import { BriefcaseIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import SearchInput from '@/components/SearchInput';
 
 const APPLICATION_STAGES = [
   'Applied',
@@ -16,22 +17,32 @@ const APPLICATION_STAGES = [
 
 export default function ApplicationsPage() {
   const { applications, updateApplicationStage, fetchApplications } = useJobs();
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchApplications();
   }, []);
 
-  if (applications.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-        <div className="text-6xl mb-4">📋</div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">No applications yet</h2>
-        <p className="text-gray-600">
-          Accept jobs to track your application progress here.
-        </p>
-      </div>
-    );
-  }
+  const handleSearch = useCallback((query) => {
+    setSearchQuery(query.toLowerCase());
+  }, []);
+
+  // Filter applications based on search query
+  const filteredApplications = applications.filter(app => {
+    if (!searchQuery) return true;
+    
+    const searchableText = [
+      app.company,
+      app.position,
+      app.location,
+      ...(app.skills || [])
+    ].join(' ').toLowerCase();
+    
+    return searchableText.includes(searchQuery);
+  });
+
+  const hasApplications = applications.length > 0;
+  const hasResults = filteredApplications.length > 0;
 
   const getStageColor = (stage) => {
     const colors = {
@@ -58,8 +69,38 @@ export default function ApplicationsPage() {
           </p>
         </div>
 
-        <div className="space-y-3">
-          {applications.map((app) => {
+        {hasApplications && (
+          <div className="mb-4">
+            <SearchInput 
+              placeholder="Search by company, position, or skills..."
+              onSearch={handleSearch}
+            />
+          </div>
+        )}
+
+        {!hasApplications && (
+          <div className="flex flex-col items-center justify-center h-full px-6 text-center mt-20">
+            <div className="text-6xl mb-4">📋</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">No applications yet</h2>
+            <p className="text-gray-600">
+              Accept jobs to track your application progress here.
+            </p>
+          </div>
+        )}
+
+        {hasApplications && !hasResults && (
+          <div className="flex flex-col items-center justify-center px-6 text-center mt-20">
+            <div className="text-6xl mb-4">🔍</div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">No results found</h2>
+            <p className="text-gray-600">
+              Try adjusting your search query.
+            </p>
+          </div>
+        )}
+
+        {hasResults && (
+          <div className="space-y-3">
+            {filteredApplications.map((app) => {
             const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
             
             return (
@@ -147,7 +188,8 @@ export default function ApplicationsPage() {
               </div>
             );
           })}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

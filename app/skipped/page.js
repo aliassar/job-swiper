@@ -1,14 +1,20 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useJobs } from '@/context/JobContext';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import SearchInput from '@/components/SearchInput';
 
 export default function SkippedJobsPage() {
   const { skippedJobs, fetchSkippedJobs, rollbackLastAction } = useJobs();
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchSkippedJobs();
+  }, []);
+
+  const handleSearch = useCallback((query) => {
+    setSearchQuery(query.toLowerCase());
   }, []);
 
   const handleUnskip = async (jobId) => {
@@ -18,7 +24,24 @@ export default function SkippedJobsPage() {
     console.log('Unskip job:', jobId);
   };
 
-  if (skippedJobs.length === 0) {
+  // Filter skipped jobs based on search query
+  const filteredJobs = skippedJobs.filter(job => {
+    if (!searchQuery) return true;
+    
+    const searchableText = [
+      job.company,
+      job.position,
+      job.location,
+      ...(job.skills || [])
+    ].join(' ').toLowerCase();
+    
+    return searchableText.includes(searchQuery);
+  });
+
+  const hasJobs = skippedJobs.length > 0;
+  const hasResults = filteredJobs.length > 0;
+
+  if (!hasJobs) {
     return (
       <div className="flex flex-col items-center justify-center h-full px-6 text-center">
         <div className="text-6xl mb-4">⏭️</div>
@@ -42,8 +65,28 @@ export default function SkippedJobsPage() {
           </p>
         </div>
 
-        <div className="space-y-3">
-          {skippedJobs.map((job) => {
+        {hasJobs && (
+          <div className="mb-4">
+            <SearchInput 
+              placeholder="Search by company, position, or skills..."
+              onSearch={handleSearch}
+            />
+          </div>
+        )}
+
+        {!hasResults && hasJobs && (
+          <div className="flex flex-col items-center justify-center px-6 text-center mt-20">
+            <div className="text-6xl mb-4">🔍</div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">No results found</h2>
+            <p className="text-gray-600">
+              Try adjusting your search query.
+            </p>
+          </div>
+        )}
+
+        {hasResults && (
+          <div className="space-y-3">
+            {filteredJobs.map((job) => {
             const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
             
             return (
@@ -115,7 +158,8 @@ export default function SkippedJobsPage() {
               </div>
             );
           })}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
