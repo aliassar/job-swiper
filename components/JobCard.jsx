@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { FlagIcon } from '@heroicons/react/24/outline';
 import { useJobs } from '@/context/JobContext';
+import { getCompanyLogoUrl, getRelativeTime } from '@/lib/utils';
 
 export default function JobCard({ job, style, onSwipe, showAcceptIndicator, showRejectIndicator }) {
   const { reportJob } = useJobs();
@@ -13,17 +14,6 @@ export default function JobCard({ job, style, onSwipe, showAcceptIndicator, show
   const [reportSuccess, setReportSuccess] = useState(false);
   
   if (!job) return null;
-  
-  const getRelativeTime = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInMs = now - date;
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    
-    if (diffInDays === 0) return 'Posted today';
-    if (diffInDays === 1) return 'Posted 1 day ago';
-    return `Posted ${diffInDays} days ago`;
-  };
 
   const handleReportClick = (e) => {
     e.stopPropagation();
@@ -63,8 +53,8 @@ export default function JobCard({ job, style, onSwipe, showAcceptIndicator, show
     ? job.description.split('.')[0] + '.' 
     : job.description;
 
-  // Generate company logo URL
-  const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=80&background=0D8ABC&color=fff&bold=true`;
+  // Generate company logo URL using utility function
+  const logoUrl = getCompanyLogoUrl(job.company);
 
   return (
     <div 
@@ -102,7 +92,7 @@ export default function JobCard({ job, style, onSwipe, showAcceptIndicator, show
           </h3>
           
           <p className="text-sm text-gray-500 mb-4">
-            {getRelativeTime(job.postedDate)}
+            Posted {getRelativeTime(job.postedDate)}
           </p>
 
           {/* Skills moved above description */}

@@ -9,6 +9,7 @@ import { ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 // Constants
 const SWIPE_THRESHOLD = 130;
 const INDICATOR_THRESHOLD = 100;
+const ANIMATION_DURATION = 300; // milliseconds - matches CSS animation in globals.css
 
 export default function SwipeContainer() {
   const { 
@@ -47,14 +48,11 @@ export default function SwipeContainer() {
       hammer = new HammerConstructor(cardRef.current);
       hammer.get('pan').set({ direction: HammerConstructor.DIRECTION_ALL });
 
-      let deltaX = 0;
-      let deltaY = 0;
-
       hammer.on('panmove', (e) => {
         if (isAnimating) return;
         
-        deltaX = e.deltaX;
-        deltaY = e.deltaY;
+        const deltaX = e.deltaX;
+        const deltaY = e.deltaY;
 
         // Apply transform for smooth dragging
         if (cardRef.current) {
@@ -137,7 +135,7 @@ export default function SwipeContainer() {
         cardRef.current.style.transform = 'translate(0, 0) rotate(0deg)';
         cardRef.current.style.transition = 'none';
       }
-    }, 300);
+    }, ANIMATION_DURATION);
   };
 
   if (loading) {
