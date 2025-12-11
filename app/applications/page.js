@@ -26,25 +26,13 @@ export default function ApplicationsPage() {
   }, []);
 
   const handleSearch = useCallback((query) => {
-    setSearchQuery(query.toLowerCase());
-  }, []);
-
-  // Filter applications based on search query
-  const filteredApplications = applications.filter(app => {
-    if (!searchQuery) return true;
-    
-    const searchableText = [
-      app.company,
-      app.position,
-      app.location,
-      ...(app.skills || [])
-    ].join(' ').toLowerCase();
-    
-    return searchableText.includes(searchQuery);
-  });
+    setSearchQuery(query);
+    // Fetch from server with search query
+    fetchApplications(query);
+  }, [fetchApplications]);
 
   const hasApplications = applications.length > 0;
-  const hasResults = filteredApplications.length > 0;
+  const hasResults = applications.length > 0;
 
   const getStageColor = (stage) => {
     const colors = {
@@ -104,7 +92,7 @@ export default function ApplicationsPage() {
 
         {hasResults && (
           <div className="space-y-3">
-            {filteredApplications.map((app) => {
+            {applications.map((app) => {
             const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
             
             return (

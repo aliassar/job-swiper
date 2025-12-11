@@ -14,8 +14,10 @@ export default function SkippedJobsPage() {
   }, []);
 
   const handleSearch = useCallback((query) => {
-    setSearchQuery(query.toLowerCase());
-  }, []);
+    setSearchQuery(query);
+    // Fetch from server with search query
+    fetchSkippedJobs(query);
+  }, [fetchSkippedJobs]);
 
   const handleUnskip = async (jobId) => {
     // Note: This is a simplified version. For proper unskip, we'd need a dedicated function
@@ -24,22 +26,8 @@ export default function SkippedJobsPage() {
     console.log('Unskip job:', jobId);
   };
 
-  // Filter skipped jobs based on search query
-  const filteredJobs = skippedJobs.filter(job => {
-    if (!searchQuery) return true;
-    
-    const searchableText = [
-      job.company,
-      job.position,
-      job.location,
-      ...(job.skills || [])
-    ].join(' ').toLowerCase();
-    
-    return searchableText.includes(searchQuery);
-  });
-
   const hasJobs = skippedJobs.length > 0;
-  const hasResults = filteredJobs.length > 0;
+  const hasResults = skippedJobs.length > 0;
 
   if (!hasJobs) {
     return (
@@ -86,7 +74,7 @@ export default function SkippedJobsPage() {
 
         {hasResults && (
           <div className="space-y-3">
-            {filteredJobs.map((job) => {
+            {skippedJobs.map((job) => {
             const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
             
             return (
