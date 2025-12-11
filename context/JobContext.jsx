@@ -47,12 +47,12 @@ export function JobProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  const fetchJobs = async (retryAttempt = 0) => {
+  const fetchJobs = async (retryAttempt = 0, search = '') => {
     setLoading(true);
     setFetchError(null);
     
     try {
-      const data = await jobsApi.getJobs();
+      const data = await jobsApi.getJobs(search);
       setJobs(data.jobs);
       setRetryCount(0); // Reset retry count on success
       setFetchError(null);
@@ -67,7 +67,7 @@ export function JobProvider({ children }) {
         setRetryCount(retryAttempt + 1);
         
         setTimeout(() => {
-          fetchJobs(retryAttempt + 1);
+          fetchJobs(retryAttempt + 1, search);
         }, delay);
       } else {
         // Max retries reached
@@ -80,36 +80,36 @@ export function JobProvider({ children }) {
     }
   };
 
-  const fetchSavedJobs = async () => {
+  const fetchSavedJobs = async (search = '') => {
     try {
-      const data = await favoritesApi.getFavorites();
+      const data = await favoritesApi.getFavorites(search);
       setSavedJobs(data.favorites);
     } catch (error) {
       console.error('Error fetching saved jobs:', error);
     }
   };
 
-  const fetchApplications = async () => {
+  const fetchApplications = async (search = '') => {
     try {
-      const data = await applicationsApi.getApplications();
+      const data = await applicationsApi.getApplications(search);
       setApplications(data.applications);
     } catch (error) {
       console.error('Error fetching applications:', error);
     }
   };
 
-  const fetchReportedJobs = async () => {
+  const fetchReportedJobs = async (search = '') => {
     try {
-      const data = await reportedApi.getReportedJobs();
+      const data = await reportedApi.getReportedJobs(search);
       setReportedJobs(data.reportedJobs);
     } catch (error) {
       console.error('Error fetching reported jobs:', error);
     }
   };
 
-  const fetchSkippedJobs = async () => {
+  const fetchSkippedJobs = async (search = '') => {
     try {
-      const data = await jobsApi.getSkippedJobs();
+      const data = await jobsApi.getSkippedJobs(search);
       // Merge with local skippedJobs, prioritizing local ones
       const serverSkipped = data.jobs.map(job => ({ ...job, pendingSync: false }));
       setSkippedJobs(prev => {

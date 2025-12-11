@@ -6,29 +6,17 @@ import { BookmarkIcon } from '@heroicons/react/24/solid';
 import SearchInput from '@/components/SearchInput';
 
 export default function SavedJobsPage() {
-  const { savedJobs, toggleSaveJob } = useJobs();
+  const { savedJobs, toggleSaveJob, fetchSavedJobs } = useJobs();
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearch = useCallback((query) => {
-    setSearchQuery(query.toLowerCase());
-  }, []);
-
-  // Filter saved jobs based on search query
-  const filteredJobs = savedJobs.filter(job => {
-    if (!searchQuery) return true;
-    
-    const searchableText = [
-      job.company,
-      job.position,
-      job.location,
-      ...(job.skills || [])
-    ].join(' ').toLowerCase();
-    
-    return searchableText.includes(searchQuery);
-  });
+    setSearchQuery(query);
+    // Fetch from server with search query
+    fetchSavedJobs(query);
+  }, [fetchSavedJobs]);
 
   const hasJobs = savedJobs.length > 0;
-  const hasResults = filteredJobs.length > 0;
+  const hasResults = savedJobs.length > 0;
 
   return (
     <div className="h-full overflow-y-auto p-4 pb-8">
@@ -73,7 +61,7 @@ export default function SavedJobsPage() {
 
         {hasResults && (
           <div className="space-y-3">
-            {filteredJobs.map((job) => {
+            {savedJobs.map((job) => {
               const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
               
               return (

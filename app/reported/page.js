@@ -6,30 +6,17 @@ import { FlagIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 
 export default function ReportedJobsPage() {
-  const { reportedJobs, unreportJob } = useJobs();
+  const { reportedJobs, unreportJob, fetchReportedJobs } = useJobs();
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearch = useCallback((query) => {
-    setSearchQuery(query.toLowerCase());
-  }, []);
-
-  // Filter reported jobs based on search query
-  const filteredJobs = reportedJobs.filter(report => {
-    if (!searchQuery) return true;
-    
-    const job = report.job;
-    const searchableText = [
-      job.company,
-      job.position,
-      job.location,
-      ...(job.skills || [])
-    ].join(' ').toLowerCase();
-    
-    return searchableText.includes(searchQuery);
-  });
+    setSearchQuery(query);
+    // Fetch from server with search query
+    fetchReportedJobs(query);
+  }, [fetchReportedJobs]);
 
   const hasJobs = reportedJobs.length > 0;
-  const hasResults = filteredJobs.length > 0;
+  const hasResults = reportedJobs.length > 0;
 
   if (!hasJobs) {
     return (
@@ -76,7 +63,7 @@ export default function ReportedJobsPage() {
 
         {hasResults && (
           <div className="space-y-3">
-            {filteredJobs.map((report) => {
+            {reportedJobs.map((report) => {
             const job = report.job;
             const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
             
