@@ -173,13 +173,13 @@ export default function SwipeContainer() {
 
     if (draggedUp || flickedUp) {
       setExit({ x: 0, y: -EXIT_DISTANCE });
-      skipJob(currentJob);
+      rejectJob(currentJob);
       return;
     }
 
     setExit({ x: 0, y: 0 }); // reset if not passed threshold
     setSwipeDirection(''); // reset swipe direction
-  }, [currentJob, acceptJob, rejectJob, skipJob]);
+  }, [currentJob, acceptJob, rejectJob]);
 
   const handleAccept = useCallback(() => {
     setExit({ x: EXIT_DISTANCE, y: 0 });
