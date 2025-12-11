@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Hammer from 'hammerjs';
 import JobCard from './JobCard';
 import FloatingActions from './FloatingActions';
 import { useJobs } from '@/context/JobContext';
@@ -36,66 +35,78 @@ export default function SwipeContainer() {
   useEffect(() => {
     if (!cardRef.current || !currentJob || isAnimating) return;
 
-    const hammer = new Hammer(cardRef.current);
-    hammer.get('pan').set({ direction: Hammer.DIRECTION_ALL });
-
-    let deltaX = 0;
-    let deltaY = 0;
-
-    hammer.on('panmove', (e) => {
-      if (isAnimating) return;
+    // Dynamically import Hammer.js to avoid SSR issues
+    let hammer;
+    
+    const setupHammer = async () => {
+      const Hammer = await import('hammerjs');
+      const HammerConstructor = Hammer.default || Hammer;
       
-      deltaX = e.deltaX;
-      deltaY = e.deltaY;
+      if (!cardRef.current) return;
+      
+      hammer = new HammerConstructor(cardRef.current);
+      hammer.get('pan').set({ direction: HammerConstructor.DIRECTION_ALL });
 
-      // Apply transform for smooth dragging
-      if (cardRef.current) {
-        const rotation = deltaX * 0.05;
-        cardRef.current.style.transform = `translate(${deltaX}px, ${deltaY}px) rotate(${rotation}deg)`;
-        cardRef.current.style.transition = 'none';
-      }
+      let deltaX = 0;
+      let deltaY = 0;
 
-      // Show indicators based on threshold AND direction
-      if (deltaX > INDICATOR_THRESHOLD) {
-        setShowAcceptIndicator(true);
-        setShowRejectIndicator(false);
-      } else if (deltaX < -INDICATOR_THRESHOLD) {
-        setShowRejectIndicator(true);
-        setShowAcceptIndicator(false);
-      } else {
-        setShowAcceptIndicator(false);
-        setShowRejectIndicator(false);
-      }
-    });
+      hammer.on('panmove', (e) => {
+        if (isAnimating) return;
+        
+        deltaX = e.deltaX;
+        deltaY = e.deltaY;
 
-    hammer.on('panend', (e) => {
-      if (isAnimating) return;
-
-      const finalDeltaX = e.deltaX;
-      const finalDeltaY = e.deltaY;
-
-      // Check if swipe threshold is met
-      if (finalDeltaX > SWIPE_THRESHOLD) {
-        // Swipe right - accept
-        animateOut('right', () => acceptJob(currentJob));
-      } else if (finalDeltaX < -SWIPE_THRESHOLD) {
-        // Swipe left - reject
-        animateOut('left', () => rejectJob(currentJob));
-      } else if (finalDeltaY < -SWIPE_THRESHOLD) {
-        // Swipe up - skip
-        animateOut('up', () => skipJob(currentJob));
-      } else {
-        // Spring back to center
+        // Apply transform for smooth dragging
         if (cardRef.current) {
-          cardRef.current.style.transition = 'transform 0.3s ease-out';
-          cardRef.current.style.transform = 'translate(0, 0) rotate(0deg)';
+          const rotation = deltaX * 0.05;
+          cardRef.current.style.transform = `translate(${deltaX}px, ${deltaY}px) rotate(${rotation}deg)`;
+          cardRef.current.style.transition = 'none';
         }
-        setShowAcceptIndicator(false);
-        setShowRejectIndicator(false);
-      }
-    });
 
-    hammerRef.current = hammer;
+        // Show indicators based on threshold AND direction
+        if (deltaX > INDICATOR_THRESHOLD) {
+          setShowAcceptIndicator(true);
+          setShowRejectIndicator(false);
+        } else if (deltaX < -INDICATOR_THRESHOLD) {
+          setShowRejectIndicator(true);
+          setShowAcceptIndicator(false);
+        } else {
+          setShowAcceptIndicator(false);
+          setShowRejectIndicator(false);
+        }
+      });
+
+      hammer.on('panend', (e) => {
+        if (isAnimating) return;
+
+        const finalDeltaX = e.deltaX;
+        const finalDeltaY = e.deltaY;
+
+        // Check if swipe threshold is met
+        if (finalDeltaX > SWIPE_THRESHOLD) {
+          // Swipe right - accept
+          animateOut('right', () => acceptJob(currentJob));
+        } else if (finalDeltaX < -SWIPE_THRESHOLD) {
+          // Swipe left - reject
+          animateOut('left', () => rejectJob(currentJob));
+        } else if (finalDeltaY < -SWIPE_THRESHOLD) {
+          // Swipe up - skip
+          animateOut('up', () => skipJob(currentJob));
+        } else {
+          // Spring back to center
+          if (cardRef.current) {
+            cardRef.current.style.transition = 'transform 0.3s ease-out';
+            cardRef.current.style.transform = 'translate(0, 0) rotate(0deg)';
+          }
+          setShowAcceptIndicator(false);
+          setShowRejectIndicator(false);
+        }
+      });
+
+      hammerRef.current = hammer;
+    };
+    
+    setupHammer();
 
     return () => {
       if (hammerRef.current) {
