@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useJobs } from '@/context/JobContext';
 import { BookmarkIcon } from '@heroicons/react/24/solid';
 import SearchInput from '@/components/SearchInput';
 
 export default function SavedJobsPage() {
+  const router = useRouter();
   const { savedJobs, toggleSaveJob, fetchSavedJobs } = useJobs();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -67,7 +69,8 @@ export default function SavedJobsPage() {
               return (
                 <div 
                   key={job.id}
-                  className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow overflow-hidden"
+                  onClick={() => router.push(`/job/${job.id}`)}
+                  className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow overflow-hidden cursor-pointer"
                 >
                   <div className="flex items-start gap-4">
                     <img 
@@ -98,7 +101,10 @@ export default function SavedJobsPage() {
                         </div>
                         
                         <button
-                          onClick={() => toggleSaveJob(job)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSaveJob(job);
+                          }}
                           className="flex-shrink-0 p-2 rounded-full hover:bg-blue-50 transition-colors"
                           aria-label="Remove from saved jobs"
                         >
