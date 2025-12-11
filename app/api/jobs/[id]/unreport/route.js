@@ -3,6 +3,7 @@ import { jobsStorage } from '../../route';
 
 export async function POST(request, { params }) {
   const { id } = params;
+  const jobId = parseInt(id);
   
   // Initialize reportedJobs array if it doesn't exist
   if (!jobsStorage.reportedJobs) {
@@ -11,7 +12,7 @@ export async function POST(request, { params }) {
   
   // Find and remove the report
   const reportIndex = jobsStorage.reportedJobs.findIndex(
-    report => report.jobId === id
+    report => report.jobId === jobId
   );
   
   if (reportIndex === -1) {
@@ -27,7 +28,7 @@ export async function POST(request, { params }) {
   // Log to history
   jobsStorage.history.push({
     action: 'unreport',
-    jobId: id,
+    jobId: jobId,
     timestamp: new Date().toISOString(),
   });
   
