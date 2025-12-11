@@ -130,6 +130,15 @@ export function JobProvider({ children }) {
     };
   }, [jobs, currentIndex, favorites, applications, sessionActions]);
 
+  // Helper to clear pending sync flag
+  const clearPendingSync = useCallback((key) => {
+    setPendingSync(prev => {
+      const next = new Map(prev);
+      next.delete(key);
+      return next;
+    });
+  }, []);
+
   const acceptJob = useCallback((job) => {
     // 1. Create snapshot before action
     const snapshot = createSnapshot();
@@ -146,9 +155,9 @@ export function JobProvider({ children }) {
     setSessionActions(prev => [...prev, actionData]);
     setCurrentIndex(prev => prev + 1);
     
-    // Optimistically add to applications
+    // Optimistically add to applications with unique temp ID
     const optimisticApplication = {
-      id: `temp-${job.id}`,
+      id: `temp-${job.id}-${Date.now()}`,
       jobId: job.id,
       job: job,
       stage: 'applied',
@@ -166,12 +175,7 @@ export function JobProvider({ children }) {
       sequenceId,
       metadata: { action: 'accept', jobId: job.id },
       onSuccess: (result) => {
-        // Clear pending flag
-        setPendingSync(prev => {
-          const next = new Map(prev);
-          next.delete(`accept-${job.id}`);
-          return next;
-        });
+        clearPendingSync(`accept-${job.id}`);
         
         // Update with real application data
         if (result.application) {
@@ -183,18 +187,13 @@ export function JobProvider({ children }) {
         }
       },
       onFailure: (error) => {
-        // Clear pending flag
-        setPendingSync(prev => {
-          const next = new Map(prev);
-          next.delete(`accept-${job.id}`);
-          return next;
-        });
+        clearPendingSync(`accept-${job.id}`);
         
         // Show error toast but DO NOT revert UI
         toast.showError(`Failed to sync "Accept" for ${job.position}. Please check your connection.`, 7000);
       },
     });
-  }, [createSnapshot, requestQueue, toast]);
+  }, [createSnapshot, requestQueue, toast, clearPendingSync]);
 
   const rejectJob = useCallback((job) => {
     // 1. Create snapshot before action
@@ -222,26 +221,16 @@ export function JobProvider({ children }) {
       sequenceId,
       metadata: { action: 'reject', jobId: job.id },
       onSuccess: () => {
-        // Clear pending flag
-        setPendingSync(prev => {
-          const next = new Map(prev);
-          next.delete(`reject-${job.id}`);
-          return next;
-        });
+        clearPendingSync(`reject-${job.id}`);
       },
       onFailure: (error) => {
-        // Clear pending flag
-        setPendingSync(prev => {
-          const next = new Map(prev);
-          next.delete(`reject-${job.id}`);
-          return next;
-        });
+        clearPendingSync(`reject-${job.id}`);
         
         // Show error toast but DO NOT revert UI
         toast.showError(`Failed to sync "Reject" for ${job.position}. Please check your connection.`, 7000);
       },
     });
-  }, [createSnapshot, requestQueue, toast]);
+  }, [createSnapshot, requestQueue, toast, clearPendingSync]);
 
   const skipJob = useCallback((job) => {
     // 1. Create snapshot before action
@@ -269,26 +258,16 @@ export function JobProvider({ children }) {
       sequenceId,
       metadata: { action: 'skip', jobId: job.id },
       onSuccess: () => {
-        // Clear pending flag
-        setPendingSync(prev => {
-          const next = new Map(prev);
-          next.delete(`skip-${job.id}`);
-          return next;
-        });
+        clearPendingSync(`skip-${job.id}`);
       },
       onFailure: (error) => {
-        // Clear pending flag
-        setPendingSync(prev => {
-          const next = new Map(prev);
-          next.delete(`skip-${job.id}`);
-          return next;
-        });
+        clearPendingSync(`skip-${job.id}`);
         
         // Show error toast but DO NOT revert UI
         toast.showError(`Failed to sync "Skip" for ${job.position}. Please check your connection.`, 7000);
       },
     });
-  }, [createSnapshot, requestQueue, toast]);
+  }, [createSnapshot, requestQueue, toast, clearPendingSync]);
 
   const toggleFavorite = useCallback((job) => {
     const isFavorite = favorites.some(fav => fav.id === job.id);
@@ -311,27 +290,17 @@ export function JobProvider({ children }) {
       sequenceId,
       metadata: { action: 'toggleFavorite', jobId: job.id, newState: newFavoriteState },
       onSuccess: () => {
-        // Clear pending flag
-        setPendingSync(prev => {
-          const next = new Map(prev);
-          next.delete(`favorite-${job.id}`);
-          return next;
-        });
+        clearPendingSync(`favorite-${job.id}`);
       },
       onFailure: (error) => {
-        // Clear pending flag
-        setPendingSync(prev => {
-          const next = new Map(prev);
-          next.delete(`favorite-${job.id}`);
-          return next;
-        });
+        clearPendingSync(`favorite-${job.id}`);
         
         // Show error toast but DO NOT revert UI
         const action = newFavoriteState ? 'add to' : 'remove from';
         toast.showError(`Failed to ${action} favorites for ${job.position}. Please check your connection.`, 7000);
       },
     });
-  }, [favorites, requestQueue, toast]);
+  }, [favorites, requestQueue, toast, clearPendingSync]);
 
   const rollbackLastAction = useCallback(() => {
     if (sessionActions.length === 0) return;
@@ -365,20 +334,10 @@ export function JobProvider({ children }) {
       sequenceId,
       metadata: { action: 'rollback', jobId: lastAction.jobId },
       onSuccess: () => {
-        // Clear pending flag
-        setPendingSync(prev => {
-          const next = new Map(prev);
-          next.delete(`rollback-${lastAction.jobId}`);
-          return next;
-        });
+        clearPendingSync(`rollback-${lastAction.jobId}`);
       },
       onFailure: (error) => {
-        // Clear pending flag
-        setPendingSync(prev => {
-          const next = new Map(prev);
-          next.delete(`rollback-${lastAction.jobId}`);
-          return next;
-        });
+        clearPendingSync(`rollback-${lastAction.jobId}`);
         
         // REVERT the rollback - restore the state we had before rollback
         setJobs(snapshotBeforeRollback.jobs);
@@ -391,7 +350,7 @@ export function JobProvider({ children }) {
         toast.showError(`Failed to undo action for ${lastAction.job.position}. Action has been restored.`, 7000);
       },
     });
-  }, [sessionActions, currentIndex, createSnapshot, requestQueue, toast]);
+  }, [sessionActions, currentIndex, createSnapshot, requestQueue, toast, clearPendingSync]);
 
   const updateApplicationStage = async (applicationId, stage) => {
     try {
