@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { jobsStorage } from '../../../route';
+import { jobsStorage } from '../../route';
 
 export async function POST(request, { params }) {
   const { id } = params;
