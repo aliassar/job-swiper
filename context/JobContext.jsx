@@ -193,22 +193,31 @@ export function JobProvider({ children }) {
     }
   };
 
-  const reportJob = async (job) => {
+  const reportJob = async (job, reason = 'other') => {
+    // Optimistic UI update
+    const reportId = `report-${job.id}-${Date.now()}`;
+    const newReport = {
+      id: reportId,
+      jobId: job.id,
+      reportedAt: new Date().toISOString(),
+      job: job,
+      reason: reason,
+      pendingSync: true,
+    };
+    
+    setReportedJobs(prev => [newReport, ...prev]);
+    console.log(`Job reported: ${reason}`);
+    
     try {
-      await reportedApi.reportJob(job.id);
+      await reportedApi.reportJob(job.id, reason);
       
-      // Add to local reported jobs state
-      setReportedJobs(prev => [{
-        id: `report-${job.id}-${Date.now()}`,
-        jobId: job.id,
-        reportedAt: new Date().toISOString(),
-        job: job,
-      }, ...prev]);
-      
-      // Show feedback to user (you could add a toast notification here)
-      console.log('Job reported successfully');
+      // Mark as synced
+      setReportedJobs(prev => prev.map(r => 
+        r.id === reportId ? { ...r, pendingSync: false } : r
+      ));
     } catch (error) {
       console.error('Error reporting job:', error);
+      // Keep pendingSync flag for retry logic (to be implemented)
     }
   };
 

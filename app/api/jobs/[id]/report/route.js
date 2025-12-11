@@ -4,6 +4,8 @@ import { generateId } from '@/lib/utils';
 
 export async function POST(request, { params }) {
   const jobId = parseInt(params.id);
+  const body = await request.json();
+  const reason = body.reason || 'other';
   
   const job = jobsStorage.jobs.find(j => j.id === jobId);
   if (!job) {
@@ -28,6 +30,7 @@ export async function POST(request, { params }) {
       jobId,
       reportedAt: now,
       job: job,
+      reason: reason,
     });
   }
 
@@ -37,11 +40,12 @@ export async function POST(request, { params }) {
     jobId,
     action: 'reported',
     timestamp: now,
-    metadata: { company: job.company, position: job.position },
+    metadata: { company: job.company, position: job.position, reason: reason },
   });
 
   return NextResponse.json({ 
     success: true,
     message: 'Job reported successfully',
+    reason: reason,
   });
 }
