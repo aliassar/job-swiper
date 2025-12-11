@@ -58,7 +58,7 @@ export default function HamburgerMenu() {
       {/* Hamburger Button - Fixed position */}
       <button
         onClick={toggleMenu}
-        className="fixed top-2 left-4 z-50 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
+        className="fixed top-2 right-4 z-50 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
         aria-label="Open menu"
       >
         <div className="w-6 flex flex-col gap-1.5">
