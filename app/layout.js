@@ -1,11 +1,8 @@
-import { Inter } from 'next/font/google';
 import './globals.css';
 import { JobProvider } from '@/context/JobContext';
 import { ToastProvider } from '@/context/ToastContext';
 import HamburgerMenu from '@/components/HamburgerMenu';
 import ToastRenderer from '@/components/ToastRenderer';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'Job Swiper - Find Your Dream Job',
@@ -15,7 +12,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className="h-full overflow-x-hidden">
-      <body className={`${inter.className} h-full overflow-x-hidden`}>
+      <body className="h-full overflow-x-hidden font-sans">
         <ToastProvider>
           <JobProvider>
             {/* Hamburger menu - available on all pages */}

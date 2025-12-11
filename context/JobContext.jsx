@@ -295,12 +295,8 @@ export function JobProvider({ children }) {
     // Remove from session actions
     setSessionActions(prev => prev.slice(0, -1));
     
-    // Add job back to the top of the swipe queue
-    setJobs(prev => {
-      const newJobs = [...prev];
-      newJobs.splice(currentIndex, 0, lastAction.job);
-      return newJobs;
-    });
+    // Move back one position in the job list to show the previous job again
+    setCurrentIndex(prev => Math.max(0, prev - 1));
     
     // Remove from applications if it was accepted
     if (lastAction.action === 'accepted') {
