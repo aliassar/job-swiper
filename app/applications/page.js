@@ -6,6 +6,8 @@ import { BriefcaseIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 
 const APPLICATION_STAGES = [
+  'Syncing',
+  'Being Applied',
   'Applied',
   'Phone Screen',
   'Interview',
@@ -46,6 +48,8 @@ export default function ApplicationsPage() {
 
   const getStageColor = (stage) => {
     const colors = {
+      'Syncing': 'bg-orange-100 text-orange-700',
+      'Being Applied': 'bg-amber-100 text-amber-700',
       'Applied': 'bg-blue-100 text-blue-700',
       'Phone Screen': 'bg-purple-100 text-purple-700',
       'Interview': 'bg-yellow-100 text-yellow-700',
@@ -146,8 +150,8 @@ export default function ApplicationsPage() {
                         id={`stage-${app.id}`}
                         value={app.stage}
                         onChange={(e) => updateApplicationStage(app.id, e.target.value)}
-                        disabled={app.pendingSync}
-                        className={`w-full px-3 py-2 rounded-lg text-sm font-medium border-0 ${app.pendingSync ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'} ${getStageColor(app.stage)}`}
+                        disabled={app.pendingSync || app.stage === 'Syncing' || app.stage === 'Being Applied'}
+                        className={`w-full px-3 py-2 rounded-lg text-sm font-medium border-0 ${(app.pendingSync || app.stage === 'Syncing' || app.stage === 'Being Applied') ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'} ${getStageColor(app.stage)}`}
                       >
                         {APPLICATION_STAGES.map((stage) => (
                           <option key={stage} value={stage}>

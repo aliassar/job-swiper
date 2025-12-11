@@ -2,11 +2,11 @@
 
 import { useState, useCallback } from 'react';
 import { useJobs } from '@/context/JobContext';
-import { FlagIcon } from '@heroicons/react/24/outline';
+import { FlagIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 
 export default function ReportedJobsPage() {
-  const { reportedJobs } = useJobs();
+  const { reportedJobs, unreportJob } = useJobs();
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearch = useCallback((query) => {
@@ -118,8 +118,18 @@ export default function ReportedJobsPage() {
                         )}
                       </div>
                       
-                      <div className="flex-shrink-0 p-2 rounded-full bg-red-50">
-                        <FlagIcon className="h-5 w-5 text-red-600" />
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => unreportJob(job.id)}
+                          className="flex-shrink-0 p-2 rounded-full hover:bg-blue-50 transition-colors group"
+                          aria-label="Unreport job"
+                          title="Unreport this job"
+                        >
+                          <XMarkIcon className="h-5 w-5 text-gray-600 group-hover:text-blue-600" />
+                        </button>
+                        <div className="flex-shrink-0 p-2 rounded-full bg-red-50">
+                          <FlagIcon className="h-5 w-5 text-red-600" />
+                        </div>
                       </div>
                     </div>
                     
