@@ -3,22 +3,33 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useJobs } from '@/context/JobContext';
+import { useReportedJobs } from '@/lib/hooks/useSWR';
 import { FlagIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 
 export default function ReportedJobsPage() {
   const router = useRouter();
-  const { reportedJobs, unreportJob, fetchReportedJobs } = useJobs();
+  const { unreportJob } = useJobs();
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Use SWR for data fetching with automatic caching and revalidation
+  const { reportedJobs, isLoading, mutate } = useReportedJobs(searchQuery);
 
   const handleSearch = useCallback((query) => {
     setSearchQuery(query);
-    // Fetch from server with search query
-    fetchReportedJobs(query);
-  }, [fetchReportedJobs]);
+  }, []);
 
   const hasJobs = reportedJobs.length > 0;
   const hasResults = reportedJobs.length > 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full px-6 text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+        <p className="text-gray-600">Loading reported jobs...</p>
+      </div>
+    );
+  }
 
   if (!hasJobs) {
     return (
@@ -113,6 +124,8 @@ export default function ReportedJobsPage() {
                           onClick={(e) => {
                             e.stopPropagation();
                             unreportJob(job.id);
+                            // Revalidate data after mutation
+                            mutate();
                           }}
                           className="flex-shrink-0 p-2 rounded-full hover:bg-blue-50 transition-colors group"
                           aria-label="Unreport job"

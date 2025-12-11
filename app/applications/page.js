@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useJobs } from '@/context/JobContext';
+import { useApplications } from '@/lib/hooks/useSWR';
 import { BriefcaseIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 
@@ -18,18 +19,15 @@ const APPLICATION_STAGES = [
 ];
 
 export default function ApplicationsPage() {
-  const { applications, updateApplicationStage, fetchApplications } = useJobs();
+  const { updateApplicationStage } = useJobs();
   const [searchQuery, setSearchQuery] = useState('');
-
-  useEffect(() => {
-    fetchApplications();
-  }, []);
+  
+  // Use SWR for data fetching with automatic caching and revalidation
+  const { applications, isLoading, mutate } = useApplications(searchQuery);
 
   const handleSearch = useCallback((query) => {
     setSearchQuery(query);
-    // Fetch from server with search query
-    fetchApplications(query);
-  }, [fetchApplications]);
+  }, []);
 
   const hasApplications = applications.length > 0;
   const hasResults = applications.length > 0;
@@ -70,7 +68,14 @@ export default function ApplicationsPage() {
           </div>
         )}
 
-        {!hasApplications && (
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center h-full px-6 text-center mt-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+            <p className="text-gray-600">Loading applications...</p>
+          </div>
+        )}
+
+        {!isLoading && !hasApplications && (
           <div className="flex flex-col items-center justify-center h-full px-6 text-center mt-20">
             <div className="text-6xl mb-4">📋</div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">No applications yet</h2>
@@ -137,7 +142,11 @@ export default function ApplicationsPage() {
                       <select
                         id={`stage-${app.id}`}
                         value={app.stage}
-                        onChange={(e) => updateApplicationStage(app.id, e.target.value)}
+                        onChange={(e) => {
+                          updateApplicationStage(app.id, e.target.value);
+                          // Revalidate data after mutation
+                          mutate();
+                        }}
                         disabled={app.pendingSync || app.stage === 'Syncing' || app.stage === 'Being Applied'}
                         className={`w-full px-3 py-2 rounded-lg text-sm font-medium border-0 ${(app.pendingSync || app.stage === 'Syncing' || app.stage === 'Being Applied') ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'} ${getStageColor(app.stage)}`}
                       >
