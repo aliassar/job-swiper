@@ -25,13 +25,16 @@ export default function HistoryPage() {
           Decision History
         </h2>
         <div>
-          {sessionActions.map((item, index) => (
-            <HistoryItem 
-              key={`${item.jobId}-${item.timestamp}-${index}`} 
-              item={item}
-              onRollback={rollbackLastAction}
-            />
-          ))}
+          {sessionActions.map((item, index) => {
+            const isLastAction = index === sessionActions.length - 1;
+            return (
+              <HistoryItem 
+                key={`${item.jobId}-${item.timestamp}-${index}`} 
+                item={item}
+                onRollback={isLastAction ? rollbackLastAction : null}
+              />
+            );
+          })}
         </div>
       </div>
     </div>

@@ -55,13 +55,15 @@ export default function HistoryItem({ item, onRollback }) {
               {getRelativeTime(item.timestamp)}
             </p>
             
-            <button
-              onClick={() => onRollback(item)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-            >
-              <ArrowUturnLeftIcon className="h-4 w-4" />
-              Undo
-            </button>
+            {onRollback && (
+              <button
+                onClick={onRollback}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              >
+                <ArrowUturnLeftIcon className="h-4 w-4" />
+                Undo
+              </button>
+            )}
           </div>
         </div>
       </div>
