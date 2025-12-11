@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
 import JobCard from './JobCard';
 import FloatingActions from './FloatingActions';
+import ReportModal from './ReportModal';
 import { useJobs } from '@/context/JobContext';
 import { ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 
@@ -25,6 +26,7 @@ export default function SwipeContainer() {
     remainingJobs,
     sessionActions,
     rollbackLastAction,
+    reportJob,
   } = useJobs();
 
   const x = useMotionValue(0);
@@ -32,6 +34,8 @@ export default function SwipeContainer() {
   const opacity = useTransform(x, [-300, -150, 0, 150, 300], [0, 1, 1, 1, 0]);
 
   const [exit, setExit] = useState({ x: 0, y: 0 });
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [jobToReport, setJobToReport] = useState(null);
 
   // Reset motion values when currentJob changes
   useEffect(() => {
@@ -113,6 +117,17 @@ export default function SwipeContainer() {
     }
   };
 
+  const handleOpenReportModal = (job) => {
+    setJobToReport(job);
+    setReportModalOpen(true);
+  };
+
+  const handleReport = (reason) => {
+    if (jobToReport) {
+      reportJob(jobToReport, reason);
+    }
+  };
+
   const currentIndex = jobs.indexOf(currentJob);
   const visibleJobs = jobs.slice(currentIndex, currentIndex + 3);
   const isFavorite = currentJob ? favorites.some(fav => fav.id === currentJob.id) : false;
@@ -158,17 +173,14 @@ export default function SwipeContainer() {
                   initial={{ scale: 0.95, opacity: 0 }}
                   animate={{ scale: isTopCard ? 1 : scale, opacity: 1 }}
                   exit={{
-                    x: exit.x,
-                    y: exit.y,
-                    scale: 0.8,
-                    transition: { 
-                      x: { duration: 0.2, ease: 'easeOut' },
-                      y: { duration: 0.2, ease: 'easeOut' },
-                      scale: { duration: 0.2, ease: 'easeOut' }
-                    }
+                    opacity: 0,
+                    transition: { duration: 0 }
                   }}
                 >
-                  <JobCard job={job} />
+                  <JobCard 
+                    job={job} 
+                    onReportClick={() => handleOpenReportModal(job)}
+                  />
                 </motion.div>
               );
             })}
@@ -196,6 +208,14 @@ export default function SwipeContainer() {
             <span className="text-sm font-medium pr-1">{sessionActions.length}</span>
           </button>
         )}
+
+        {/* Report Modal */}
+        <ReportModal
+          isOpen={reportModalOpen}
+          onClose={() => setReportModalOpen(false)}
+          onReport={handleReport}
+          job={jobToReport}
+        />
       </div>
     </div>
   );

@@ -4,8 +4,8 @@ import { FlagIcon } from '@heroicons/react/24/outline';
 import { FlagIcon as FlagIconSolid } from '@heroicons/react/24/solid';
 import { useJobs } from '@/context/JobContext';
 
-export default function JobCard({ job, style, onSwipe }) {
-  const { reportJob, reportedJobs } = useJobs();
+export default function JobCard({ job, style, onSwipe, onReportClick }) {
+  const { reportedJobs } = useJobs();
   
   if (!job) return null;
   
@@ -24,7 +24,9 @@ export default function JobCard({ job, style, onSwipe }) {
 
   const handleReportClick = (e) => {
     e.stopPropagation();
-    reportJob(job);
+    if (onReportClick) {
+      onReportClick();
+    }
   };
 
   // Get first line of description
