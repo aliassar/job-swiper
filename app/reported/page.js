@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useJobs } from '@/context/JobContext';
 import { FlagIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 
 export default function ReportedJobsPage() {
+  const router = useRouter();
   const { reportedJobs, unreportJob, fetchReportedJobs } = useJobs();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -70,7 +72,8 @@ export default function ReportedJobsPage() {
             return (
               <div 
                 key={report.id}
-                className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow"
+                onClick={() => router.push(`/job/${job.id}`)}
+                className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer"
               >
                 <div className="flex items-start gap-4">
                   <img 
@@ -107,7 +110,10 @@ export default function ReportedJobsPage() {
                       
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => unreportJob(job.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            unreportJob(job.id);
+                          }}
                           className="flex-shrink-0 p-2 rounded-full hover:bg-blue-50 transition-colors group"
                           aria-label="Unreport job"
                           title="Unreport this job"

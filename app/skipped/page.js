@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useJobs } from '@/context/JobContext';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 
 export default function SkippedJobsPage() {
+  const router = useRouter();
   const { skippedJobs, fetchSkippedJobs, rollbackLastAction } = useJobs();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -80,7 +82,8 @@ export default function SkippedJobsPage() {
             return (
               <div 
                 key={job.id}
-                className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow"
+                onClick={() => router.push(`/job/${job.id}`)}
+                className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer"
               >
                 <div className="flex items-start gap-4">
                   <img 
@@ -105,7 +108,10 @@ export default function SkippedJobsPage() {
                       </div>
                       
                       <button
-                        onClick={() => handleUnskip(job.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUnskip(job.id);
+                        }}
                         className="flex-shrink-0 p-2 rounded-full hover:bg-blue-50 transition-colors group"
                         aria-label="Review again"
                       >
