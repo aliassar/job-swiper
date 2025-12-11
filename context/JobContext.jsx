@@ -15,6 +15,8 @@ export function JobProvider({ children }) {
   const [sessionActions, setSessionActions] = useState([]); // For rollback functionality
   const [loading, setLoading] = useState(true);
   const [queueStatus, setQueueStatus] = useState({ length: 0, operations: [] });
+  const [fetchError, setFetchError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Initialize offline queue
   const offlineQueue = getOfflineQueue();
@@ -40,15 +42,40 @@ export function JobProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  const fetchJobs = async () => {
+  const fetchJobs = async (retryAttempt = 0) => {
+    const MAX_RETRIES = 5;
     setLoading(true);
+    setFetchError(null);
+    
     try {
       const data = await jobsApi.getJobs();
       setJobs(data.jobs);
+      setRetryCount(0); // Reset retry count on success
+      setFetchError(null);
     } catch (error) {
-      console.error('Error fetching jobs:', error);
+      console.error(`Error fetching jobs (attempt ${retryAttempt + 1}):`, error);
+      
+      if (retryAttempt < MAX_RETRIES) {
+        // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+        const delay = Math.pow(2, retryAttempt) * 1000;
+        console.log(`Retrying in ${delay / 1000}s...`);
+        setRetryCount(retryAttempt + 1);
+        
+        setTimeout(() => {
+          fetchJobs(retryAttempt + 1);
+        }, delay);
+      } else {
+        // Max retries reached
+        setFetchError({
+          message: 'Unable to load jobs. Please check your connection and try again.',
+          canRetry: true,
+        });
+        setLoading(false);
+      }
     } finally {
-      setLoading(false);
+      if (retryAttempt >= MAX_RETRIES || error === null) {
+        setLoading(false);
+      }
     }
   };
 
@@ -298,6 +325,12 @@ export function JobProvider({ children }) {
   const currentJob = jobs[currentIndex];
   const remainingJobs = jobs.length - currentIndex;
 
+  const manualRetry = () => {
+    setRetryCount(0);
+    setFetchError(null);
+    fetchJobs(0);
+  };
+
   return (
     <JobContext.Provider
       value={{
@@ -309,6 +342,8 @@ export function JobProvider({ children }) {
         reportedJobs,
         sessionActions,
         loading,
+        fetchError,
+        retryCount,
         acceptJob,
         rejectJob,
         skipJob,
@@ -318,6 +353,7 @@ export function JobProvider({ children }) {
         updateApplicationStage,
         fetchApplications,
         fetchReportedJobs,
+        manualRetry,
       }}
     >
       {children}

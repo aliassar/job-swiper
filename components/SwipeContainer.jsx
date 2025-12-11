@@ -6,7 +6,7 @@ import JobCard from './JobCard';
 import FloatingActions from './FloatingActions';
 import ReportModal from './ReportModal';
 import { useJobs } from '@/context/JobContext';
-import { ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowUturnLeftIcon, WifiIcon } from '@heroicons/react/24/outline';
 
 // Constants
 const SWIPE_THRESHOLD = 130;
@@ -27,6 +27,9 @@ export default function SwipeContainer() {
     sessionActions,
     rollbackLastAction,
     reportJob,
+    fetchError,
+    retryCount,
+    manualRetry,
   } = useJobs();
 
   const x = useMotionValue(0);
@@ -36,6 +39,7 @@ export default function SwipeContainer() {
   const [exit, setExit] = useState({ x: 0, y: 0 });
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [jobToReport, setJobToReport] = useState(null);
+  const [isOnline, setIsOnline] = useState(true);
 
   // Reset motion values when currentJob changes
   useEffect(() => {
@@ -43,14 +47,77 @@ export default function SwipeContainer() {
     setExit({ x: 0, y: 0 });
   }, [currentJob, x]);
 
+  // Monitor online/offline status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    setIsOnline(navigator.onLine);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Show error state with manual retry option
+  if (fetchError && !loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center px-6 max-w-sm">
+          <div className="text-6xl mb-4">😕</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Unable to Load Jobs</h2>
+          <p className="text-gray-600 mb-6">{fetchError.message}</p>
+          
+          {fetchError.canRetry && (
+            <button
+              onClick={manualRetry}
+              className="px-6 py-3 bg-blue-500 text-white rounded-full font-medium hover:bg-blue-600 transition-colors shadow-lg"
+            >
+              Try Again
+            </button>
+          )}
+          
+          {!isOnline && (
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-sm">
+              <WifiIcon className="h-4 w-4" />
+              <span>You're offline</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading jobs...</p>
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center px-6">
+          {/* Animated loading spinner */}
+          <div className="relative w-20 h-20 mx-auto mb-6">
+            <div className="absolute inset-0 rounded-full border-4 border-blue-100"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
           </div>
+          
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading jobs...</h2>
+          <p className="text-sm text-gray-500">Finding the best opportunities for you</p>
+          
+          {/* Show retry count if retrying */}
+          {retryCount > 0 && (
+            <p className="text-xs text-gray-400 mt-2">Retry attempt {retryCount}/5</p>
+          )}
+          
+          {/* Network status indicator */}
+          {!isOnline && (
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-sm">
+              <WifiIcon className="h-4 w-4" />
+              <span>You're offline - will retry when connected</span>
+            </div>
+          )}
         </div>
+      </div>
     );
   }
 
@@ -142,6 +209,16 @@ export default function SwipeContainer() {
             {remainingJobs} {remainingJobs === 1 ? 'job' : 'jobs'}
           </div>
         </div>
+
+        {/* Network status indicator when offline */}
+        {!isOnline && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+            <div className="bg-orange-500 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-full font-medium flex items-center gap-1.5 shadow-lg">
+              <WifiIcon className="h-3.5 w-3.5" />
+              <span>Offline Mode</span>
+            </div>
+          </div>
+        )}
 
         {/* Card stack container with padding for floating actions */}
         <div className="relative h-full px-4 pt-4 pb-28">
