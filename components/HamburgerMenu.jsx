@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BriefcaseIcon, 
-  HeartIcon, 
+  BookmarkIcon, 
   ClockIcon,
   ArrowPathIcon,
   FlagIcon,
@@ -24,10 +24,10 @@ export default function HamburgerMenu() {
       description: 'Browse and swipe through job opportunities',
     },
     {
-      name: 'Favorites',
-      href: '/favorites',
-      icon: HeartIcon,
-      description: 'View your favorited job postings',
+      name: 'Saved Jobs',
+      href: '/saved',
+      icon: BookmarkIcon,
+      description: 'View your saved job postings',
     },
     {
       name: 'Application Status',

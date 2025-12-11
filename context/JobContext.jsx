@@ -9,7 +9,7 @@ const JobContext = createContext();
 export function JobProvider({ children }) {
   const [jobs, setJobs] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [favorites, setFavorites] = useState([]);
+  const [savedJobs, setSavedJobs] = useState([]); // Renamed from favorites
   const [applications, setApplications] = useState([]);
   const [reportedJobs, setReportedJobs] = useState([]);
   const [skippedJobs, setSkippedJobs] = useState([]); // Track skipped jobs locally
@@ -22,10 +22,10 @@ export function JobProvider({ children }) {
   // Initialize offline queue
   const offlineQueue = getOfflineQueue();
 
-  // Fetch jobs and favorites on mount
+  // Fetch jobs and saved jobs on mount
   useEffect(() => {
     fetchJobs();
-    fetchFavorites();
+    fetchSavedJobs();
     fetchApplications();
     fetchReportedJobs();
     fetchSkippedJobs();
@@ -81,12 +81,12 @@ export function JobProvider({ children }) {
     }
   };
 
-  const fetchFavorites = async () => {
+  const fetchSavedJobs = async () => {
     try {
       const data = await favoritesApi.getFavorites();
-      setFavorites(data.favorites);
+      setSavedJobs(data.favorites);
     } catch (error) {
-      console.error('Error fetching favorites:', error);
+      console.error('Error fetching saved jobs:', error);
     }
   };
 
@@ -251,39 +251,39 @@ export function JobProvider({ children }) {
     }
   };
 
-  const toggleFavorite = async (job) => {
-    const isFavorite = favorites.some(fav => fav.id === job.id);
-    const newFavoriteState = !isFavorite;
+  const toggleSaveJob = async (job) => {
+    const isSaved = savedJobs.some(saved => saved.id === job.id);
+    const newSavedState = !isSaved;
     
     // Optimistically update UI
-    if (isFavorite) {
-      setFavorites(prev => prev.filter(fav => fav.id !== job.id));
+    if (isSaved) {
+      setSavedJobs(prev => prev.filter(saved => saved.id !== job.id));
     } else {
-      const favoriteItem = { ...job, pendingSync: true };
-      setFavorites(prev => [favoriteItem, ...prev]);
+      const savedItem = { ...job, pendingSync: true };
+      setSavedJobs(prev => [savedItem, ...prev]);
     }
     
     // Add to offline queue for background sync
     try {
       await offlineQueue.addOperation({
-        type: 'favorite',
+        type: 'saveJob',
         id: job.id,
-        payload: { jobId: job.id, favorite: newFavoriteState },
+        payload: { jobId: job.id, favorite: newSavedState },
         apiCall: async (payload) => {
           await jobsApi.toggleFavorite(payload.jobId, payload.favorite);
           
           // Mark as synced
           if (payload.favorite) {
-            setFavorites(prev => prev.map(f =>
-              f.id === payload.jobId
-                ? { ...f, pendingSync: false }
-                : f
+            setSavedJobs(prev => prev.map(s =>
+              s.id === payload.jobId
+                ? { ...s, pendingSync: false }
+                : s
             ));
           }
         },
       });
     } catch (error) {
-      console.error('Error queuing favorite toggle:', error);
+      console.error('Error queuing save job toggle:', error);
     }
   };
 
@@ -414,7 +414,8 @@ export function JobProvider({ children }) {
         jobs,
         currentJob,
         remainingJobs,
-        favorites,
+        savedJobs,
+        favorites: savedJobs, // Keep for backward compatibility
         applications,
         reportedJobs,
         skippedJobs,
@@ -425,13 +426,15 @@ export function JobProvider({ children }) {
         acceptJob,
         rejectJob,
         skipJob,
-        toggleFavorite,
+        toggleSaveJob,
+        toggleFavorite: toggleSaveJob, // Keep for backward compatibility
         reportJob,
         rollbackLastAction,
         updateApplicationStage,
         fetchApplications,
         fetchReportedJobs,
         fetchSkippedJobs,
+        fetchSavedJobs,
         manualRetry,
       }}
     >

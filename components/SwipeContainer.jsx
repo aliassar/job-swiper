@@ -20,8 +20,8 @@ export default function SwipeContainer() {
     acceptJob, 
     rejectJob, 
     skipJob,
-    toggleFavorite,
-    favorites,
+    toggleSaveJob,
+    savedJobs,
     loading, 
     remainingJobs,
     sessionActions,
@@ -178,9 +178,9 @@ export default function SwipeContainer() {
     skipJob(currentJob);
   };
 
-  const handleFavorite = () => {
+  const handleSaveJob = () => {
     if (currentJob) {
-      toggleFavorite(currentJob);
+      toggleSaveJob(currentJob);
     }
   };
 
@@ -197,7 +197,7 @@ export default function SwipeContainer() {
 
   const currentIndex = jobs.indexOf(currentJob);
   const visibleJobs = jobs.slice(currentIndex, currentIndex + 3);
-  const isFavorite = currentJob ? favorites.some(fav => fav.id === currentJob.id) : false;
+  const isSaved = currentJob ? savedJobs.some(saved => saved.id === currentJob.id) : false;
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -271,8 +271,8 @@ export default function SwipeContainer() {
           onReject={handleReject}
           onAccept={handleAccept}
           onSkip={handleSkip}
-          onFavorite={handleFavorite}
-          isFavorite={isFavorite}
+          onFavorite={handleSaveJob}
+          isFavorite={isSaved}
           disabled={!currentJob}
         />
 
