@@ -1,12 +1,15 @@
 'use client';
 
 import { FlagIcon } from '@heroicons/react/24/outline';
+import { FlagIcon as FlagIconSolid } from '@heroicons/react/24/solid';
 import { useJobs } from '@/context/JobContext';
 
 export default function JobCard({ job, style, onSwipe }) {
-  const { reportJob } = useJobs();
+  const { reportJob, reportedJobs } = useJobs();
   
   if (!job) return null;
+  
+  const isReported = reportedJobs.some(report => report.jobId === job.id);
   
   const getRelativeTime = (dateString) => {
     const date = new Date(dateString);
@@ -38,15 +41,21 @@ export default function JobCard({ job, style, onSwipe }) {
       style={style}
     >
       <div className="bg-white rounded-2xl shadow-2xl overflow-hidden h-full flex flex-col">
+        {/* Report button - below hamburger on right */}
+        <button
+          onClick={handleReportClick}
+          className="fixed top-16 right-4 z-40 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
+          aria-label={isReported ? "Job reported" : "Report job"}
+        >
+          {isReported ? (
+            <FlagIconSolid className="h-6 w-6 text-red-500 flex-shrink-0" />
+          ) : (
+            <FlagIcon className="h-6 w-6 text-gray-600 flex-shrink-0" />
+          )}
+        </button>
+        
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 relative overflow-hidden">
-          <button
-            onClick={handleReportClick}
-            className="absolute top-4 right-4 z-10 bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors"
-            aria-label="Report job"
-          >
-            <FlagIcon className="h-6 w-6 text-white flex-shrink-0" />
-          </button>
           
           <div className="flex items-center space-x-4">
             <img 

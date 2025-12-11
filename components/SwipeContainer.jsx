@@ -103,7 +103,7 @@ export default function SwipeContainer() {
   };
 
   const handleSkip = () => {
-    setExit({ x: EXIT_DISTANCE, y: 0 });
+    setExit({ x: 0, y: -EXIT_DISTANCE });
     skipJob(currentJob);
   };
 
