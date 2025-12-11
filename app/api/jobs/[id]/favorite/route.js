@@ -1,0 +1,41 @@
+import { NextResponse } from 'next/server';
+import { jobsStorage } from '../../route';
+import { generateId } from '@/lib/utils';
+
+export async function POST(request, { params }) {
+  const jobId = parseInt(params.id);
+  const body = await request.json();
+  const { favorite } = body;
+  
+  const job = jobsStorage.jobs.find(j => j.id === jobId);
+  if (!job) {
+    return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+  }
+
+  // Get existing status or create new one
+  const existingStatus = jobsStorage.userJobStatus.get(jobId) || {
+    status: 'pending',
+    favorite: false,
+  };
+
+  // Update favorite status
+  jobsStorage.userJobStatus.set(jobId, {
+    ...existingStatus,
+    favorite,
+  });
+
+  // Log action
+  jobsStorage.history.push({
+    id: generateId('history'),
+    jobId,
+    action: favorite ? 'favorited' : 'unfavorited',
+    timestamp: new Date().toISOString(),
+    metadata: { company: job.company, position: job.position },
+  });
+
+  return NextResponse.json({ 
+    success: true, 
+    jobId,
+    favorite
+  });
+}

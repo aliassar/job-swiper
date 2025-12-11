@@ -1,0 +1,142 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useJobs } from '@/context/JobContext';
+import { BriefcaseIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+
+const APPLICATION_STAGES = [
+  'Applied',
+  'Phone Screen',
+  'Interview',
+  'Offer',
+  'Rejected',
+  'Accepted',
+  'Withdrawn',
+];
+
+export default function ApplicationsPage() {
+  const { applications, updateApplicationStage, fetchApplications } = useJobs();
+
+  useEffect(() => {
+    fetchApplications();
+  }, []);
+
+  if (applications.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full px-6 text-center">
+        <div className="text-6xl mb-4">📋</div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">No applications yet</h2>
+        <p className="text-gray-600">
+          Accept jobs to track your application progress here.
+        </p>
+      </div>
+    );
+  }
+
+  const getStageColor = (stage) => {
+    const colors = {
+      'Applied': 'bg-blue-100 text-blue-700',
+      'Phone Screen': 'bg-purple-100 text-purple-700',
+      'Interview': 'bg-yellow-100 text-yellow-700',
+      'Offer': 'bg-green-100 text-green-700',
+      'Rejected': 'bg-red-100 text-red-700',
+      'Accepted': 'bg-emerald-100 text-emerald-700',
+      'Withdrawn': 'bg-gray-100 text-gray-700',
+    };
+    return colors[stage] || 'bg-gray-100 text-gray-700';
+  };
+
+  return (
+    <div className="min-h-full p-4 pb-8 overflow-y-auto">
+      <div className="max-w-md mx-auto">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">
+            Application Status
+          </h1>
+          <p className="text-sm text-gray-600">
+            Track and update your job application progress
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {applications.map((app) => {
+            const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
+            
+            return (
+              <div 
+                key={app.id}
+                className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow"
+              >
+                <div className="flex items-start gap-4">
+                  <img 
+                    src={logoUrl}
+                    alt={`${app.company} logo`}
+                    className="w-14 h-14 rounded-xl flex-shrink-0"
+                  />
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 truncate">
+                          {app.position}
+                        </h3>
+                        <p className="text-sm text-gray-600 truncate">{app.company}</p>
+                        <p className="text-xs text-gray-500 mt-1">{app.location}</p>
+                      </div>
+                    </div>
+
+                    {/* Stage selector */}
+                    <div className="mt-3">
+                      <label htmlFor={`stage-${app.id}`} className="text-xs text-gray-600 mb-1 block">
+                        Application Stage
+                      </label>
+                      <select
+                        id={`stage-${app.id}`}
+                        value={app.stage}
+                        onChange={(e) => updateApplicationStage(app.id, e.target.value)}
+                        className={`w-full px-3 py-2 rounded-lg text-sm font-medium border-0 cursor-pointer ${getStageColor(app.stage)}`}
+                      >
+                        {APPLICATION_STAGES.map((stage) => (
+                          <option key={stage} value={stage}>
+                            {stage}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Application date */}
+                    <div className="mt-2 text-xs text-gray-500">
+                      Applied {new Date(app.appliedAt).toLocaleDateString()}
+                      {app.updatedAt && app.updatedAt !== app.appliedAt && (
+                        <> • Updated {new Date(app.updatedAt).toLocaleDateString()}</>
+                      )}
+                    </div>
+
+                    {/* Skills preview */}
+                    {app.skills && app.skills.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-3">
+                        {app.skills.slice(0, 3).map((skill, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                        {app.skills.length > 3 && (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                            +{app.skills.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}

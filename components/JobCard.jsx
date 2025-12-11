@@ -37,20 +37,20 @@ export default function JobCard({ job, style, onSwipe }) {
 
   return (
     <div 
-      className="absolute w-full h-full select-none"
+      className="absolute inset-0 w-full h-full select-none"
       style={style}
     >
-      <div className="bg-white rounded-3xl shadow-2xl overflow-hidden h-full flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl overflow-hidden h-full flex flex-col">
         {/* Header with gradient */}
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 relative">
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 relative overflow-hidden">
           <button
             onClick={handleFavoriteClick}
             className="absolute top-4 right-4 z-10 bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors"
           >
             {isFavorite ? (
-              <HeartIconSolid className="h-6 w-6 text-white" />
+              <HeartIconSolid className="h-6 w-6 text-white flex-shrink-0" />
             ) : (
-              <HeartIcon className="h-6 w-6 text-white" />
+              <HeartIcon className="h-6 w-6 text-white flex-shrink-0" />
             )}
           </button>
           
