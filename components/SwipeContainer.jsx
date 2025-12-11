@@ -15,7 +15,8 @@ const DRAG_CONSTRAINTS = { top: 0, bottom: 0, left: 0, right: 0 };
 
 export default function SwipeContainer() {
   const { 
-    currentJob, 
+    currentJob,
+    currentIndex,
     jobs, 
     acceptJob, 
     rejectJob, 
@@ -120,7 +121,6 @@ export default function SwipeContainer() {
     }
   };
 
-  const currentIndex = jobs.indexOf(currentJob);
   const visibleJobs = jobs.slice(currentIndex, currentIndex + 3);
   const isFavorite = currentJob ? favorites.some(fav => fav.id === currentJob.id) : false;
 
@@ -128,8 +128,8 @@ export default function SwipeContainer() {
     <div className="relative h-full w-full overflow-hidden">
       <div className="relative h-full max-w-md mx-auto">
         
-        {/* Small jobs remaining counter - top left */}
-        <div className="absolute top-4 right-4 z-10 pointer-events-none">
+        {/* Small jobs remaining counter - top left after hamburger menu */}
+        <div className="absolute top-4 left-16 z-20 pointer-events-none">
           <div className="bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-full font-medium">
             {remainingJobs} {remainingJobs === 1 ? 'job' : 'jobs'}
           </div>
@@ -145,7 +145,7 @@ export default function SwipeContainer() {
 
               return (
                 <motion.div
-                  key={`${job.id}-${index}`}
+                  key={isTopCard ? job.id : `${job.id}-${index}`}
                   className="absolute inset-0"
                   style={
                     isTopCard

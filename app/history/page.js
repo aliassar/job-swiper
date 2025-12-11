@@ -4,9 +4,9 @@ import { useJobs } from '@/context/JobContext';
 import HistoryItem from '@/components/HistoryItem';
 
 export default function HistoryPage() {
-  const { history, rollbackDecision } = useJobs();
+  const { sessionActions = [], rollbackLastAction } = useJobs();
 
-  if (history.length === 0) {
+  if (sessionActions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full px-6 text-center">
         <div className="text-6xl mb-4">📋</div>
@@ -25,13 +25,16 @@ export default function HistoryPage() {
           Decision History
         </h2>
         <div>
-          {history.map((item) => (
-            <HistoryItem 
-              key={`${item.id}-${item.timestamp}`} 
-              item={item}
-              onRollback={rollbackDecision}
-            />
-          ))}
+          {sessionActions.map((item, index) => {
+            const isLastAction = index === sessionActions.length - 1;
+            return (
+              <HistoryItem 
+                key={`${item.jobId}-${item.timestamp}-${index}`} 
+                item={item}
+                onRollback={isLastAction ? rollbackLastAction : null}
+              />
+            );
+          })}
         </div>
       </div>
     </div>
