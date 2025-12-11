@@ -1,5 +1,5 @@
 // Service Worker for Job Swiper PWA
-const CACHE_NAME = 'job-swiper-v1';
+const CACHE_NAME = 'job-swiper-v2'; // Incremented for route migration (favorites -> saved)
 const STATIC_CACHE_URLS = [
   '/',
   '/applications',
@@ -7,6 +7,9 @@ const STATIC_CACHE_URLS = [
   '/skipped',
   '/reported',
 ];
+
+// Legacy routes to clean up
+const LEGACY_ROUTES = ['/favorites'];
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
@@ -20,17 +23,26 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up old caches and legacy routes
 self.addEventListener('activate', (event) => {
   console.log('Service Worker activating...');
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      );
-    })
+    Promise.all([
+      // Delete old caches
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames
+            .filter((name) => name !== CACHE_NAME)
+            .map((name) => caches.delete(name))
+        );
+      }),
+      // Clean up legacy routes from current cache
+      caches.open(CACHE_NAME).then((cache) => {
+        return Promise.all(
+          LEGACY_ROUTES.map((route) => cache.delete(route))
+        );
+      }),
+    ])
   );
   self.clients.claim();
 });

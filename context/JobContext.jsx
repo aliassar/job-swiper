@@ -6,6 +6,9 @@ import { getOfflineQueue } from '@/lib/offlineQueue';
 
 const JobContext = createContext();
 
+// Configuration constants
+const MAX_FETCH_RETRIES = 5;
+
 export function JobProvider({ children }) {
   const [jobs, setJobs] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -45,7 +48,6 @@ export function JobProvider({ children }) {
   }, []);
 
   const fetchJobs = async (retryAttempt = 0) => {
-    const MAX_RETRIES = 5;
     setLoading(true);
     setFetchError(null);
     
@@ -57,7 +59,7 @@ export function JobProvider({ children }) {
     } catch (error) {
       console.error(`Error fetching jobs (attempt ${retryAttempt + 1}):`, error);
       
-      if (retryAttempt < MAX_RETRIES) {
+      if (retryAttempt < MAX_FETCH_RETRIES) {
         // Exponential backoff: 1s, 2s, 4s, 8s, 16s
         const delay = Math.pow(2, retryAttempt) * 1000;
         console.log(`Retrying in ${delay / 1000}s...`);
@@ -75,7 +77,7 @@ export function JobProvider({ children }) {
         setLoading(false);
       }
     } finally {
-      if (retryAttempt >= MAX_RETRIES || error === null) {
+      if (retryAttempt >= MAX_FETCH_RETRIES || error === null) {
         setLoading(false);
       }
     }
