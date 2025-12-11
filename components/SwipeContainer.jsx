@@ -182,13 +182,6 @@ export default function SwipeContainer() {
     <div className="relative h-full w-full overflow-hidden">
       <div className="relative h-full max-w-md mx-auto">
         
-        {/* Small jobs remaining counter - top left */}
-        <div className="absolute top-4 right-4 z-10 pointer-events-none">
-          <div className="bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-full font-medium">
-            {remainingJobs} {remainingJobs === 1 ? 'job' : 'jobs'}
-          </div>
-        </div>
-
         {/* Card stack container with padding for floating actions */}
         <div className="relative h-full px-4 pt-4 pb-28">
           {visibleJobs.map((job, index) => {

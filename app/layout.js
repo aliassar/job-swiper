@@ -1,7 +1,7 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { JobProvider } from '@/context/JobContext';
-import HamburgerMenu from '@/components/HamburgerMenu';
+import AppHeader from '@/components/AppHeader';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -15,13 +15,15 @@ export default function RootLayout({ children }) {
     <html lang="en" className="h-full overflow-x-hidden">
       <body className={`${inter.className} h-full overflow-x-hidden`}>
         <JobProvider>
-          {/* Hamburger menu - available on all pages */}
-          <HamburgerMenu />
-          
-          {/* Main content - full height, no top bar */}
-          <main className="h-full overflow-hidden">
-            {children}
-          </main>
+          <div className="flex flex-col h-full">
+            {/* Fixed header with hamburger and jobs counter */}
+            <AppHeader />
+            
+            {/* Main content area - starts below header */}
+            <main className="flex-1 pt-14 overflow-hidden">
+              {children}
+            </main>
+          </div>
         </JobProvider>
       </body>
     </html>
