@@ -5,7 +5,7 @@ import { FlagIcon as FlagIconSolid } from '@heroicons/react/24/solid';
 import { useJobs } from '@/context/JobContext';
 
 export default function JobCard({ job, style, onSwipe, onReportClick }) {
-  const { reportedJobs } = useJobs();
+  const { reportedJobs, unreportJob } = useJobs();
   
   if (!job) return null;
   
@@ -24,8 +24,15 @@ export default function JobCard({ job, style, onSwipe, onReportClick }) {
 
   const handleReportClick = (e) => {
     e.stopPropagation();
-    if (onReportClick) {
-      onReportClick();
+    
+    // If already reported, unreport it
+    if (isReported) {
+      unreportJob(job.id);
+    } else {
+      // If not reported, open modal to select reason
+      if (onReportClick) {
+        onReportClick();
+      }
     }
   };
 
@@ -55,19 +62,6 @@ export default function JobCard({ job, style, onSwipe, onReportClick }) {
               <h2 className="text-2xl font-bold text-white mb-1">{job.company}</h2>
               <p className="text-blue-100 text-sm">{job.location}</p>
             </div>
-            
-            {/* Report button - positioned in header next to company name */}
-            <button
-              onClick={handleReportClick}
-              className="flex-shrink-0 bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors pointer-events-auto"
-              aria-label={isReported ? "Job reported" : "Report job"}
-            >
-              {isReported ? (
-                <FlagIconSolid className="h-5 w-5 text-white flex-shrink-0" />
-              ) : (
-                <FlagIcon className="h-5 w-5 text-white flex-shrink-0" />
-              )}
-            </button>
           </div>
         </div>
 
@@ -101,6 +95,22 @@ export default function JobCard({ job, style, onSwipe, onReportClick }) {
             <p className="text-gray-700 leading-relaxed">
               {descriptionPreview}
             </p>
+          </div>
+
+          {/* Report button - moved below job details */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <button
+              onClick={handleReportClick}
+              className="flex items-center gap-2 text-sm text-gray-600 hover:text-red-600 transition-colors pointer-events-auto"
+              aria-label={isReported ? "Job reported" : "Report job"}
+            >
+              {isReported ? (
+                <FlagIconSolid className="h-4 w-4 flex-shrink-0" />
+              ) : (
+                <FlagIcon className="h-4 w-4 flex-shrink-0" />
+              )}
+              <span>{isReported ? "Reported" : "Report this job"}</span>
+            </button>
           </div>
         </div>
 

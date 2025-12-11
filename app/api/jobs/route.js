@@ -20,12 +20,29 @@ function getJobWithStatus(jobId) {
   return { job, status };
 }
 
-export async function GET() {
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const searchQuery = searchParams.get('search')?.toLowerCase() || '';
+  
   // Return only pending jobs (not accepted, rejected, or skipped)
-  const pendingJobs = jobsStorage.jobs.filter(job => {
+  let pendingJobs = jobsStorage.jobs.filter(job => {
     const status = jobsStorage.userJobStatus.get(job.id);
     return !status || status.status === 'pending';
   });
+  
+  // Apply search filter if query provided
+  if (searchQuery) {
+    pendingJobs = pendingJobs.filter(job => {
+      const searchableText = [
+        job.company,
+        job.position,
+        job.location,
+        ...(job.skills || [])
+      ].join(' ').toLowerCase();
+      
+      return searchableText.includes(searchQuery);
+    });
+  }
   
   // Sort by date (newest first)
   const sortedJobs = pendingJobs.sort((a, b) => 

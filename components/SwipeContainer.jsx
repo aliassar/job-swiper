@@ -196,7 +196,7 @@ export default function SwipeContainer() {
   };
 
   const currentIndex = jobs.indexOf(currentJob);
-  const visibleJobs = jobs.slice(currentIndex, currentIndex + 3);
+  const visibleJobs = jobs.slice(currentIndex, currentIndex + 2);
   const isSaved = currentJob ? savedJobs.some(saved => saved.id === currentJob.id) : false;
 
   return (
@@ -230,7 +230,7 @@ export default function SwipeContainer() {
 
               return (
                 <motion.div
-                  key={`${job.id}-${index}`}
+                  key={isTopCard ? job.id : `${job.id}-bottom`}
                   className="absolute inset-0"
                   style={
                     isTopCard
@@ -254,6 +254,12 @@ export default function SwipeContainer() {
                     y: exit.y,
                     opacity: 0,
                     transition: { duration: 0.3, ease: 'easeOut' }
+                  }}
+                  onAnimationComplete={() => {
+                    if (isTopCard) {
+                      x.set(0);
+                      setExit({ x: 0, y: 0 });
+                    }
                   }}
                 >
                   <JobCard 

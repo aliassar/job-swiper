@@ -47,15 +47,16 @@ export function JobProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  const fetchJobs = async (retryAttempt = 0) => {
+  const fetchJobs = async (retryAttempt = 0, search = '') => {
     setLoading(true);
     setFetchError(null);
     
     try {
-      const data = await jobsApi.getJobs();
+      const data = await jobsApi.getJobs(search);
       setJobs(data.jobs);
       setRetryCount(0); // Reset retry count on success
       setFetchError(null);
+      setLoading(false); // Set loading false on success
     } catch (error) {
       console.error(`Error fetching jobs (attempt ${retryAttempt + 1}):`, error);
       
@@ -66,7 +67,7 @@ export function JobProvider({ children }) {
         setRetryCount(retryAttempt + 1);
         
         setTimeout(() => {
-          fetchJobs(retryAttempt + 1);
+          fetchJobs(retryAttempt + 1, search);
         }, delay);
       } else {
         // Max retries reached
@@ -76,43 +77,39 @@ export function JobProvider({ children }) {
         });
         setLoading(false);
       }
-    } finally {
-      if (retryAttempt >= MAX_FETCH_RETRIES || error === null) {
-        setLoading(false);
-      }
     }
   };
 
-  const fetchSavedJobs = async () => {
+  const fetchSavedJobs = async (search = '') => {
     try {
-      const data = await favoritesApi.getFavorites();
+      const data = await favoritesApi.getFavorites(search);
       setSavedJobs(data.favorites);
     } catch (error) {
       console.error('Error fetching saved jobs:', error);
     }
   };
 
-  const fetchApplications = async () => {
+  const fetchApplications = async (search = '') => {
     try {
-      const data = await applicationsApi.getApplications();
+      const data = await applicationsApi.getApplications(search);
       setApplications(data.applications);
     } catch (error) {
       console.error('Error fetching applications:', error);
     }
   };
 
-  const fetchReportedJobs = async () => {
+  const fetchReportedJobs = async (search = '') => {
     try {
-      const data = await reportedApi.getReportedJobs();
+      const data = await reportedApi.getReportedJobs(search);
       setReportedJobs(data.reportedJobs);
     } catch (error) {
       console.error('Error fetching reported jobs:', error);
     }
   };
 
-  const fetchSkippedJobs = async () => {
+  const fetchSkippedJobs = async (search = '') => {
     try {
-      const data = await jobsApi.getSkippedJobs();
+      const data = await jobsApi.getSkippedJobs(search);
       // Merge with local skippedJobs, prioritizing local ones
       const serverSkipped = data.jobs.map(job => ({ ...job, pendingSync: false }));
       setSkippedJobs(prev => {
@@ -130,7 +127,23 @@ export function JobProvider({ children }) {
   };
 
   const acceptJob = async (job) => {
+    // Create initial application with "Syncing" stage
+    const tempApplication = {
+      id: `temp-${job.id}-${Date.now()}`,
+      jobId: job.id,
+      company: job.company,
+      position: job.position,
+      location: job.location,
+      skills: job.skills,
+      stage: 'Syncing',
+      appliedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      pendingSync: true,
+    };
+    
     // Optimistic UI update
+    setApplications(prev => [tempApplication, ...prev]);
+    
     setSessionActions(prev => [...prev, { 
       jobId: job.id, 
       action: 'accepted', 
@@ -144,6 +157,13 @@ export function JobProvider({ children }) {
     
     // Add to offline queue
     try {
+      // Update stage to "Being Applied"
+      setApplications(prev => prev.map(app =>
+        app.jobId === job.id && app.id.startsWith('temp-')
+          ? { ...app, stage: 'Being Applied' }
+          : app
+      ));
+      
       await offlineQueue.addOperation({
         type: 'accept',
         id: job.id,
@@ -151,9 +171,13 @@ export function JobProvider({ children }) {
         apiCall: async (payload) => {
           const result = await jobsApi.acceptJob(payload.jobId);
           
-          // Update applications on success
+          // Update applications on success - change to "Applied" and use real ID
           if (result.application) {
-            setApplications(prev => [result.application, ...prev]);
+            setApplications(prev => prev.map(app =>
+              app.jobId === payload.jobId && app.id.startsWith('temp-')
+                ? { ...result.application, stage: 'Applied', pendingSync: false }
+                : app
+            ));
           }
           
           // Mark as synced
@@ -401,6 +425,27 @@ export function JobProvider({ children }) {
     }
   };
 
+  const unreportJob = async (jobId) => {
+    // Optimistic UI update - remove from reported jobs immediately
+    setReportedJobs(prev => prev.filter(r => r.jobId !== jobId));
+    
+    // Add to offline queue
+    try {
+      await offlineQueue.addOperation({
+        type: 'unreport',
+        id: jobId,
+        payload: { jobId },
+        apiCall: async (payload) => {
+          await reportedApi.unreportJob(payload.jobId);
+          // Successfully unreported - UI already updated
+        },
+      });
+    } catch (error) {
+      console.error('Error queuing unreport:', error);
+      // Operation is still in queue for retry
+    }
+  };
+
   const currentJob = jobs[currentIndex];
   const remainingJobs = jobs.length - currentIndex;
 
@@ -431,6 +476,7 @@ export function JobProvider({ children }) {
         toggleSaveJob,
         toggleFavorite: toggleSaveJob, // Keep for backward compatibility
         reportJob,
+        unreportJob,
         rollbackLastAction,
         updateApplicationStage,
         fetchApplications,
