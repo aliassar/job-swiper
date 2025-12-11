@@ -15,7 +15,8 @@ const DRAG_CONSTRAINTS = { top: 0, bottom: 0, left: 0, right: 0 };
 
 export default function SwipeContainer() {
   const { 
-    currentJob, 
+    currentJob,
+    currentIndex,
     jobs, 
     acceptJob, 
     rejectJob, 
@@ -120,7 +121,6 @@ export default function SwipeContainer() {
     }
   };
 
-  const currentIndex = jobs.indexOf(currentJob);
   const visibleJobs = jobs.slice(currentIndex, currentIndex + 3);
   const isFavorite = currentJob ? favorites.some(fav => fav.id === currentJob.id) : false;
 
@@ -145,7 +145,7 @@ export default function SwipeContainer() {
 
               return (
                 <motion.div
-                  key={`${job.id}-${index}`}
+                  key={isTopCard ? job.id : `${job.id}-${index}`}
                   className="absolute inset-0"
                   style={
                     isTopCard

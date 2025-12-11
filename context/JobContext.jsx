@@ -353,6 +353,7 @@ export function JobProvider({ children }) {
       value={{
         jobs,
         currentJob,
+        currentIndex,
         remainingJobs,
         favorites,
         applications,
