@@ -98,7 +98,7 @@ export default function JobDetailPage() {
   const canActOnJob = source === 'saved' || source === 'skipped' || source === 'reported';
 
   return (
-    <div className="min-h-full bg-gray-50 pb-20">
+    <div className="min-h-full bg-gray-50 pb-28">
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <button
@@ -161,24 +161,7 @@ export default function JobDetailPage() {
               </div>
             )}
 
-            {canActOnJob && (
-              <div className="flex gap-4 mt-8 pt-6 border-t border-gray-200">
-                <button
-                  onClick={handleReject}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border-2 border-red-500 text-red-500 rounded-xl font-medium hover:bg-red-50 transition-colors"
-                >
-                  <XMarkIcon className="h-5 w-5" />
-                  <span>Reject</span>
-                </button>
-                <button
-                  onClick={handleAccept}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-colors shadow-lg"
-                >
-                  <CheckIcon className="h-5 w-5" />
-                  <span>Accept</span>
-                </button>
-              </div>
-            )}
+
 
             {isApplication && (
               <div className="mt-8 pt-6 border-t border-gray-200">
@@ -190,6 +173,33 @@ export default function JobDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Floating Action Buttons - Fixed at bottom like main page */}
+      {canActOnJob && (
+        <div className="fixed bottom-6 left-0 right-0 z-30 pointer-events-none">
+          <div className="max-w-md mx-auto px-6">
+            <div className="flex items-center justify-center gap-4 pointer-events-auto">
+              {/* Reject Button */}
+              <button
+                onClick={handleReject}
+                className="w-16 h-16 rounded-full bg-white shadow-xl flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
+                aria-label="Reject job"
+              >
+                <XMarkIcon className="h-8 w-8 text-red-500" />
+              </button>
+
+              {/* Accept Button */}
+              <button
+                onClick={handleAccept}
+                className="w-16 h-16 rounded-full bg-white shadow-xl flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
+                aria-label="Accept job"
+              >
+                <CheckIcon className="h-8 w-8 text-green-500" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
