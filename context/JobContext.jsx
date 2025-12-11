@@ -6,25 +6,32 @@ import { getOfflineQueue } from '@/lib/offlineQueue';
 
 const JobContext = createContext();
 
+// Configuration constants
+const MAX_FETCH_RETRIES = 5;
+
 export function JobProvider({ children }) {
   const [jobs, setJobs] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [favorites, setFavorites] = useState([]);
+  const [savedJobs, setSavedJobs] = useState([]); // Renamed from favorites
   const [applications, setApplications] = useState([]);
   const [reportedJobs, setReportedJobs] = useState([]);
+  const [skippedJobs, setSkippedJobs] = useState([]); // Track skipped jobs locally
   const [sessionActions, setSessionActions] = useState([]); // For rollback functionality
   const [loading, setLoading] = useState(true);
   const [queueStatus, setQueueStatus] = useState({ length: 0, operations: [] });
+  const [fetchError, setFetchError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Initialize offline queue
   const offlineQueue = getOfflineQueue();
 
-  // Fetch jobs and favorites on mount
+  // Fetch jobs and saved jobs on mount
   useEffect(() => {
     fetchJobs();
-    fetchFavorites();
+    fetchSavedJobs();
     fetchApplications();
     fetchReportedJobs();
+    fetchSkippedJobs();
     
     // Subscribe to queue updates
     const unsubscribe = offlineQueue.subscribe((event, data) => {
@@ -40,24 +47,48 @@ export function JobProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  const fetchJobs = async () => {
+  const fetchJobs = async (retryAttempt = 0) => {
     setLoading(true);
+    setFetchError(null);
+    
     try {
       const data = await jobsApi.getJobs();
       setJobs(data.jobs);
+      setRetryCount(0); // Reset retry count on success
+      setFetchError(null);
     } catch (error) {
-      console.error('Error fetching jobs:', error);
+      console.error(`Error fetching jobs (attempt ${retryAttempt + 1}):`, error);
+      
+      if (retryAttempt < MAX_FETCH_RETRIES) {
+        // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+        const delay = Math.pow(2, retryAttempt) * 1000;
+        console.log(`Retrying in ${delay / 1000}s...`);
+        setRetryCount(retryAttempt + 1);
+        
+        setTimeout(() => {
+          fetchJobs(retryAttempt + 1);
+        }, delay);
+      } else {
+        // Max retries reached
+        setFetchError({
+          message: 'Unable to load jobs. Please check your connection and try again.',
+          canRetry: true,
+        });
+        setLoading(false);
+      }
     } finally {
-      setLoading(false);
+      if (retryAttempt >= MAX_FETCH_RETRIES || error === null) {
+        setLoading(false);
+      }
     }
   };
 
-  const fetchFavorites = async () => {
+  const fetchSavedJobs = async () => {
     try {
       const data = await favoritesApi.getFavorites();
-      setFavorites(data.favorites);
+      setSavedJobs(data.favorites);
     } catch (error) {
-      console.error('Error fetching favorites:', error);
+      console.error('Error fetching saved jobs:', error);
     }
   };
 
@@ -76,6 +107,25 @@ export function JobProvider({ children }) {
       setReportedJobs(data.reportedJobs);
     } catch (error) {
       console.error('Error fetching reported jobs:', error);
+    }
+  };
+
+  const fetchSkippedJobs = async () => {
+    try {
+      const data = await jobsApi.getSkippedJobs();
+      // Merge with local skippedJobs, prioritizing local ones
+      const serverSkipped = data.jobs.map(job => ({ ...job, pendingSync: false }));
+      setSkippedJobs(prev => {
+        const merged = [...prev];
+        serverSkipped.forEach(serverJob => {
+          if (!merged.some(local => local.id === serverJob.id)) {
+            merged.push(serverJob);
+          }
+        });
+        return merged;
+      });
+    } catch (error) {
+      console.error('Error fetching skipped jobs:', error);
     }
   };
 
@@ -155,7 +205,15 @@ export function JobProvider({ children }) {
   };
 
   const skipJob = async (job) => {
-    // Optimistic UI update
+    // Optimistic UI update - add to skippedJobs immediately
+    const skippedItem = {
+      ...job,
+      skippedAt: new Date().toISOString(),
+      pendingSync: true,
+    };
+    
+    setSkippedJobs(prev => [skippedItem, ...prev]);
+    
     setSessionActions(prev => [...prev, { 
       jobId: job.id, 
       action: 'skipped', 
@@ -176,11 +234,17 @@ export function JobProvider({ children }) {
         apiCall: async (payload) => {
           await jobsApi.skipJob(payload.jobId);
           
-          // Mark as synced
+          // Mark as synced in both places
           setSessionActions(prev => prev.map(a =>
             a.jobId === payload.jobId && a.action === 'skipped'
               ? { ...a, pendingSync: false }
               : a
+          ));
+          
+          setSkippedJobs(prev => prev.map(s =>
+            s.id === payload.jobId
+              ? { ...s, pendingSync: false }
+              : s
           ));
         },
       });
@@ -189,29 +253,39 @@ export function JobProvider({ children }) {
     }
   };
 
-  const toggleFavorite = async (job) => {
-    const isFavorite = favorites.some(fav => fav.id === job.id);
-    const newFavoriteState = !isFavorite;
+  const toggleSaveJob = async (job) => {
+    const isSaved = savedJobs.some(saved => saved.id === job.id);
+    const newSavedState = !isSaved;
     
     // Optimistically update UI
-    if (isFavorite) {
-      setFavorites(prev => prev.filter(fav => fav.id !== job.id));
+    if (isSaved) {
+      setSavedJobs(prev => prev.filter(saved => saved.id !== job.id));
     } else {
-      setFavorites(prev => [...prev, job]);
+      const savedItem = { ...job, pendingSync: true };
+      setSavedJobs(prev => [savedItem, ...prev]);
     }
     
+    // Add to offline queue for background sync
     try {
-      await jobsApi.toggleFavorite(job.id, newFavoriteState);
+      await offlineQueue.addOperation({
+        type: 'saveJob',
+        id: job.id,
+        payload: { jobId: job.id, favorite: newSavedState },
+        apiCall: async (payload) => {
+          await jobsApi.toggleFavorite(payload.jobId, payload.favorite);
+          
+          // Mark as synced
+          if (payload.favorite) {
+            setSavedJobs(prev => prev.map(s =>
+              s.id === payload.jobId
+                ? { ...s, pendingSync: false }
+                : s
+            ));
+          }
+        },
+      });
     } catch (error) {
-      console.error('Error toggling favorite:', error);
-      // Revert optimistic update on error
-      if (newFavoriteState) {
-        // If we tried to add it but failed, remove it
-        setFavorites(prev => prev.filter(fav => fav.id !== job.id));
-      } else {
-        // If we tried to remove it but failed, add it back
-        setFavorites(prev => [...prev, job]);
-      }
+      console.error('Error queuing save job toggle:', error);
     }
   };
 
@@ -220,42 +294,74 @@ export function JobProvider({ children }) {
     
     const lastAction = sessionActions[sessionActions.length - 1];
     
+    // Optimistic UI update - immediately update UI
+    // Remove from session actions
+    setSessionActions(prev => prev.slice(0, -1));
+    
+    // Add job back to the top of the swipe queue
+    setJobs(prev => {
+      const newJobs = [...prev];
+      newJobs.splice(currentIndex, 0, lastAction.job);
+      return newJobs;
+    });
+    
+    // Remove from applications if it was accepted
+    if (lastAction.action === 'accepted') {
+      setApplications(prev => prev.filter(app => app.jobId !== lastAction.jobId));
+    }
+    
+    // Remove from skippedJobs if it was skipped
+    if (lastAction.action === 'skipped') {
+      setSkippedJobs(prev => prev.filter(s => s.id !== lastAction.jobId));
+    }
+    
+    // Add to offline queue for background sync
     try {
-      const result = await jobsApi.rollbackJob(lastAction.jobId);
-      
-      // Remove from session actions
-      setSessionActions(prev => prev.slice(0, -1));
-      
-      // Add job back to the top of the swipe queue
-      setJobs(prev => {
-        const newJobs = [...prev];
-        newJobs.splice(currentIndex, 0, lastAction.job);
-        return newJobs;
+      await offlineQueue.addOperation({
+        type: 'rollback',
+        id: lastAction.jobId,
+        payload: { jobId: lastAction.jobId },
+        apiCall: async (payload) => {
+          await jobsApi.rollbackJob(payload.jobId);
+          // Rollback synced successfully - no UI update needed
+        },
       });
-      
-      // Remove from applications if it was accepted
-      if (lastAction.action === 'accepted') {
-        setApplications(prev => prev.filter(app => app.jobId !== lastAction.jobId));
-      }
     } catch (error) {
-      console.error('Error rolling back decision:', error);
+      console.error('Error queuing rollback:', error);
     }
   };
 
   const updateApplicationStage = async (applicationId, stage) => {
+    // Optimistic UI update
+    setApplications(prev => 
+      prev.map(app => 
+        app.id === applicationId 
+          ? { ...app, stage, updatedAt: new Date().toISOString(), pendingSync: true }
+          : app
+      )
+    );
+    
+    // Add to offline queue for background sync
     try {
-      const result = await applicationsApi.updateStage(applicationId, stage);
-      
-      // Update applications list
-      setApplications(prev => 
-        prev.map(app => 
-          app.id === applicationId 
-            ? { ...app, stage, updatedAt: result.application.updatedAt }
-            : app
-        )
-      );
+      await offlineQueue.addOperation({
+        type: 'updateStage',
+        id: applicationId,
+        payload: { applicationId, stage },
+        apiCall: async (payload) => {
+          const result = await applicationsApi.updateStage(payload.applicationId, payload.stage);
+          
+          // Mark as synced
+          setApplications(prev => 
+            prev.map(app => 
+              app.id === payload.applicationId 
+                ? { ...app, updatedAt: result.application.updatedAt, pendingSync: false }
+                : app
+            )
+          );
+        },
+      });
     } catch (error) {
-      console.error('Error updating application stage:', error);
+      console.error('Error queuing stage update:', error);
     }
   };
 
@@ -298,26 +404,40 @@ export function JobProvider({ children }) {
   const currentJob = jobs[currentIndex];
   const remainingJobs = jobs.length - currentIndex;
 
+  const manualRetry = () => {
+    setRetryCount(0);
+    setFetchError(null);
+    fetchJobs(0);
+  };
+
   return (
     <JobContext.Provider
       value={{
         jobs,
         currentJob,
         remainingJobs,
-        favorites,
+        savedJobs,
+        favorites: savedJobs, // Keep for backward compatibility
         applications,
         reportedJobs,
+        skippedJobs,
         sessionActions,
         loading,
+        fetchError,
+        retryCount,
         acceptJob,
         rejectJob,
         skipJob,
-        toggleFavorite,
+        toggleSaveJob,
+        toggleFavorite: toggleSaveJob, // Keep for backward compatibility
         reportJob,
         rollbackLastAction,
         updateApplicationStage,
         fetchApplications,
         fetchReportedJobs,
+        fetchSkippedJobs,
+        fetchSavedJobs,
+        manualRetry,
       }}
     >
       {children}

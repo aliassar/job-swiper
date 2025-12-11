@@ -1,0 +1,41 @@
+{
+  "name": "Job Swiper - Find Your Dream Job",
+  "short_name": "Job Swiper",
+  "description": "Swipe through job opportunities and find your perfect match",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Swipe Jobs",
+      "short_name": "Swipe",
+      "description": "Browse job opportunities",
+      "url": "/",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Applications",
+      "short_name": "Apps",
+      "description": "View application status",
+      "url": "/applications",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
