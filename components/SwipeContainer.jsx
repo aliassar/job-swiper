@@ -173,8 +173,10 @@ export default function SwipeContainer() {
                   initial={{ scale: 0.95, opacity: 0 }}
                   animate={{ scale: isTopCard ? 1 : scale, opacity: 1 }}
                   exit={{
+                    x: exit.x,
+                    y: exit.y,
                     opacity: 0,
-                    transition: { duration: 0 }
+                    transition: { duration: 0.3, ease: 'easeOut' }
                   }}
                 >
                   <JobCard 

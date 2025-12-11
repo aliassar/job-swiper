@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { jobsApi, favoritesApi, applicationsApi, reportedApi } from '@/lib/api';
+import { getOfflineQueue } from '@/lib/offlineQueue';
 
 const JobContext = createContext();
 
@@ -13,6 +14,10 @@ export function JobProvider({ children }) {
   const [reportedJobs, setReportedJobs] = useState([]);
   const [sessionActions, setSessionActions] = useState([]); // For rollback functionality
   const [loading, setLoading] = useState(true);
+  const [queueStatus, setQueueStatus] = useState({ length: 0, operations: [] });
+
+  // Initialize offline queue
+  const offlineQueue = getOfflineQueue();
 
   // Fetch jobs and favorites on mount
   useEffect(() => {
@@ -20,6 +25,19 @@ export function JobProvider({ children }) {
     fetchFavorites();
     fetchApplications();
     fetchReportedJobs();
+    
+    // Subscribe to queue updates
+    const unsubscribe = offlineQueue.subscribe((event, data) => {
+      setQueueStatus(offlineQueue.getQueueStatus());
+      
+      if (event === 'failed') {
+        // Handle failed operation
+        console.error('Operation failed:', data);
+        // Could show user notification here
+      }
+    });
+
+    return unsubscribe;
   }, []);
 
   const fetchJobs = async () => {
@@ -62,64 +80,112 @@ export function JobProvider({ children }) {
   };
 
   const acceptJob = async (job) => {
+    // Optimistic UI update
+    setSessionActions(prev => [...prev, { 
+      jobId: job.id, 
+      action: 'accepted', 
+      timestamp: new Date().toISOString(),
+      job: job,
+      pendingSync: true,
+    }]);
+    
+    // Move to next job immediately
+    setCurrentIndex(prev => prev + 1);
+    
+    // Add to offline queue
     try {
-      const result = await jobsApi.acceptJob(job.id);
-      
-      // Add to session actions for rollback
-      setSessionActions(prev => [...prev, { 
-        jobId: job.id, 
-        action: 'accepted', 
-        timestamp: new Date().toISOString(),
-        job: job 
-      }]);
-      
-      // Move to next job
-      setCurrentIndex(prev => prev + 1);
-      
-      // Update applications
-      if (result.application) {
-        setApplications(prev => [result.application, ...prev]);
-      }
+      await offlineQueue.addOperation({
+        type: 'accept',
+        id: job.id,
+        payload: { jobId: job.id },
+        apiCall: async (payload) => {
+          const result = await jobsApi.acceptJob(payload.jobId);
+          
+          // Update applications on success
+          if (result.application) {
+            setApplications(prev => [result.application, ...prev]);
+          }
+          
+          // Mark as synced
+          setSessionActions(prev => prev.map(a =>
+            a.jobId === payload.jobId && a.action === 'accepted'
+              ? { ...a, pendingSync: false }
+              : a
+          ));
+        },
+      });
     } catch (error) {
-      console.error('Error accepting job:', error);
+      console.error('Error queuing accept:', error);
     }
   };
 
   const rejectJob = async (job) => {
+    // Optimistic UI update
+    setSessionActions(prev => [...prev, { 
+      jobId: job.id, 
+      action: 'rejected', 
+      timestamp: new Date().toISOString(),
+      job: job,
+      pendingSync: true,
+    }]);
+    
+    // Move to next job immediately
+    setCurrentIndex(prev => prev + 1);
+    
+    // Add to offline queue
     try {
-      await jobsApi.rejectJob(job.id);
-      
-      // Add to session actions for rollback
-      setSessionActions(prev => [...prev, { 
-        jobId: job.id, 
-        action: 'rejected', 
-        timestamp: new Date().toISOString(),
-        job: job 
-      }]);
-      
-      // Move to next job
-      setCurrentIndex(prev => prev + 1);
+      await offlineQueue.addOperation({
+        type: 'reject',
+        id: job.id,
+        payload: { jobId: job.id },
+        apiCall: async (payload) => {
+          await jobsApi.rejectJob(payload.jobId);
+          
+          // Mark as synced
+          setSessionActions(prev => prev.map(a =>
+            a.jobId === payload.jobId && a.action === 'rejected'
+              ? { ...a, pendingSync: false }
+              : a
+          ));
+        },
+      });
     } catch (error) {
-      console.error('Error rejecting job:', error);
+      console.error('Error queuing reject:', error);
     }
   };
 
   const skipJob = async (job) => {
+    // Optimistic UI update
+    setSessionActions(prev => [...prev, { 
+      jobId: job.id, 
+      action: 'skipped', 
+      timestamp: new Date().toISOString(),
+      job: job,
+      pendingSync: true,
+    }]);
+    
+    // Move to next job immediately
+    setCurrentIndex(prev => prev + 1);
+    
+    // Add to offline queue
     try {
-      await jobsApi.skipJob(job.id);
-      
-      // Add to session actions for rollback
-      setSessionActions(prev => [...prev, { 
-        jobId: job.id, 
-        action: 'skipped', 
-        timestamp: new Date().toISOString(),
-        job: job 
-      }]);
-      
-      // Move to next job
-      setCurrentIndex(prev => prev + 1);
+      await offlineQueue.addOperation({
+        type: 'skip',
+        id: job.id,
+        payload: { jobId: job.id },
+        apiCall: async (payload) => {
+          await jobsApi.skipJob(payload.jobId);
+          
+          // Mark as synced
+          setSessionActions(prev => prev.map(a =>
+            a.jobId === payload.jobId && a.action === 'skipped'
+              ? { ...a, pendingSync: false }
+              : a
+          ));
+        },
+      });
     } catch (error) {
-      console.error('Error skipping job:', error);
+      console.error('Error queuing skip:', error);
     }
   };
 
@@ -208,16 +274,24 @@ export function JobProvider({ children }) {
     setReportedJobs(prev => [newReport, ...prev]);
     console.log(`Job reported: ${reason}`);
     
+    // Add to offline queue with retry capability
     try {
-      await reportedApi.reportJob(job.id, reason);
-      
-      // Mark as synced
-      setReportedJobs(prev => prev.map(r => 
-        r.id === reportId ? { ...r, pendingSync: false } : r
-      ));
+      await offlineQueue.addOperation({
+        type: 'report',
+        id: job.id,
+        payload: { jobId: job.id, reason },
+        apiCall: async (payload) => {
+          await reportedApi.reportJob(payload.jobId, payload.reason);
+          
+          // Mark as synced on success
+          setReportedJobs(prev => prev.map(r => 
+            r.jobId === payload.jobId ? { ...r, pendingSync: false } : r
+          ));
+        },
+      });
     } catch (error) {
-      console.error('Error reporting job:', error);
-      // Keep pendingSync flag for retry logic (to be implemented)
+      console.error('Error queuing report:', error);
+      // Operation is still in queue for retry
     }
   };
 
