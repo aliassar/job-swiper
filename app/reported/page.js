@@ -1,35 +1,35 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useJobs } from '@/context/JobContext';
-import { FlagIcon } from '@heroicons/react/24/outline';
+import { useReportedJobs } from '@/lib/hooks/useSWR';
+import { FlagIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 
 export default function ReportedJobsPage() {
-  const { reportedJobs } = useJobs();
+  const router = useRouter();
+  const { unreportJob } = useJobs();
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Use SWR for data fetching with automatic caching and revalidation
+  const { reportedJobs, isLoading, mutate } = useReportedJobs(searchQuery);
 
   const handleSearch = useCallback((query) => {
-    setSearchQuery(query.toLowerCase());
+    setSearchQuery(query);
   }, []);
 
-  // Filter reported jobs based on search query
-  const filteredJobs = reportedJobs.filter(report => {
-    if (!searchQuery) return true;
-    
-    const job = report.job;
-    const searchableText = [
-      job.company,
-      job.position,
-      job.location,
-      ...(job.skills || [])
-    ].join(' ').toLowerCase();
-    
-    return searchableText.includes(searchQuery);
-  });
-
   const hasJobs = reportedJobs.length > 0;
-  const hasResults = filteredJobs.length > 0;
+  const hasResults = reportedJobs.length > 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full px-6 text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+        <p className="text-gray-600">Loading reported jobs...</p>
+      </div>
+    );
+  }
 
   if (!hasJobs) {
     return (
@@ -76,14 +76,15 @@ export default function ReportedJobsPage() {
 
         {hasResults && (
           <div className="space-y-3">
-            {filteredJobs.map((report) => {
+            {reportedJobs.map((report) => {
             const job = report.job;
             const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
             
             return (
               <div 
                 key={report.id}
-                className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow"
+                onClick={() => router.push(`/job/${job.id}`)}
+                className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer"
               >
                 <div className="flex items-start gap-4">
                   <img 
@@ -118,8 +119,23 @@ export default function ReportedJobsPage() {
                         )}
                       </div>
                       
-                      <div className="flex-shrink-0 p-2 rounded-full bg-red-50">
-                        <FlagIcon className="h-5 w-5 text-red-600" />
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            unreportJob(job.id);
+                            // Revalidate data after mutation
+                            mutate();
+                          }}
+                          className="flex-shrink-0 p-2 rounded-full hover:bg-blue-50 transition-colors group"
+                          aria-label="Unreport job"
+                          title="Unreport this job"
+                        >
+                          <XMarkIcon className="h-5 w-5 text-gray-600 group-hover:text-blue-600" />
+                        </button>
+                        <div className="flex-shrink-0 p-2 rounded-full bg-red-50">
+                          <FlagIcon className="h-5 w-5 text-red-600" />
+                        </div>
                       </div>
                     </div>
                     

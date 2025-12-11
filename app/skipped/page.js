@@ -1,20 +1,22 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useJobs } from '@/context/JobContext';
+import { useSkippedJobs } from '@/lib/hooks/useSWR';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 
 export default function SkippedJobsPage() {
-  const { skippedJobs, fetchSkippedJobs, rollbackLastAction } = useJobs();
+  const router = useRouter();
+  const { rollbackLastAction } = useJobs();
   const [searchQuery, setSearchQuery] = useState('');
-
-  useEffect(() => {
-    fetchSkippedJobs();
-  }, []);
+  
+  // Use SWR for data fetching with automatic caching and revalidation
+  const { skippedJobs, isLoading, mutate } = useSkippedJobs(searchQuery);
 
   const handleSearch = useCallback((query) => {
-    setSearchQuery(query.toLowerCase());
+    setSearchQuery(query);
   }, []);
 
   const handleUnskip = async (jobId) => {
@@ -24,22 +26,17 @@ export default function SkippedJobsPage() {
     console.log('Unskip job:', jobId);
   };
 
-  // Filter skipped jobs based on search query
-  const filteredJobs = skippedJobs.filter(job => {
-    if (!searchQuery) return true;
-    
-    const searchableText = [
-      job.company,
-      job.position,
-      job.location,
-      ...(job.skills || [])
-    ].join(' ').toLowerCase();
-    
-    return searchableText.includes(searchQuery);
-  });
-
   const hasJobs = skippedJobs.length > 0;
-  const hasResults = filteredJobs.length > 0;
+  const hasResults = skippedJobs.length > 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full px-6 text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+        <p className="text-gray-600">Loading skipped jobs...</p>
+      </div>
+    );
+  }
 
   if (!hasJobs) {
     return (
@@ -86,13 +83,14 @@ export default function SkippedJobsPage() {
 
         {hasResults && (
           <div className="space-y-3">
-            {filteredJobs.map((job) => {
+            {skippedJobs.map((job) => {
             const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
             
             return (
               <div 
                 key={job.id}
-                className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow"
+                onClick={() => router.push(`/job/${job.id}`)}
+                className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer"
               >
                 <div className="flex items-start gap-4">
                   <img 
@@ -114,26 +112,7 @@ export default function SkippedJobsPage() {
                             Skipped {new Date(job.skippedAt).toLocaleDateString()}
                           </p>
                         )}
-                        
-                        {/* Syncing indicator */}
-                        {job.pendingSync && (
-                          <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs font-medium">
-                            <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <span>Syncing...</span>
-                          </div>
-                        )}
                       </div>
-                      
-                      <button
-                        onClick={() => handleUnskip(job.id)}
-                        className="flex-shrink-0 p-2 rounded-full hover:bg-blue-50 transition-colors group"
-                        aria-label="Review again"
-                      >
-                        <ArrowPathIcon className="h-5 w-5 text-blue-600 group-hover:rotate-180 transition-transform duration-300" />
-                      </button>
                     </div>
                     
                     {job.skills && job.skills.length > 0 && (
