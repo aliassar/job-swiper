@@ -45,19 +45,6 @@ export default function JobCard({ job, style, onSwipe, onReportClick }) {
       <div className="bg-white rounded-2xl shadow-2xl overflow-hidden h-full flex flex-col">
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 relative overflow-hidden">
-          {/* Report button - in header top right */}
-          <button
-            onClick={handleReportClick}
-            className="absolute top-4 right-4 z-50 bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors pointer-events-auto"
-            aria-label={isReported ? "Job reported" : "Report job"}
-          >
-            {isReported ? (
-              <FlagIconSolid className="h-5 w-5 text-white flex-shrink-0" />
-            ) : (
-              <FlagIcon className="h-5 w-5 text-white flex-shrink-0" />
-            )}
-          </button>
-          
           <div className="flex items-center space-x-4">
             <img 
               src={logoUrl}
@@ -68,6 +55,19 @@ export default function JobCard({ job, style, onSwipe, onReportClick }) {
               <h2 className="text-2xl font-bold text-white mb-1">{job.company}</h2>
               <p className="text-blue-100 text-sm">{job.location}</p>
             </div>
+            
+            {/* Report button - positioned in header next to company name */}
+            <button
+              onClick={handleReportClick}
+              className="flex-shrink-0 bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors pointer-events-auto"
+              aria-label={isReported ? "Job reported" : "Report job"}
+            >
+              {isReported ? (
+                <FlagIconSolid className="h-5 w-5 text-white flex-shrink-0" />
+              ) : (
+                <FlagIcon className="h-5 w-5 text-white flex-shrink-0" />
+              )}
+            </button>
           </div>
         </div>
 
