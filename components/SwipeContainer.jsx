@@ -196,7 +196,7 @@ export default function SwipeContainer() {
   };
 
   const currentIndex = jobs.indexOf(currentJob);
-  const visibleJobs = jobs.slice(currentIndex, currentIndex + 3);
+  const visibleJobs = jobs.slice(currentIndex, currentIndex + 2);
   const isSaved = currentJob ? savedJobs.some(saved => saved.id === currentJob.id) : false;
 
   return (

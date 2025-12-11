@@ -3,10 +3,10 @@
 import { 
   XMarkIcon, 
   CheckIcon, 
-  HeartIcon,
+  BookmarkIcon,
   ForwardIcon,
 } from '@heroicons/react/24/outline';
-import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
+import { BookmarkIcon as BookmarkIconSolid } from '@heroicons/react/24/solid';
 
 export default function FloatingActions({ 
   onReject, 
@@ -48,9 +48,9 @@ export default function FloatingActions({
             aria-label="Favorite job"
           >
             {isFavorite ? (
-              <HeartIconSolid className="h-7 w-7 text-red-500" />
+              <BookmarkIconSolid className="h-7 w-7 text-blue-500" />
             ) : (
-              <HeartIcon className="h-7 w-7 text-gray-600" />
+              <BookmarkIcon className="h-7 w-7 text-gray-600" />
             )}
           </button>
 

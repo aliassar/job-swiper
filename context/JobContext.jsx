@@ -56,6 +56,7 @@ export function JobProvider({ children }) {
       setJobs(data.jobs);
       setRetryCount(0); // Reset retry count on success
       setFetchError(null);
+      setLoading(false); // Set loading false on success
     } catch (error) {
       console.error(`Error fetching jobs (attempt ${retryAttempt + 1}):`, error);
       
@@ -74,10 +75,6 @@ export function JobProvider({ children }) {
           message: 'Unable to load jobs. Please check your connection and try again.',
           canRetry: true,
         });
-        setLoading(false);
-      }
-    } finally {
-      if (retryAttempt >= MAX_FETCH_RETRIES || error === null) {
         setLoading(false);
       }
     }
