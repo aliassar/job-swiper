@@ -1,25 +1,23 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useJobs } from '@/context/JobContext';
+import { useSkippedJobs } from '@/lib/hooks/useSWR';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 
 export default function SkippedJobsPage() {
   const router = useRouter();
-  const { skippedJobs, fetchSkippedJobs, rollbackLastAction } = useJobs();
+  const { rollbackLastAction } = useJobs();
   const [searchQuery, setSearchQuery] = useState('');
-
-  useEffect(() => {
-    fetchSkippedJobs();
-  }, []);
+  
+  // Use SWR for data fetching with automatic caching and revalidation
+  const { skippedJobs, isLoading, mutate } = useSkippedJobs(searchQuery);
 
   const handleSearch = useCallback((query) => {
     setSearchQuery(query);
-    // Fetch from server with search query
-    fetchSkippedJobs(query);
-  }, [fetchSkippedJobs]);
+  }, []);
 
   const handleUnskip = async (jobId) => {
     // Note: This is a simplified version. For proper unskip, we'd need a dedicated function
@@ -30,6 +28,15 @@ export default function SkippedJobsPage() {
 
   const hasJobs = skippedJobs.length > 0;
   const hasResults = skippedJobs.length > 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full px-6 text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+        <p className="text-gray-600">Loading skipped jobs...</p>
+      </div>
+    );
+  }
 
   if (!hasJobs) {
     return (

@@ -3,19 +3,21 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useJobs } from '@/context/JobContext';
+import { useSavedJobs } from '@/lib/hooks/useSWR';
 import { BookmarkIcon } from '@heroicons/react/24/solid';
 import SearchInput from '@/components/SearchInput';
 
 export default function SavedJobsPage() {
   const router = useRouter();
-  const { savedJobs, toggleSaveJob, fetchSavedJobs } = useJobs();
+  const { toggleSaveJob } = useJobs();
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Use SWR for data fetching with automatic caching and revalidation
+  const { savedJobs, isLoading, mutate } = useSavedJobs(searchQuery);
 
   const handleSearch = useCallback((query) => {
     setSearchQuery(query);
-    // Fetch from server with search query
-    fetchSavedJobs(query);
-  }, [fetchSavedJobs]);
+  }, []);
 
   const hasJobs = savedJobs.length > 0;
   const hasResults = savedJobs.length > 0;
@@ -41,7 +43,14 @@ export default function SavedJobsPage() {
           </div>
         )}
 
-        {!hasJobs && (
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center h-full px-6 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+            <p className="text-gray-600">Loading saved jobs...</p>
+          </div>
+        )}
+
+        {!isLoading && !hasJobs && (
           <div className="flex flex-col items-center justify-center h-full px-6 text-center">
             <div className="text-6xl mb-4">📑</div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">No saved jobs yet</h2>
@@ -104,6 +113,8 @@ export default function SavedJobsPage() {
                           onClick={(e) => {
                             e.stopPropagation();
                             toggleSaveJob(job);
+                            // Revalidate data after mutation
+                            mutate();
                           }}
                           className="flex-shrink-0 p-2 rounded-full hover:bg-blue-50 transition-colors"
                           aria-label="Remove from saved jobs"
