@@ -1,12 +1,37 @@
 'use client';
 
+import { useState, useCallback } from 'react';
 import { useJobs } from '@/context/JobContext';
 import { FlagIcon } from '@heroicons/react/24/outline';
+import SearchInput from '@/components/SearchInput';
 
 export default function ReportedJobsPage() {
   const { reportedJobs } = useJobs();
+  const [searchQuery, setSearchQuery] = useState('');
 
-  if (reportedJobs.length === 0) {
+  const handleSearch = useCallback((query) => {
+    setSearchQuery(query.toLowerCase());
+  }, []);
+
+  // Filter reported jobs based on search query
+  const filteredJobs = reportedJobs.filter(report => {
+    if (!searchQuery) return true;
+    
+    const job = report.job;
+    const searchableText = [
+      job.company,
+      job.position,
+      job.location,
+      ...(job.skills || [])
+    ].join(' ').toLowerCase();
+    
+    return searchableText.includes(searchQuery);
+  });
+
+  const hasJobs = reportedJobs.length > 0;
+  const hasResults = filteredJobs.length > 0;
+
+  if (!hasJobs) {
     return (
       <div className="flex flex-col items-center justify-center h-full px-6 text-center">
         <div className="text-6xl mb-4">🚩</div>
@@ -30,8 +55,28 @@ export default function ReportedJobsPage() {
           </p>
         </div>
 
-        <div className="space-y-3">
-          {reportedJobs.map((report) => {
+        {hasJobs && (
+          <div className="mb-4">
+            <SearchInput 
+              placeholder="Search by company, position, or skills..."
+              onSearch={handleSearch}
+            />
+          </div>
+        )}
+
+        {!hasResults && hasJobs && (
+          <div className="flex flex-col items-center justify-center px-6 text-center mt-20">
+            <div className="text-6xl mb-4">🔍</div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">No results found</h2>
+            <p className="text-gray-600">
+              Try adjusting your search query.
+            </p>
+          </div>
+        )}
+
+        {hasResults && (
+          <div className="space-y-3">
+            {filteredJobs.map((report) => {
             const job = report.job;
             const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
             
@@ -106,7 +151,8 @@ export default function ReportedJobsPage() {
               </div>
             );
           })}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
