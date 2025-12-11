@@ -127,7 +127,23 @@ export function JobProvider({ children }) {
   };
 
   const acceptJob = async (job) => {
+    // Create initial application with "Syncing" stage
+    const tempApplication = {
+      id: `temp-${job.id}-${Date.now()}`,
+      jobId: job.id,
+      company: job.company,
+      position: job.position,
+      location: job.location,
+      skills: job.skills,
+      stage: 'Syncing',
+      appliedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      pendingSync: true,
+    };
+    
     // Optimistic UI update
+    setApplications(prev => [tempApplication, ...prev]);
+    
     setSessionActions(prev => [...prev, { 
       jobId: job.id, 
       action: 'accepted', 
@@ -141,6 +157,13 @@ export function JobProvider({ children }) {
     
     // Add to offline queue
     try {
+      // Update stage to "Being Applied"
+      setApplications(prev => prev.map(app =>
+        app.jobId === job.id && app.id.startsWith('temp-')
+          ? { ...app, stage: 'Being Applied' }
+          : app
+      ));
+      
       await offlineQueue.addOperation({
         type: 'accept',
         id: job.id,
@@ -148,9 +171,13 @@ export function JobProvider({ children }) {
         apiCall: async (payload) => {
           const result = await jobsApi.acceptJob(payload.jobId);
           
-          // Update applications on success
+          // Update applications on success - change to "Applied" and use real ID
           if (result.application) {
-            setApplications(prev => [result.application, ...prev]);
+            setApplications(prev => prev.map(app =>
+              app.jobId === payload.jobId && app.id.startsWith('temp-')
+                ? { ...result.application, stage: 'Applied', pendingSync: false }
+                : app
+            ));
           }
           
           // Mark as synced
@@ -398,6 +425,27 @@ export function JobProvider({ children }) {
     }
   };
 
+  const unreportJob = async (jobId) => {
+    // Optimistic UI update - remove from reported jobs immediately
+    setReportedJobs(prev => prev.filter(r => r.jobId !== jobId));
+    
+    // Add to offline queue
+    try {
+      await offlineQueue.addOperation({
+        type: 'unreport',
+        id: jobId,
+        payload: { jobId },
+        apiCall: async (payload) => {
+          await reportedApi.unreportJob(payload.jobId);
+          // Successfully unreported - UI already updated
+        },
+      });
+    } catch (error) {
+      console.error('Error queuing unreport:', error);
+      // Operation is still in queue for retry
+    }
+  };
+
   const currentJob = jobs[currentIndex];
   const remainingJobs = jobs.length - currentIndex;
 
@@ -428,6 +476,7 @@ export function JobProvider({ children }) {
         toggleSaveJob,
         toggleFavorite: toggleSaveJob, // Keep for backward compatibility
         reportJob,
+        unreportJob,
         rollbackLastAction,
         updateApplicationStage,
         fetchApplications,
