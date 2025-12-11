@@ -160,8 +160,12 @@ export default function SwipeContainer() {
                   exit={{
                     x: exit.x,
                     y: exit.y,
-                    opacity: 0,
-                    transition: { duration: 0.3, ease: 'easeOut' }
+                    scale: 0.8,
+                    transition: { 
+                      x: { duration: 0.2, ease: 'easeOut' },
+                      y: { duration: 0.2, ease: 'easeOut' },
+                      scale: { duration: 0.2, ease: 'easeOut' }
+                    }
                   }}
                 >
                   <JobCard job={job} />

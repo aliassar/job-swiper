@@ -62,7 +62,7 @@ export default function JobCard({ job, style, onSwipe }) {
         </div>
 
         {/* Job details */}
-        <div className="flex-1 p-6 overflow-y-auto">
+        <div className="flex-1 p-6 overflow-y-auto touch-pan-y">
           <h3 className="text-xl font-semibold text-gray-900 mb-3">
             {job.position}
           </h3>
