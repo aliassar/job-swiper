@@ -23,18 +23,21 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
   
-  /* Swipe indicator animations */
-  [style*="translateX"] .swipe-accept {
+  /* Swipe indicator animations - show based on drag direction */
+  /* Default: hide both indicators */
+  .swipe-accept,
+  .swipe-reject {
     opacity: 0;
-  }
-  
-  [style*="translateX("] .swipe-accept {
-    opacity: 1;
     transition: opacity var(--swipe-transition-duration);
   }
   
+  /* Show ACCEPT when dragging right (positive x) */
+  [style*="translateX("][style*="px"]:not([style*="translateX(-"]) .swipe-accept {
+    opacity: 1;
+  }
+  
+  /* Show REJECT when dragging left (negative x) */
   [style*="translateX(-"] .swipe-reject {
     opacity: 1;
-    transition: opacity var(--swipe-transition-duration);
   }
 }

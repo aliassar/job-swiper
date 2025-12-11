@@ -1,15 +1,15 @@
 'use client';
 
-import { HeartIcon } from '@heroicons/react/24/outline';
-import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
+import { FlagIcon } from '@heroicons/react/24/outline';
+import { FlagIcon as FlagIconSolid } from '@heroicons/react/24/solid';
 import { useJobs } from '@/context/JobContext';
 
-export default function JobCard({ job, style, onSwipe }) {
-  const { favorites, toggleFavorite } = useJobs();
+export default function JobCard({ job, style, onSwipe, onReportClick }) {
+  const { reportedJobs } = useJobs();
   
   if (!job) return null;
-
-  const isFavorite = favorites.some(fav => fav.id === job.id);
+  
+  const isReported = reportedJobs.some(report => report.jobId === job.id);
   
   const getRelativeTime = (dateString) => {
     const date = new Date(dateString);
@@ -22,9 +22,11 @@ export default function JobCard({ job, style, onSwipe }) {
     return `Posted ${diffInDays} days ago`;
   };
 
-  const handleFavoriteClick = (e) => {
+  const handleReportClick = (e) => {
     e.stopPropagation();
-    toggleFavorite(job);
+    if (onReportClick) {
+      onReportClick();
+    }
   };
 
   // Get first line of description
@@ -43,14 +45,16 @@ export default function JobCard({ job, style, onSwipe }) {
       <div className="bg-white rounded-2xl shadow-2xl overflow-hidden h-full flex flex-col">
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 relative overflow-hidden">
+          {/* Report button - in header top right */}
           <button
-            onClick={handleFavoriteClick}
-            className="absolute top-4 right-4 z-10 bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors"
+            onClick={handleReportClick}
+            className="absolute top-4 right-4 z-50 bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors pointer-events-auto"
+            aria-label={isReported ? "Job reported" : "Report job"}
           >
-            {isFavorite ? (
-              <HeartIconSolid className="h-6 w-6 text-white flex-shrink-0" />
+            {isReported ? (
+              <FlagIconSolid className="h-5 w-5 text-white flex-shrink-0" />
             ) : (
-              <HeartIcon className="h-6 w-6 text-white flex-shrink-0" />
+              <FlagIcon className="h-5 w-5 text-white flex-shrink-0" />
             )}
           </button>
           
@@ -68,7 +72,7 @@ export default function JobCard({ job, style, onSwipe }) {
         </div>
 
         {/* Job details */}
-        <div className="flex-1 p-6 overflow-y-auto">
+        <div className="flex-1 p-6 overflow-y-auto touch-pan-y">
           <h3 className="text-xl font-semibold text-gray-900 mb-3">
             {job.position}
           </h3>
@@ -76,9 +80,6 @@ export default function JobCard({ job, style, onSwipe }) {
           <div className="mb-4">
             <p className="text-sm text-gray-500 mb-3">
               {getRelativeTime(job.postedDate)}
-            </p>
-            <p className="text-gray-700 leading-relaxed">
-              {descriptionPreview}
             </p>
           </div>
 
@@ -94,6 +95,12 @@ export default function JobCard({ job, style, onSwipe }) {
                 </span>
               ))}
             </div>
+          </div>
+
+          <div className="mb-4">
+            <p className="text-gray-700 leading-relaxed">
+              {descriptionPreview}
+            </p>
           </div>
         </div>
 
