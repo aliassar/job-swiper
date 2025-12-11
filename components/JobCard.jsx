@@ -43,21 +43,20 @@ export default function JobCard({ job, style, onSwipe, onReportClick }) {
       style={style}
     >
       <div className="bg-white rounded-2xl shadow-2xl overflow-hidden h-full flex flex-col">
-        {/* Report button - below hamburger on right */}
-        <button
-          onClick={handleReportClick}
-          className="fixed top-16 right-4 z-40 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
-          aria-label={isReported ? "Job reported" : "Report job"}
-        >
-          {isReported ? (
-            <FlagIconSolid className="h-6 w-6 text-red-500 flex-shrink-0" />
-          ) : (
-            <FlagIcon className="h-6 w-6 text-gray-600 flex-shrink-0" />
-          )}
-        </button>
-        
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 relative overflow-hidden">
+          {/* Report button - in header top right */}
+          <button
+            onClick={handleReportClick}
+            className="absolute top-4 right-4 z-50 bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors pointer-events-auto"
+            aria-label={isReported ? "Job reported" : "Report job"}
+          >
+            {isReported ? (
+              <FlagIconSolid className="h-5 w-5 text-white flex-shrink-0" />
+            ) : (
+              <FlagIcon className="h-5 w-5 text-white flex-shrink-0" />
+            )}
+          </button>
           
           <div className="flex items-center space-x-4">
             <img 
