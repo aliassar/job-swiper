@@ -5,7 +5,7 @@ import { FlagIcon as FlagIconSolid } from '@heroicons/react/24/solid';
 import { useJobs } from '@/context/JobContext';
 
 export default function JobCard({ job, style, onSwipe, onReportClick }) {
-  const { reportedJobs } = useJobs();
+  const { reportedJobs, unreportJob } = useJobs();
   
   if (!job) return null;
   
@@ -24,8 +24,15 @@ export default function JobCard({ job, style, onSwipe, onReportClick }) {
 
   const handleReportClick = (e) => {
     e.stopPropagation();
-    if (onReportClick) {
-      onReportClick();
+    
+    // If already reported, unreport it
+    if (isReported) {
+      unreportJob(job.id);
+    } else {
+      // If not reported, open modal to select reason
+      if (onReportClick) {
+        onReportClick();
+      }
     }
   };
 
