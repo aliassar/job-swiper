@@ -113,17 +113,6 @@ export default function SkippedJobsPage() {
                           </p>
                         )}
                       </div>
-                      
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUnskip(job.id);
-                        }}
-                        className="flex-shrink-0 p-2 rounded-full hover:bg-blue-50 transition-colors group"
-                        aria-label="Review again"
-                      >
-                        <ArrowPathIcon className="h-5 w-5 text-blue-600 group-hover:rotate-180 transition-transform duration-300" />
-                      </button>
                     </div>
                     
                     {job.skills && job.skills.length > 0 && (
