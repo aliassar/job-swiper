@@ -17,6 +17,7 @@ export default function SwipeContainer() {
   const { 
     currentJob, 
     jobs, 
+    currentIndex: contextCurrentIndex,
     acceptJob, 
     rejectJob, 
     skipJob,
@@ -120,8 +121,7 @@ export default function SwipeContainer() {
     }
   };
 
-  const currentIndex = jobs.indexOf(currentJob);
-  const visibleJobs = jobs.slice(currentIndex, currentIndex + 3);
+  const visibleJobs = jobs.slice(contextCurrentIndex, contextCurrentIndex + 3);
   const isFavorite = currentJob ? favorites.some(fav => fav.id === currentJob.id) : false;
 
   return (

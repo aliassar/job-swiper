@@ -344,12 +344,9 @@ export function JobProvider({ children }) {
     // Remove from session actions
     setSessionActions(prev => prev.slice(0, -1));
     
-    // Add job back to the top of the swipe queue
-    setJobs(prev => {
-      const newJobs = [...prev];
-      newJobs.splice(currentIndex, 0, lastAction.job);
-      return newJobs;
-    });
+    // Decrement current index to go back to the previous job
+    // (The job is still in the array, we just moved past it)
+    setCurrentIndex(prev => Math.max(0, prev - 1));
     
     // Remove from applications if it was accepted
     if (lastAction.action === 'accepted') {
@@ -421,6 +418,7 @@ export function JobProvider({ children }) {
       value={{
         jobs,
         currentJob,
+        currentIndex,
         remainingJobs,
         favorites,
         applications,
