@@ -4,7 +4,7 @@ import { HeartIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import { useJobs } from '@/context/JobContext';
 
-export default function JobCard({ job, style, onSwipe }) {
+export default function JobCard({ job, style, onSwipe, showAcceptIndicator, showRejectIndicator }) {
   const { favorites, toggleFavorite } = useJobs();
   
   if (!job) return null;
@@ -73,15 +73,11 @@ export default function JobCard({ job, style, onSwipe }) {
             {job.position}
           </h3>
           
-          <div className="mb-4">
-            <p className="text-sm text-gray-500 mb-3">
-              {getRelativeTime(job.postedDate)}
-            </p>
-            <p className="text-gray-700 leading-relaxed">
-              {descriptionPreview}
-            </p>
-          </div>
+          <p className="text-sm text-gray-500 mb-4">
+            {getRelativeTime(job.postedDate)}
+          </p>
 
+          {/* Skills moved above description */}
           <div className="mb-4">
             <h4 className="text-sm font-semibold text-gray-700 mb-2">Required Skills</h4>
             <div className="flex flex-wrap gap-2">
@@ -95,16 +91,22 @@ export default function JobCard({ job, style, onSwipe }) {
               ))}
             </div>
           </div>
+
+          <div className="mb-4">
+            <p className="text-gray-700 leading-relaxed">
+              {descriptionPreview}
+            </p>
+          </div>
         </div>
 
-        {/* Swipe indicators */}
+        {/* Swipe indicators - controlled by props */}
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-          <div className="swipe-accept opacity-0 transition-opacity">
+          <div className={`transition-opacity duration-200 ${showAcceptIndicator ? 'opacity-100' : 'opacity-0'}`}>
             <div className="bg-green-500 text-white font-bold text-3xl px-8 py-4 rounded-2xl shadow-2xl rotate-12">
               ACCEPT
             </div>
           </div>
-          <div className="swipe-reject opacity-0 transition-opacity">
+          <div className={`transition-opacity duration-200 ${showRejectIndicator ? 'opacity-100' : 'opacity-0'}`}>
             <div className="bg-red-500 text-white font-bold text-3xl px-8 py-4 rounded-2xl shadow-2xl -rotate-12">
               REJECT
             </div>
