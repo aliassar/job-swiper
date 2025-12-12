@@ -5,6 +5,10 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const searchQuery = searchParams.get('search')?.toLowerCase() || '';
   
+  // Feature 24: Pagination support
+  const page = parseInt(searchParams.get('page') || '0');
+  const limit = parseInt(searchParams.get('limit') || '20');
+  
   // Get all favorited jobs
   let favorites = jobsStorage.jobs
     .filter(job => {
@@ -34,8 +38,17 @@ export async function GET(request) {
     });
   }
   
+  const total = favorites.length;
+  const start = page * limit;
+  const end = start + limit;
+  const paginatedFavorites = favorites.slice(start, end);
+  const hasMore = end < total;
+  
   return NextResponse.json({ 
-    favorites,
-    total: favorites.length 
+    favorites: paginatedFavorites,
+    total,
+    hasMore,
+    page,
+    limit
   });
 }

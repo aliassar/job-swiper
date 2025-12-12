@@ -5,6 +5,7 @@ import { jobsApi, favoritesApi, applicationsApi, reportedApi } from '@/lib/api';
 import { getOfflineQueue } from '@/lib/offlineQueue';
 import { MAX_FETCH_RETRIES } from '@/lib/constants';
 import { debounce } from '@/lib/utils';
+import { saveAppState, loadAppState } from '@/lib/indexedDB';
 
 const JobContext = createContext();
 
@@ -26,6 +27,30 @@ export function JobProvider({ children }) {
 
   // Bug Fix 1 & Optimization 5: Memoize offlineQueue to prevent recreation
   const offlineQueue = useMemo(() => getOfflineQueue(), []);
+
+  // Feature 19: Load persisted state from IndexedDB on mount
+  useEffect(() => {
+    const loadPersistedState = async () => {
+      try {
+        const persistedState = await loadAppState();
+        if (persistedState && persistedState.timestamp) {
+          // Check if state is not too old (e.g., less than 24 hours)
+          const ageInHours = (Date.now() - persistedState.timestamp) / (1000 * 60 * 60);
+          if (ageInHours < 24) {
+            console.log('Restoring persisted state from IndexedDB');
+            if (persistedState.applications) setApplications(persistedState.applications);
+            if (persistedState.savedJobs) setSavedJobs(persistedState.savedJobs);
+            if (persistedState.reportedJobs) setReportedJobs(persistedState.reportedJobs);
+            if (persistedState.skippedJobs) setSkippedJobs(persistedState.skippedJobs);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading persisted state:', error);
+      }
+    };
+
+    loadPersistedState();
+  }, []);
 
   // Fetch jobs and saved jobs on mount
   useEffect(() => {
@@ -53,9 +78,31 @@ export function JobProvider({ children }) {
         clearTimeout(retryTimeoutRef.current);
       }
     };
-  }, [offlineQueue]);
+  }, [offlineQueue, fetchJobs, fetchSavedJobs, fetchApplications, fetchReportedJobs, fetchSkippedJobs]);
 
-  const fetchJobs = async (retryAttempt = 0, search = '') => {
+  // Feature 19: Persist state to IndexedDB when it changes
+  useEffect(() => {
+    const persistState = async () => {
+      try {
+        await saveAppState({
+          applications,
+          savedJobs,
+          reportedJobs,
+          skippedJobs,
+          timestamp: Date.now(),
+        });
+      } catch (error) {
+        console.error('Error persisting state:', error);
+      }
+    };
+
+    // Debounce the save operation
+    const timeoutId = setTimeout(persistState, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [applications, savedJobs, reportedJobs, skippedJobs]);
+
+  // Optimization 8: useCallback for fetch functions
+  const fetchJobs = useCallback(async (retryAttempt = 0, search = '') => {
     setLoading(true);
     setFetchError(null);
     
@@ -87,36 +134,36 @@ export function JobProvider({ children }) {
         setLoading(false);
       }
     }
-  };
+  }, []); // Empty deps - uses setState functional updates
 
-  const fetchSavedJobs = async (search = '') => {
+  const fetchSavedJobs = useCallback(async (search = '') => {
     try {
       const data = await favoritesApi.getFavorites(search);
       setSavedJobs(data.favorites);
     } catch (error) {
       console.error('Error fetching saved jobs:', error);
     }
-  };
+  }, []);
 
-  const fetchApplications = async (search = '') => {
+  const fetchApplications = useCallback(async (search = '') => {
     try {
       const data = await applicationsApi.getApplications(search);
       setApplications(data.applications);
     } catch (error) {
       console.error('Error fetching applications:', error);
     }
-  };
+  }, []);
 
-  const fetchReportedJobs = async (search = '') => {
+  const fetchReportedJobs = useCallback(async (search = '') => {
     try {
       const data = await reportedApi.getReportedJobs(search);
       setReportedJobs(data.reportedJobs);
     } catch (error) {
       console.error('Error fetching reported jobs:', error);
     }
-  };
+  }, []);
 
-  const fetchSkippedJobs = async (search = '') => {
+  const fetchSkippedJobs = useCallback(async (search = '') => {
     try {
       const data = await jobsApi.getSkippedJobs(search);
       // Merge with local skippedJobs, prioritizing local ones
@@ -133,7 +180,7 @@ export function JobProvider({ children }) {
     } catch (error) {
       console.error('Error fetching skipped jobs:', error);
     }
-  };
+  }, []);
 
   const acceptJob = async (job) => {
     // Create initial application with "Syncing" stage
