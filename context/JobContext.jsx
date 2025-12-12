@@ -416,7 +416,7 @@ export function JobProvider({ children }) {
     
     // Add to offline queue with retry capability
     try {
-      await offlineQueue.addOperation({
+      const operation = await offlineQueue.addOperation({
         type: 'report',
         id: `report-${job.id}`, // Use consistent ID to prevent duplicates
         payload: { jobId: job.id, reason },
@@ -429,6 +429,12 @@ export function JobProvider({ children }) {
           }});
         },
       });
+      
+      // If operation is null, it means it cancelled a pending unreport
+      // This is expected when user toggles report/unreport quickly
+      if (operation === null) {
+        console.log(`Cancelled pending unreport for job ${job.id}`);
+      }
     } catch (error) {
       console.error('Error queuing report:', error);
       // Operation is still in queue for retry
@@ -439,9 +445,9 @@ export function JobProvider({ children }) {
     // Optimistic UI update - remove from reported jobs immediately
     dispatch({ type: ACTIONS.REMOVE_REPORTED_JOB, payload: jobId });
     
-    // Add to offline queue (will cancel pending report if it exists)
+    // Try to add unreport operation (will cancel pending report if it exists)
     try {
-      await offlineQueue.addOperation({
+      const operation = await offlineQueue.addOperation({
         type: 'unreport',
         id: `report-${jobId}`, // Use same ID as report for proper cancellation
         payload: { jobId },
@@ -450,6 +456,12 @@ export function JobProvider({ children }) {
           // Successfully unreported - UI already updated
         },
       });
+      
+      // If operation is null, it means it cancelled a pending report
+      // In that case, we're done - no need to unreport from server since it was never reported
+      if (operation === null) {
+        console.log(`Cancelled pending report for job ${jobId}, no server unreport needed`);
+      }
     } catch (error) {
       console.error('Error queuing unreport:', error);
       // Operation is still in queue for retry
