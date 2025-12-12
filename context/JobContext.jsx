@@ -1,26 +1,18 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useCallback, useReducer } from 'react';
 import { jobsApi, favoritesApi, applicationsApi, reportedApi } from '@/lib/api';
 import { getOfflineQueue } from '@/lib/offlineQueue';
 import { MAX_FETCH_RETRIES } from '@/lib/constants';
 import { debounce } from '@/lib/utils';
 import { saveAppState, loadAppState } from '@/lib/indexedDB';
+import { jobReducer, initialState, ACTIONS } from './jobReducer';
 
 const JobContext = createContext();
 
 export function JobProvider({ children }) {
-  const [jobs, setJobs] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [savedJobs, setSavedJobs] = useState([]); // Renamed from favorites
-  const [applications, setApplications] = useState([]);
-  const [reportedJobs, setReportedJobs] = useState([]);
-  const [skippedJobs, setSkippedJobs] = useState([]); // Track skipped jobs locally
-  const [sessionActions, setSessionActions] = useState([]); // For rollback functionality
-  const [loading, setLoading] = useState(true);
-  const [queueStatus, setQueueStatus] = useState({ length: 0, operations: [] });
-  const [fetchError, setFetchError] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
+  // Optimization 9: useReducer for complex state management
+  const [state, dispatch] = useReducer(jobReducer, initialState);
 
   // Bug Fix 3: Track retry timeout for cleanup
   const retryTimeoutRef = useRef(null);
@@ -38,10 +30,10 @@ export function JobProvider({ children }) {
           const ageInHours = (Date.now() - persistedState.timestamp) / (1000 * 60 * 60);
           if (ageInHours < 24) {
             console.log('Restoring persisted state from IndexedDB');
-            if (persistedState.applications) setApplications(persistedState.applications);
-            if (persistedState.savedJobs) setSavedJobs(persistedState.savedJobs);
-            if (persistedState.reportedJobs) setReportedJobs(persistedState.reportedJobs);
-            if (persistedState.skippedJobs) setSkippedJobs(persistedState.skippedJobs);
+            if (persistedState.applications) dispatch({ type: ACTIONS.SET_APPLICATIONS, payload: persistedState.applications });
+            if (persistedState.savedJobs) dispatch({ type: ACTIONS.SET_SAVED_JOBS, payload: persistedState.savedJobs });
+            if (persistedState.reportedJobs) dispatch({ type: ACTIONS.SET_REPORTED_JOBS, payload: persistedState.reportedJobs });
+            if (persistedState.skippedJobs) dispatch({ type: ACTIONS.SET_SKIPPED_JOBS, payload: persistedState.skippedJobs });
           }
         }
       } catch (error) {
@@ -62,7 +54,7 @@ export function JobProvider({ children }) {
     
     // Subscribe to queue updates
     const unsubscribe = offlineQueue.subscribe((event, data) => {
-      setQueueStatus(offlineQueue.getQueueStatus());
+      dispatch({ type: ACTIONS.SET_QUEUE_STATUS, payload: offlineQueue.getQueueStatus() });
       
       if (event === 'failed') {
         // Handle failed operation
@@ -85,10 +77,10 @@ export function JobProvider({ children }) {
     const persistState = async () => {
       try {
         await saveAppState({
-          applications,
-          savedJobs,
-          reportedJobs,
-          skippedJobs,
+          applications: state.applications,
+          savedJobs: state.savedJobs,
+          reportedJobs: state.reportedJobs,
+          skippedJobs: state.skippedJobs,
           timestamp: Date.now(),
         });
       } catch (error) {
@@ -99,19 +91,19 @@ export function JobProvider({ children }) {
     // Debounce the save operation
     const timeoutId = setTimeout(persistState, 1000);
     return () => clearTimeout(timeoutId);
-  }, [applications, savedJobs, reportedJobs, skippedJobs]);
+  }, [state.applications, state.savedJobs, state.reportedJobs, state.skippedJobs]);
 
   // Optimization 8: useCallback for fetch functions
   const fetchJobs = useCallback(async (retryAttempt = 0, search = '') => {
-    setLoading(true);
-    setFetchError(null);
+    dispatch({ type: ACTIONS.SET_LOADING, payload: true });
+    dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: null });
     
     try {
       const data = await jobsApi.getJobs(search);
-      setJobs(data.jobs);
-      setRetryCount(0); // Reset retry count on success
-      setFetchError(null);
-      setLoading(false); // Set loading false on success
+      dispatch({ type: ACTIONS.SET_JOBS, payload: data.jobs });
+      dispatch({ type: ACTIONS.SET_RETRY_COUNT, payload: 0 });
+      dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: null });
+      dispatch({ type: ACTIONS.SET_LOADING, payload: false });
     } catch (error) {
       console.error(`Error fetching jobs (attempt ${retryAttempt + 1}):`, error);
       
@@ -119,7 +111,7 @@ export function JobProvider({ children }) {
         // Exponential backoff: 1s, 2s, 4s, 8s, 16s
         const delay = Math.pow(2, retryAttempt) * 1000;
         console.log(`Retrying in ${delay / 1000}s...`);
-        setRetryCount(retryAttempt + 1);
+        dispatch({ type: ACTIONS.SET_RETRY_COUNT, payload: retryAttempt + 1 });
         
         // Bug Fix 3: Store timeout reference for cleanup
         retryTimeoutRef.current = setTimeout(() => {
@@ -127,19 +119,19 @@ export function JobProvider({ children }) {
         }, delay);
       } else {
         // Max retries reached
-        setFetchError({
+        dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: {
           message: 'Unable to load jobs. Please check your connection and try again.',
           canRetry: true,
-        });
-        setLoading(false);
+        }});
+        dispatch({ type: ACTIONS.SET_LOADING, payload: false });
       }
     }
-  }, []); // Empty deps - uses setState functional updates
+  }, []); // Empty deps - uses dispatch
 
   const fetchSavedJobs = useCallback(async (search = '') => {
     try {
       const data = await favoritesApi.getFavorites(search);
-      setSavedJobs(data.favorites);
+      dispatch({ type: ACTIONS.SET_SAVED_JOBS, payload: data.favorites });
     } catch (error) {
       console.error('Error fetching saved jobs:', error);
     }
@@ -148,7 +140,7 @@ export function JobProvider({ children }) {
   const fetchApplications = useCallback(async (search = '') => {
     try {
       const data = await applicationsApi.getApplications(search);
-      setApplications(data.applications);
+      dispatch({ type: ACTIONS.SET_APPLICATIONS, payload: data.applications });
     } catch (error) {
       console.error('Error fetching applications:', error);
     }
@@ -157,7 +149,7 @@ export function JobProvider({ children }) {
   const fetchReportedJobs = useCallback(async (search = '') => {
     try {
       const data = await reportedApi.getReportedJobs(search);
-      setReportedJobs(data.reportedJobs);
+      dispatch({ type: ACTIONS.SET_REPORTED_JOBS, payload: data.reportedJobs });
     } catch (error) {
       console.error('Error fetching reported jobs:', error);
     }
@@ -168,15 +160,7 @@ export function JobProvider({ children }) {
       const data = await jobsApi.getSkippedJobs(search);
       // Merge with local skippedJobs, prioritizing local ones
       const serverSkipped = data.jobs.map(job => ({ ...job, pendingSync: false }));
-      setSkippedJobs(prev => {
-        const merged = [...prev];
-        serverSkipped.forEach(serverJob => {
-          if (!merged.some(local => local.id === serverJob.id)) {
-            merged.push(serverJob);
-          }
-        });
-        return merged;
-      });
+      dispatch({ type: ACTIONS.MERGE_SKIPPED_JOBS, payload: serverSkipped });
     } catch (error) {
       console.error('Error fetching skipped jobs:', error);
     }
@@ -506,31 +490,32 @@ export function JobProvider({ children }) {
     }
   };
 
-  const currentJob = jobs[currentIndex];
-  const remainingJobs = jobs.length - currentIndex;
+  const currentJob = state.jobs[state.currentIndex];
+  const remainingJobs = state.jobs.length - state.currentIndex;
 
   const manualRetry = () => {
-    setRetryCount(0);
-    setFetchError(null);
+    dispatch({ type: ACTIONS.SET_RETRY_COUNT, payload: 0 });
+    dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: null });
     fetchJobs(0);
   };
 
   return (
     <JobContext.Provider
       value={{
-        jobs,
+        jobs: state.jobs,
         currentJob,
-        currentIndex,
+        currentIndex: state.currentIndex,
         remainingJobs,
-        savedJobs,
-        favorites: savedJobs, // Keep for backward compatibility
-        applications,
-        reportedJobs,
-        skippedJobs,
-        sessionActions,
-        loading,
-        fetchError,
-        retryCount,
+        savedJobs: state.savedJobs,
+        favorites: state.savedJobs, // Keep for backward compatibility
+        applications: state.applications,
+        reportedJobs: state.reportedJobs,
+        skippedJobs: state.skippedJobs,
+        sessionActions: state.sessionActions,
+        loading: state.loading,
+        fetchError: state.fetchError,
+        retryCount: state.retryCount,
+        queueStatus: state.queueStatus,
         acceptJob,
         rejectJob,
         skipJob,
