@@ -439,11 +439,11 @@ export function JobProvider({ children }) {
     // Optimistic UI update - remove from reported jobs immediately
     dispatch({ type: ACTIONS.REMOVE_REPORTED_JOB, payload: jobId });
     
-    // Add to offline queue
+    // Add to offline queue (will cancel pending report if it exists)
     try {
       await offlineQueue.addOperation({
         type: 'unreport',
-        id: jobId,
+        id: `report-${jobId}`, // Use same ID as report for proper cancellation
         payload: { jobId },
         apiCall: async (payload) => {
           await reportedApi.unreportJob(payload.jobId);
