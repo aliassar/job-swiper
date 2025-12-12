@@ -14,7 +14,8 @@ import {
   EXIT_PADDING, 
   EXIT_FALLBACK, 
   DRAG_CONSTRAINTS,
-  ANIMATION_SYNC_DELAY 
+  ANIMATION_SYNC_DELAY,
+  ACTION_TIMEOUT_MS
 } from '@/lib/constants';
 
 // Dynamic exit distance based on screen width
@@ -118,7 +119,7 @@ export default function SwipeContainer() {
       setIsActionInProgress(true);
       acceptJob(currentJob);
       // Safety timeout to reset flag if currentJob doesn't change
-      actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), 1000);
+      actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), ACTION_TIMEOUT_MS);
       return;
     }
 
@@ -127,7 +128,7 @@ export default function SwipeContainer() {
       setIsActionInProgress(true);
       rejectJob(currentJob);
       // Safety timeout to reset flag if currentJob doesn't change
-      actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), 1000);
+      actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), ACTION_TIMEOUT_MS);
       return;
     }
 
@@ -136,7 +137,7 @@ export default function SwipeContainer() {
       setIsActionInProgress(true);
       rejectJob(currentJob);
       // Safety timeout to reset flag if currentJob doesn't change
-      actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), 1000);
+      actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), ACTION_TIMEOUT_MS);
       return;
     }
 
@@ -150,7 +151,7 @@ export default function SwipeContainer() {
     setIsActionInProgress(true);
     acceptJob(currentJob);
     // Safety timeout to reset flag if currentJob doesn't change
-    actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), 1000);
+    actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), ACTION_TIMEOUT_MS);
   }, [currentJob, acceptJob, exitDistance, isActionInProgress]);
 
   const handleReject = useCallback(() => {
@@ -159,7 +160,7 @@ export default function SwipeContainer() {
     setIsActionInProgress(true);
     rejectJob(currentJob);
     // Safety timeout to reset flag if currentJob doesn't change
-    actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), 1000);
+    actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), ACTION_TIMEOUT_MS);
   }, [currentJob, rejectJob, exitDistance, isActionInProgress]);
 
   const handleSkip = useCallback(() => {
@@ -168,7 +169,7 @@ export default function SwipeContainer() {
     setIsActionInProgress(true);
     skipJob(currentJob);
     // Safety timeout to reset flag if currentJob doesn't change
-    actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), 1000);
+    actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), ACTION_TIMEOUT_MS);
   }, [currentJob, skipJob, exitDistance, isActionInProgress]);
 
   const handleSaveJob = useCallback(() => {
@@ -182,7 +183,7 @@ export default function SwipeContainer() {
     setIsActionInProgress(true);
     rollbackLastAction();
     // Safety timeout to reset flag if currentJob doesn't change
-    actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), 1000);
+    actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), ACTION_TIMEOUT_MS);
   }, [sessionActions, rollbackLastAction, isActionInProgress]);
 
   const handleOpenReportModal = useCallback((job) => {
