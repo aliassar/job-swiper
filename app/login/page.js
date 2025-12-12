@@ -6,30 +6,203 @@ import { useRouter } from 'next/navigation';
 
 /**
  * Login Page
- * Provides OAuth login options with GitHub, Google, and Email
+ * Provides OAuth login options with GitHub, Google, Email, and Password
  */
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showEmailLogin, setShowEmailLogin] = useState(false);
+  const [showPasswordLogin, setShowPasswordLogin] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
 
-  const handleSignIn = async (provider) => {
+  const handleSignIn = async (provider, credentials = null) => {
     setIsLoading(true);
+    setError('');
     try {
-      const result = await signIn(provider, { 
+      const result = await signIn(provider, credentials || { 
         callbackUrl: '/',
         redirect: true,
       });
       
       if (result?.error) {
         console.error('Sign in error:', result.error);
+        setError(result.error);
         setIsLoading(false);
       }
     } catch (error) {
       console.error('Sign in error:', error);
+      setError('An error occurred during sign in');
       setIsLoading(false);
     }
   };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    const email = e.target.email.value;
+    const password = e.target.password.value;
+    
+    await handleSignIn('credentials', {
+      email,
+      password,
+      callbackUrl: '/',
+      redirect: true,
+    });
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    const email = e.target.email.value;
+    
+    // TODO: Implement forgot password API call
+    console.log('Send password reset email to:', email);
+    setError('');
+    alert('Password reset link sent to your email!');
+    setShowForgotPassword(false);
+    setShowPasswordLogin(false);
+  };
+
+  // Forgot Password Form
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+          <button
+            onClick={() => {
+              setShowForgotPassword(false);
+              setShowPasswordLogin(true);
+            }}
+            className="mb-6 text-gray-600 hover:text-gray-900 flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back
+          </button>
+
+          <div className="text-center mb-8">
+            <div className="text-5xl mb-4">🔑</div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Reset Password
+            </h1>
+            <p className="text-gray-600">
+              Enter your email to receive a password reset link
+            </p>
+          </div>
+
+          <form onSubmit={handleForgotPassword}>
+            <div className="mb-6">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                name="email"
+                id="email"
+                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full px-6 py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+            >
+              {isLoading ? 'Sending...' : 'Send Reset Link'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Password Login Form
+  if (showPasswordLogin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+          <button
+            onClick={() => setShowPasswordLogin(false)}
+            className="mb-6 text-gray-600 hover:text-gray-900 flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back
+          </button>
+
+          <div className="text-center mb-8">
+            <div className="text-5xl mb-4">🔐</div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Sign in with Password
+            </h1>
+            <p className="text-gray-600">
+              Enter your credentials to continue
+            </p>
+          </div>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handlePasswordSubmit}>
+            <div className="mb-4">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                name="email"
+                id="email"
+                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                name="password"
+                id="password"
+                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="••••••••"
+              />
+            </div>
+
+            <div className="mb-6 text-right">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPasswordLogin(false);
+                  setShowForgotPassword(true);
+                }}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Forgot password?
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full px-6 py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+            >
+              {isLoading ? 'Signing in...' : 'Sign In'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   if (showEmailLogin) {
     return (
@@ -142,14 +315,25 @@ export default function LoginPage() {
           </div>
 
           <button
-            onClick={() => setShowEmailLogin(true)}
+            onClick={() => setShowPasswordLogin(true)}
             disabled={isLoading}
             className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            Sign in with Password
+          </button>
+
+          <button
+            onClick={() => setShowEmailLogin(true)}
+            disabled={isLoading}
+            className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-white text-gray-700 border-2 border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
-            Continue with Email
+            Sign in with Email Link
           </button>
         </div>
 
