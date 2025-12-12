@@ -100,7 +100,7 @@ export default function ApplicationTimeline({ currentStage, timestamps = {}, int
               )}
 
               {/* Stage indicator */}
-              <div className="relative z-10 flex-shrink-0 mb-1">
+              <div className="relative flex-shrink-0 mb-1">
                 <div
                   className={`${iconSize} rounded-full border-2 flex items-center justify-center ${getStageColor(status)}`}
                 >
