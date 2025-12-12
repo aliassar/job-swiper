@@ -81,10 +81,9 @@ Each full-screen job card displays:
 
 ### 🔌 API & Backend Ready
 - Centralized API client (`lib/api.js`)
-- Complete API specification in `docs/API_SPECIFICATION.md`
-- Mock in-memory storage for development
-- Easy migration to Vercel Postgres (see docs)
+- In-memory storage for server data
 - RESTful API design with proper HTTP methods
+- Easy migration to production database
 
 ## Tech Stack
 
@@ -172,11 +171,11 @@ job-swiper/
 │   └── SwipeContainer.jsx              # Main swipe container with rollback
 ├── context/
 │   └── JobContext.jsx                  # Global state with session actions
-├── docs/
-│   └── API_SPECIFICATION.md            # Complete API docs & DB schema
 ├── lib/
 │   ├── api.js                          # Centralized API client
-│   └── mockJobs.js                     # Mock job data (20 jobs)
+│   ├── indexedDB.js                    # IndexedDB state persistence
+│   ├── offlineQueue.js                 # Offline operation queue
+│   └── utils.js                        # Utility functions
 └── public/                             # Static assets
 ```
 
@@ -240,50 +239,33 @@ job-swiper/
 - `GET /api/favorites` - Get favorited jobs
 - `GET /api/history` - Get full action history
 
-**See `docs/API_SPECIFICATION.md` for complete API documentation, request/response formats, and database schema.**
-
-## Mock Data
-
-The app includes 20 diverse mock jobs from various companies:
-- Tech companies (Google, Microsoft, Meta, etc.)
-- Various locations and roles
-- Different skill sets (React, Python, AWS, etc.)
-- Realistic job descriptions
-- Different posting dates
-
 ## Migrating to Production
 
-### Backend Migration (Vercel + Postgres)
+The app uses in-memory storage for server data. To deploy to production with a database:
 
-The app currently uses in-memory mock storage. To deploy to production:
+1. **Set up your database** (Postgres, MySQL, etc.)
+   - Configure connection string in environment variables
 
-1. **Set up Vercel Postgres**:
-   - Add Vercel Postgres to your project
-   - Get the `DATABASE_URL` from environment variables
-
-2. **Install Prisma**:
+2. **Install database client**:
    ```bash
    npm install @prisma/client
    npm install -D prisma
    ```
 
-3. **Set up database**:
-   - Copy the Prisma schema from `docs/API_SPECIFICATION.md`
+3. **Create database schema**:
+   - Initialize Prisma: `npx prisma init`
+   - Define your schema in `prisma/schema.prisma`
    - Run migrations: `npx prisma migrate dev`
-   - Generate Prisma client: `npx prisma generate`
 
 4. **Update API routes**:
-   - Replace in-memory `jobsStorage` with Prisma queries
-   - Follow examples in `docs/API_SPECIFICATION.md`
+   - Replace in-memory `jobsStorage` with database queries
 
 5. **Environment variables**:
    ```
-   DATABASE_URL=          # Vercel Postgres connection
-   NEXTAUTH_SECRET=       # For authentication (optional)
-   NEXT_PUBLIC_API_URL=   # Empty for same domain
+   DATABASE_URL=          # Database connection string
+   NEXTAUTH_SECRET=       # For authentication
+   NEXT_PUBLIC_API_URL=   # API endpoint URL
    ```
-
-See `docs/API_SPECIFICATION.md` for detailed migration guide, complete Prisma schema, and SQL examples.
 
 ## Future Enhancements
 

@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import { mockJobs } from '@/lib/mockJobs';
 
-// In-memory storage for demo purposes only
-// In production, replace with database (see docs/API_SPECIFICATION.md)
+// In-memory storage for server data
+// Jobs can be added through the API or imported from external sources
 export const jobsStorage = {
-  jobs: [...mockJobs],
+  jobs: [], // Initialize with empty array - jobs can be added via API
   userJobStatus: new Map(), // jobId -> { status, favorite, acceptedAt, rejectedAt, skippedAt }
   applications: new Map(), // applicationId -> { id, jobId, stage, appliedAt, updatedAt }
   history: [], // Array of action history
