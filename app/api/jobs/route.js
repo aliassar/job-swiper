@@ -35,7 +35,7 @@ const seedJobs = [
 // Jobs can be added through the API or imported from external sources
 export const jobsStorage = {
   jobs: [...seedJobs], // Initialize with seed data for testing
-  userJobStatus: new Map(), // jobId -> { status, favorite, acceptedAt, rejectedAt, skippedAt }
+  userJobStatus: new Map(), // jobId -> { status, saved, acceptedAt, rejectedAt, skippedAt }
   applications: new Map(), // applicationId -> { id, jobId, stage, appliedAt, updatedAt }
   history: [], // Array of action history
 };
@@ -51,7 +51,7 @@ jobsStorage.applications.set('app-test-1', {
 });
 jobsStorage.userJobStatus.set(2, {
   status: 'accepted',
-  favorite: false,
+  saved: false,
   acceptedAt: sampleAppDate,
   decisionAt: sampleAppDate,
 });
@@ -72,7 +72,7 @@ function getJobWithStatus(jobId) {
   const job = jobsStorage.jobs.find(j => j.id === jobId);
   const status = jobsStorage.userJobStatus.get(jobId) || { 
     status: 'pending', 
-    favorite: false 
+    saved: false 
   };
   return { job, status };
 }

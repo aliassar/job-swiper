@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useMemo, useRef, useCallback, useReducer } from 'react';
-import { jobsApi, favoritesApi, applicationsApi, reportedApi } from '@/lib/api';
+import { jobsApi, savedJobsApi, applicationsApi, reportedApi } from '@/lib/api';
 import { getOfflineQueue } from '@/lib/offlineQueue';
 import { MAX_FETCH_RETRIES } from '@/lib/constants';
 import { debounce } from '@/lib/utils';
@@ -57,8 +57,8 @@ export function JobProvider({ children }) {
 
   const fetchSavedJobs = useCallback(async (search = '') => {
     try {
-      const data = await favoritesApi.getFavorites(search);
-      dispatch({ type: ACTIONS.SET_SAVED_JOBS, payload: data.favorites });
+      const data = await savedJobsApi.getSaveds(search);
+      dispatch({ type: ACTIONS.SET_SAVED_JOBS, payload: data.saveds });
     } catch (error) {
       console.error('Error fetching saved jobs:', error);
     }
@@ -323,12 +323,12 @@ export function JobProvider({ children }) {
       await offlineQueue.addOperation({
         type: 'saveJob',
         id: job.id,
-        payload: { jobId: job.id, favorite: newSavedState },
+        payload: { jobId: job.id, saved: newSavedState },
         apiCall: async (payload) => {
-          await jobsApi.toggleFavorite(payload.jobId, payload.favorite);
+          await jobsApi.toggleSaveJob(payload.jobId, payload.saved);
           
           // Mark as synced
-          if (payload.favorite) {
+          if (payload.saved) {
             dispatch({ type: ACTIONS.MARK_SAVED_JOB_SYNCED, payload: {
               jobId: payload.jobId
             }});
@@ -466,7 +466,7 @@ export function JobProvider({ children }) {
         currentIndex: state.currentIndex,
         remainingJobs,
         savedJobs: state.savedJobs,
-        favorites: state.savedJobs, // Keep for backward compatibility
+        saveds: state.savedJobs, // Keep for backward compatibility
         applications: state.applications,
         reportedJobs: state.reportedJobs,
         skippedJobs: state.skippedJobs,
@@ -479,7 +479,7 @@ export function JobProvider({ children }) {
         rejectJob,
         skipJob,
         toggleSaveJob,
-        toggleFavorite: toggleSaveJob, // Keep for backward compatibility
+        toggleSaveJob: toggleSaveJob, // Keep for backward compatibility
         reportJob,
         unreportJob,
         rollbackLastAction,

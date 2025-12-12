@@ -12,10 +12,10 @@ export async function POST(request, { params }) {
 
   const existingStatus = jobsStorage.userJobStatus.get(jobId);
   
-  // Reset to pending status, but keep favorite status
+  // Reset to pending status, but keep saved status
   jobsStorage.userJobStatus.set(jobId, {
     status: 'pending',
-    favorite: existingStatus?.favorite || false,
+    saved: existingStatus?.saved || false,
   });
 
   // Remove from applications if it was accepted
