@@ -76,6 +76,76 @@ export default function SwipeContainer() {
     };
   }, []);
 
+  // ALL useCallback and useMemo hooks MUST be here, BEFORE any conditional returns
+  const handleDragEnd = useCallback((_event, info) => {
+    // Check for velocity-based swipes (flicks)
+    const flickedRight = info.velocity.x > VELOCITY_THRESHOLD;
+    const flickedLeft = info.velocity.x < -VELOCITY_THRESHOLD;
+    const flickedUp = info.velocity.y < -VELOCITY_THRESHOLD;
+
+    // Check for position-based swipes
+    const draggedRight = info.offset.x > SWIPE_THRESHOLD;
+    const draggedLeft = info.offset.x < -SWIPE_THRESHOLD;
+    const draggedUp = info.offset.y < -SWIPE_THRESHOLD;
+
+    if (draggedRight || flickedRight) {
+      setExit({ x: EXIT_DISTANCE, y: 0 });
+      acceptJob(currentJob);
+      return;
+    }
+
+    if (draggedLeft || flickedLeft) {
+      setExit({ x: -EXIT_DISTANCE, y: 0 });
+      rejectJob(currentJob);
+      return;
+    }
+
+    if (draggedUp || flickedUp) {
+      setExit({ x: 0, y: -EXIT_DISTANCE });
+      rejectJob(currentJob);
+      return;
+    }
+
+    setExit({ x: 0, y: 0 }); // reset if not passed threshold
+    setSwipeDirection(''); // reset swipe direction
+  }, [currentJob, acceptJob, rejectJob]);
+
+  const handleAccept = useCallback(() => {
+    setExit({ x: EXIT_DISTANCE, y: 0 });
+    acceptJob(currentJob);
+  }, [currentJob, acceptJob]);
+
+  const handleReject = useCallback(() => {
+    setExit({ x: -EXIT_DISTANCE, y: 0 });
+    rejectJob(currentJob);
+  }, [currentJob, rejectJob]);
+
+  const handleSkip = useCallback(() => {
+    setExit({ x: 0, y: -EXIT_DISTANCE });
+    skipJob(currentJob);
+  }, [currentJob, skipJob]);
+
+  const handleSaveJob = useCallback(() => {
+    if (currentJob) {
+      toggleSaveJob(currentJob);
+    }
+  }, [currentJob, toggleSaveJob]);
+
+  const handleOpenReportModal = useCallback((job) => {
+    setJobToReport(job);
+    setReportModalOpen(true);
+  }, []);
+
+  const handleReport = useCallback((reason) => {
+    if (jobToReport) {
+      reportJob(jobToReport, reason);
+    }
+  }, [jobToReport, reportJob]);
+
+  const currentIndex = jobs.indexOf(currentJob);
+  const visibleJobs = useMemo(() => jobs.slice(currentIndex, currentIndex + 2), [jobs, currentIndex]);
+  const isSaved = useMemo(() => currentJob ? savedJobs.some(saved => saved.id === currentJob.id) : false, [currentJob, savedJobs]);
+
   // Show error state with manual retry option
   if (fetchError && !loading) {
     return (
@@ -147,75 +217,6 @@ export default function SwipeContainer() {
         </div>
     );
   }
-
-  const handleDragEnd = useCallback((_event, info) => {
-    // Check for velocity-based swipes (flicks)
-    const flickedRight = info.velocity.x > VELOCITY_THRESHOLD;
-    const flickedLeft = info.velocity.x < -VELOCITY_THRESHOLD;
-    const flickedUp = info.velocity.y < -VELOCITY_THRESHOLD;
-
-    // Check for position-based swipes
-    const draggedRight = info.offset.x > SWIPE_THRESHOLD;
-    const draggedLeft = info.offset.x < -SWIPE_THRESHOLD;
-    const draggedUp = info.offset.y < -SWIPE_THRESHOLD;
-
-    if (draggedRight || flickedRight) {
-      setExit({ x: EXIT_DISTANCE, y: 0 });
-      acceptJob(currentJob);
-      return;
-    }
-
-    if (draggedLeft || flickedLeft) {
-      setExit({ x: -EXIT_DISTANCE, y: 0 });
-      rejectJob(currentJob);
-      return;
-    }
-
-    if (draggedUp || flickedUp) {
-      setExit({ x: 0, y: -EXIT_DISTANCE });
-      rejectJob(currentJob);
-      return;
-    }
-
-    setExit({ x: 0, y: 0 }); // reset if not passed threshold
-    setSwipeDirection(''); // reset swipe direction
-  }, [currentJob, acceptJob, rejectJob]);
-
-  const handleAccept = useCallback(() => {
-    setExit({ x: EXIT_DISTANCE, y: 0 });
-    acceptJob(currentJob);
-  }, [currentJob, acceptJob]);
-
-  const handleReject = useCallback(() => {
-    setExit({ x: -EXIT_DISTANCE, y: 0 });
-    rejectJob(currentJob);
-  }, [currentJob, rejectJob]);
-
-  const handleSkip = useCallback(() => {
-    setExit({ x: 0, y: -EXIT_DISTANCE });
-    skipJob(currentJob);
-  }, [currentJob, skipJob]);
-
-  const handleSaveJob = useCallback(() => {
-    if (currentJob) {
-      toggleSaveJob(currentJob);
-    }
-  }, [currentJob, toggleSaveJob]);
-
-  const handleOpenReportModal = useCallback((job) => {
-    setJobToReport(job);
-    setReportModalOpen(true);
-  }, []);
-
-  const handleReport = useCallback((reason) => {
-    if (jobToReport) {
-      reportJob(jobToReport, reason);
-    }
-  }, [jobToReport, reportJob]);
-
-  const currentIndex = jobs.indexOf(currentJob);
-  const visibleJobs = useMemo(() => jobs.slice(currentIndex, currentIndex + 2), [jobs, currentIndex]);
-  const isSaved = useMemo(() => currentJob ? savedJobs.some(saved => saved.id === currentJob.id) : false, [currentJob, savedJobs]);
 
   return (
     <div className="relative h-full w-full overflow-hidden">
