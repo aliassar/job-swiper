@@ -77,7 +77,7 @@ export default function ApplicationDetailPage() {
   const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(application.company)}&size=120&background=0D8ABC&color=fff&bold=true`;
 
   return (
-    <div className="min-h-full bg-gray-50 pb-20">
+    <div className="h-full overflow-y-auto bg-gray-50 pb-20">
       {/* Header with back button */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4">
@@ -92,6 +92,24 @@ export default function ApplicationDetailPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6">
+        {/* Timeline section at the top */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-1">Application Timeline</h3>
+            <p className="text-xs text-gray-600">
+              Track your application progress through each stage
+            </p>
+          </div>
+
+          <ApplicationTimeline 
+            currentStage={application.stage}
+            timestamps={{
+              'Applied': application.appliedAt,
+              [application.stage]: application.updatedAt || application.appliedAt,
+            }}
+          />
+        </div>
+
         {/* Job header card */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-8">
@@ -157,24 +175,6 @@ export default function ApplicationDetailPage() {
               </div>
             )}
           </div>
-        </div>
-
-        {/* Timeline section */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Application Timeline</h3>
-            <p className="text-sm text-gray-600">
-              Track your application progress through each stage
-            </p>
-          </div>
-
-          <ApplicationTimeline 
-            currentStage={application.stage}
-            timestamps={{
-              'Applied': application.appliedAt,
-              [application.stage]: application.updatedAt || application.appliedAt,
-            }}
-          />
         </div>
 
         {/* Stage selector */}
