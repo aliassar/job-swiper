@@ -15,11 +15,13 @@ export async function POST(request, { params }) {
     report => report.jobId === jobId
   );
   
+  // If report not found, it's already unreported - return success (idempotent)
   if (reportIndex === -1) {
-    return NextResponse.json(
-      { error: 'Report not found' },
-      { status: 404 }
-    );
+    return NextResponse.json({
+      success: true,
+      message: 'Job already unreported',
+      alreadyUnreported: true,
+    });
   }
   
   // Remove the report
