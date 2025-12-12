@@ -393,6 +393,13 @@ export function JobProvider({ children }) {
   };
 
   const reportJob = async (job, reason = 'other') => {
+    // Check if already reported to avoid duplicates
+    const alreadyReported = state.reportedJobs.some(r => r.jobId === job.id);
+    if (alreadyReported) {
+      console.log(`Job ${job.id} already reported, skipping`);
+      return;
+    }
+    
     // Optimistic UI update
     const reportId = `report-${job.id}-${Date.now()}`;
     const newReport = {
@@ -411,7 +418,7 @@ export function JobProvider({ children }) {
     try {
       await offlineQueue.addOperation({
         type: 'report',
-        id: job.id,
+        id: `report-${job.id}`, // Use consistent ID to prevent duplicates
         payload: { jobId: job.id, reason },
         apiCall: async (payload) => {
           await reportedApi.reportJob(payload.jobId, payload.reason);
