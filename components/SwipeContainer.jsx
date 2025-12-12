@@ -225,6 +225,15 @@ export default function SwipeContainer() {
     }
   }, [jobToReport]);
   
+  // Unlock when transitioning to empty state (no animation to unlock otherwise)
+  // This must be before any conditional returns to follow Rules of Hooks
+  const shouldShowEmpty = !loading && !currentJob && remainingJobs === 0;
+  useEffect(() => {
+    if (shouldShowEmpty && isLocked) {
+      unlock();
+    }
+  }, [shouldShowEmpty, isLocked, unlock]);
+  
   // Show error state
   if (error && !loading) {
     return (
@@ -263,15 +272,6 @@ export default function SwipeContainer() {
   
   // Show empty state - only when truly at the end
   // Guard against premature empty state during transitions
-  const shouldShowEmpty = !loading && !currentJob && remainingJobs === 0;
-  
-  // Unlock when transitioning to empty state (no animation to unlock otherwise)
-  useEffect(() => {
-    if (shouldShowEmpty && isLocked) {
-      unlock();
-    }
-  }, [shouldShowEmpty, isLocked, unlock]);
-  
   if (shouldShowEmpty) {
     return (
       <div className="relative h-full w-full">
