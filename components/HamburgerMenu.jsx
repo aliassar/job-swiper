@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BriefcaseIcon, 
@@ -10,11 +11,15 @@ import {
   ClockIcon,
   ArrowPathIcon,
   FlagIcon,
+  ArrowRightOnRectangleIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline';
 
 export default function HamburgerMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session, status } = useSession();
 
   const menuItems = [
     {
@@ -91,6 +96,31 @@ export default function HamburgerMenu() {
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="fixed top-0 left-0 bottom-0 w-80 bg-white z-50 shadow-2xl overflow-y-auto"
           >
+            {/* User Info Section */}
+            {status === 'authenticated' && session?.user && (
+              <div className="p-4 pt-6 border-b border-gray-200">
+                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
+                  {session.user.image ? (
+                    <img 
+                      src={session.user.image} 
+                      alt={session.user.name || 'User'}
+                      className="w-12 h-12 rounded-full"
+                    />
+                  ) : (
+                    <UserCircleIcon className="w-12 h-12 text-blue-500" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 truncate">
+                      {session.user.name || 'User'}
+                    </p>
+                    <p className="text-xs text-gray-600 truncate">
+                      {session.user.email}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Menu Items - no header, just navigation */}
             <nav className="p-4 pt-6">
               <ul className="space-y-2">
@@ -122,10 +152,39 @@ export default function HamburgerMenu() {
             </nav>
 
             {/* Footer */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-200 bg-gray-50">
-              <p className="text-xs text-gray-500 text-center">
-                © 2024 Job Swiper. All rights reserved.
-              </p>
+            <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-gray-50">
+              {/* Auth Section */}
+              <div className="p-4">
+                {status === 'authenticated' ? (
+                  <button
+                    onClick={() => {
+                      signOut({ callbackUrl: '/login' });
+                      closeMenu();
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 rounded-xl font-medium hover:bg-red-100 transition-colors"
+                  >
+                    <ArrowRightOnRectangleIcon className="h-5 w-5" />
+                    Sign Out
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      router.push('/login');
+                      closeMenu();
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors"
+                  >
+                    <UserCircleIcon className="h-5 w-5" />
+                    Sign In
+                  </button>
+                )}
+              </div>
+              
+              <div className="px-4 pb-4">
+                <p className="text-xs text-gray-500 text-center">
+                  © 2024 Job Swiper. All rights reserved.
+                </p>
+              </div>
             </div>
           </motion.div>
         )}
