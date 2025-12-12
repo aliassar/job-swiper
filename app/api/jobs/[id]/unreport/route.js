@@ -19,8 +19,7 @@ export async function POST(request, { params }) {
   if (reportIndex === -1) {
     return NextResponse.json({
       success: true,
-      message: 'Job already unreported',
-      alreadyUnreported: true,
+      message: 'Job unreported successfully',
     });
   }
   
