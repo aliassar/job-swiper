@@ -4,15 +4,15 @@ import { HeartIcon } from '@heroicons/react/24/solid';
 import { useJobs } from '@/context/JobContext';
 
 export default function FavoritesList() {
-  const { favorites, toggleFavorite } = useJobs();
+  const { savedJobs, toggleSaveJob } = useJobs();
 
-  if (favorites.length === 0) {
+  if (savedJobs.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full px-6 text-center">
         <div className="text-6xl mb-4">💝</div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">No favorites yet</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">No saved jobs yet</h2>
         <p className="text-gray-600">
-          Jobs you favorite will appear here for easy access.
+          Jobs you save will appear here for easy access.
         </p>
       </div>
     );
@@ -20,7 +20,7 @@ export default function FavoritesList() {
 
   return (
     <div className="space-y-3">
-      {favorites.map((job) => {
+      {savedJobs.map((job) => {
         const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
         
         return (
@@ -46,9 +46,9 @@ export default function FavoritesList() {
                   </div>
                   
                   <button
-                    onClick={() => toggleFavorite(job)}
+                    onClick={() => toggleSaveJob(job)}
                     className="flex-shrink-0 p-2 rounded-full hover:bg-red-50 transition-colors"
-                    aria-label="Remove from favorites"
+                    aria-label="Remove from saved jobs"
                   >
                     <HeartIcon className="h-5 w-5 text-red-500 flex-shrink-0" />
                   </button>
