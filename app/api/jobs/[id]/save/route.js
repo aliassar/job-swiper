@@ -22,13 +22,14 @@ export async function POST(request, { params }) {
   jobsStorage.userJobStatus.set(jobId, {
     ...existingStatus,
     saved,
+    savedAt: saved ? new Date().toISOString() : existingStatus.savedAt,
   });
 
   // Log action
   jobsStorage.history.push({
     id: generateId('history'),
     jobId,
-    action: saved ? 'savedd' : 'unsavedd',
+    action: saved ? 'saved' : 'unsaved',
     timestamp: new Date().toISOString(),
     metadata: { company: job.company, position: job.position },
   });

@@ -9,7 +9,7 @@ export async function GET(request) {
   const page = parseInt(searchParams.get('page') || '0');
   const limit = parseInt(searchParams.get('limit') || '20');
   
-  // Get all savedd jobs
+  // Get all saved jobs
   let saveds = jobsStorage.jobs
     .filter(job => {
       const status = jobsStorage.userJobStatus.get(job.id);
@@ -20,7 +20,7 @@ export async function GET(request) {
       return {
         ...job,
         saved: true,
-        saveddAt: status.saveddAt || new Date().toISOString(),
+        savedAt: status.savedAt || new Date().toISOString(),
       };
     });
   
