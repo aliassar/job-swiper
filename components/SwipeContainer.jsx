@@ -162,8 +162,6 @@ export default function SwipeContainer() {
     if (sessionActions.length === 0 || isActionInProgress) return;
     setIsActionInProgress(true);
     rollbackLastAction();
-    // Reset action flag after a short delay to allow UI to update
-    setTimeout(() => setIsActionInProgress(false), 100);
   }, [sessionActions, rollbackLastAction, isActionInProgress]);
 
   const handleOpenReportModal = useCallback((job) => {
