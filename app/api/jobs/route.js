@@ -1,13 +1,71 @@
 import { NextResponse } from 'next/server';
 
+// Sample seed data for testing
+const seedJobs = [
+  {
+    id: 1,
+    company: 'Google',
+    position: 'Senior Software Engineer',
+    location: 'Mountain View, CA',
+    skills: ['JavaScript', 'React', 'Node.js', 'TypeScript'],
+    description: 'Join our team to build amazing products that impact billions of users.',
+    postedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 2,
+    company: 'Microsoft',
+    position: 'Full Stack Developer',
+    location: 'Seattle, WA',
+    skills: ['C#', '.NET', 'Azure', 'React'],
+    description: 'Work on cutting-edge cloud technologies and enterprise solutions.',
+    postedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 3,
+    company: 'Apple',
+    position: 'iOS Developer',
+    location: 'Cupertino, CA',
+    skills: ['Swift', 'iOS', 'UIKit', 'SwiftUI'],
+    description: 'Help create the next generation of iOS applications.',
+    postedDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
 // In-memory storage for server data
 // Jobs can be added through the API or imported from external sources
 export const jobsStorage = {
-  jobs: [], // Initialize with empty array - jobs can be added via API
+  jobs: [...seedJobs], // Initialize with seed data for testing
   userJobStatus: new Map(), // jobId -> { status, favorite, acceptedAt, rejectedAt, skippedAt }
   applications: new Map(), // applicationId -> { id, jobId, stage, appliedAt, updatedAt }
   history: [], // Array of action history
 };
+
+// Add a sample application for testing
+const sampleAppDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+jobsStorage.applications.set('app-test-1', {
+  id: 'app-test-1',
+  jobId: 2,
+  stage: 'Phone Screen',
+  appliedAt: sampleAppDate,
+  updatedAt: new Date().toISOString(),
+});
+jobsStorage.userJobStatus.set(2, {
+  status: 'accepted',
+  favorite: false,
+  acceptedAt: sampleAppDate,
+  decisionAt: sampleAppDate,
+});
+
+// Add sample history
+jobsStorage.history.push({
+  id: 'history-test-1',
+  jobId: 2,
+  company: 'Microsoft',
+  position: 'Full Stack Developer',
+  location: 'Seattle, WA',
+  action: 'accepted',
+  timestamp: sampleAppDate,
+});
 
 // Helper to get job with status
 function getJobWithStatus(jobId) {
