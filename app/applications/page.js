@@ -105,7 +105,8 @@ export default function ApplicationsPage() {
             return (
               <div 
                 key={app.id}
-                className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow"
+                onClick={() => router.push(`/application/${app.id}`)}
+                className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer"
               >
                 <div className="flex items-start gap-4">
                   <img 
@@ -136,8 +137,8 @@ export default function ApplicationsPage() {
                       </div>
                     )}
 
-                    {/* Stage selector and detail link */}
-                    <div className="mt-3 flex items-center gap-2">
+                    {/* Stage selector */}
+                    <div className="mt-3">
                       <select
                         value={app.stage}
                         onChange={(e) => {
@@ -146,8 +147,8 @@ export default function ApplicationsPage() {
                           mutate();
                         }}
                         onClick={(e) => e.stopPropagation()}
-                        disabled={app.pendingSync || app.stage === 'Syncing' || app.stage === 'Being Applied'}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border-0 ${(app.pendingSync || app.stage === 'Syncing' || app.stage === 'Being Applied') ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'} ${getStageColor(app.stage)}`}
+                        disabled={app.stage === 'Syncing'}
+                        className={`w-full px-3 py-2 rounded-lg text-sm font-medium border-0 ${app.stage === 'Syncing' ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'} ${getStageColor(app.stage)}`}
                       >
                         {APPLICATION_STAGES.map((stage) => (
                           <option key={stage} value={stage}>
@@ -155,12 +156,6 @@ export default function ApplicationsPage() {
                           </option>
                         ))}
                       </select>
-                      <button
-                        onClick={() => router.push(`/application/${app.id}`)}
-                        className="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors whitespace-nowrap"
-                      >
-                        View
-                      </button>
                     </div>
 
                     {/* Application date */}
