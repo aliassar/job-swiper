@@ -24,8 +24,8 @@ export default function BottomNav() {
       iconSolid: BriefcaseIconSolid,
     },
     {
-      name: 'Favorites',
-      href: '/favorites',
+      name: 'Saved',
+      href: '/saved',
       icon: HeartIcon,
       iconSolid: HeartIconSolid,
     },

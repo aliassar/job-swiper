@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useJobs } from '@/context/JobContext';
-import { useSavedJobs } from '@/lib/hooks/useSWR';
+import { useSavedJobsInfinite } from '@/lib/hooks/useSWR';
 import { BookmarkIcon } from '@heroicons/react/24/solid';
 import SearchInput from '@/components/SearchInput';
 
@@ -12,8 +12,28 @@ export default function SavedJobsPage() {
   const { toggleSaveJob } = useJobs();
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Use SWR for data fetching with automatic caching and revalidation
-  const { savedJobs, isLoading, mutate } = useSavedJobs(searchQuery);
+  // Feature 24: Use infinite scroll SWR hook
+  const { savedJobs, isLoading, isLoadingMore, hasMore, loadMore, mutate } = useSavedJobsInfinite(searchQuery);
+  
+  // IntersectionObserver for infinite scroll
+  const sentinelRef = useRef(null);
+
+  useEffect(() => {
+    if (!sentinelRef.current || !hasMore || isLoadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(sentinelRef.current);
+
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, loadMore]);
 
   const handleSearch = useCallback((query) => {
     setSearchQuery(query);
@@ -143,6 +163,26 @@ export default function SavedJobsPage() {
                 </div>
               );
             })}
+            
+            {/* Feature 24: Infinite scroll sentinel */}
+            {hasMore && (
+              <div ref={sentinelRef} className="py-8 text-center">
+                {isLoadingMore ? (
+                  <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-2"></div>
+                    <p className="text-sm text-gray-600">Loading more...</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">Scroll for more</p>
+                )}
+              </div>
+            )}
+            
+            {!hasMore && savedJobs.length > 0 && (
+              <div className="py-8 text-center">
+                <p className="text-sm text-gray-500">No more jobs to load</p>
+              </div>
+            )}
           </div>
         )}
       </div>
