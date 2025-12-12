@@ -11,6 +11,7 @@ import { ArrowUturnLeftIcon, WifiIcon } from '@heroicons/react/24/outline';
 // Constants - optimized for better responsiveness
 const SWIPE_THRESHOLD = 60; // Reduced from 130
 const VELOCITY_THRESHOLD = 300; // New: for flick detection
+const EXIT_ROTATION = 20; // Rotation angle for exit animation
 const DRAG_CONSTRAINTS = { top: 0, bottom: 0, left: 0, right: 0 };
 
 // Dynamic exit distance based on screen width
@@ -41,7 +42,7 @@ export default function SwipeContainer() {
   } = useJobs();
 
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-300, 300], [-20, 20]);
+  const rotate = useTransform(x, [-300, 300], [-EXIT_ROTATION, EXIT_ROTATION]);
 
   const [exit, setExit] = useState({ x: 0, y: 0 });
   const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -287,7 +288,7 @@ export default function SwipeContainer() {
                   exit={{
                     x: exit.x,
                     y: exit.y,
-                    rotate: exit.x > 0 ? 20 : exit.x < 0 ? -20 : 0,
+                    rotate: exit.x > 0 ? EXIT_ROTATION : exit.x < 0 ? -EXIT_ROTATION : 0,
                     transition: { duration: 0.3, ease: 'easeOut' }
                   }}
                   onAnimationComplete={() => {
