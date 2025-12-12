@@ -29,6 +29,7 @@ import { useSwipeStateMachine } from '@/context/useSwipeStateMachine';
 import { SwipeActionType } from '@/context/swipeStateMachine';
 import { jobsApi } from '@/lib/api';
 import { useState } from 'react';
+import { useJobs } from '@/context/JobContext';
 
 // Dynamic exit distance based on screen width
 const getExitDistance = () => {
@@ -56,6 +57,8 @@ export default function SwipeContainer() {
     rollback,
     unlock,
   } = useSwipeStateMachine();
+  
+  const { toggleSaveJob, reportJob, savedJobs } = useJobs();
   
   // Animation state (local to UI only)
   const x = useMotionValue(0);
@@ -227,10 +230,26 @@ export default function SwipeContainer() {
   
   const handleReport = useCallback((reason) => {
     if (jobToReport) {
-      // Report is a side effect, doesn't affect swipe state
-      console.log('Report job:', jobToReport.id, 'reason:', reason);
+      // Call the actual report API
+      reportJob(jobToReport, reason);
+      setReportModalOpen(false);
+      setJobToReport(null);
     }
-  }, [jobToReport]);
+  }, [jobToReport, reportJob]);
+  
+  /**
+   * Handle favorite/save toggle
+   */
+  const handleToggleFavorite = useCallback(() => {
+    if (!currentJob || isLocked) return;
+    toggleSaveJob(currentJob);
+  }, [currentJob, isLocked, toggleSaveJob]);
+  
+  // Check if current job is saved
+  const isCurrentJobSaved = useMemo(() => {
+    if (!currentJob) return false;
+    return savedJobs.some(saved => saved.id === currentJob.id);
+  }, [currentJob, savedJobs]);
   
   // Unlock when entering empty state (no animation to unlock otherwise)
   // This must be before any conditional returns to follow Rules of Hooks
@@ -403,8 +422,8 @@ export default function SwipeContainer() {
           onReject={handleReject}
           onAccept={handleAccept}
           onSkip={handleSkip}
-          onFavorite={() => {}} // Favorite is handled separately
-          isFavorite={false}
+          onFavorite={handleToggleFavorite}
+          isFavorite={isCurrentJobSaved}
           disabled={!canPerformSwipe || isLocked}
         />
         

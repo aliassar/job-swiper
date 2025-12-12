@@ -199,12 +199,6 @@ export function JobProvider({ children }) {
     
     // Add to offline queue
     try {
-      // Update stage to "Being Applied"
-      dispatch({ type: ACTIONS.UPDATE_APPLICATION, payload: {
-        id: tempApplication.id,
-        updates: { stage: 'Being Applied' }
-      }});
-      
       await offlineQueue.addOperation({
         type: 'accept',
         id: job.id,
@@ -212,7 +206,7 @@ export function JobProvider({ children }) {
         apiCall: async (payload) => {
           const result = await jobsApi.acceptJob(payload.jobId);
           
-          // Update applications on success - change to "Applied" and use real ID
+          // Update applications on success - use server response for stage and real ID
           if (result.application) {
             dispatch({ type: ACTIONS.UPDATE_APPLICATION_WITH_RESULT, payload: {
               jobId: payload.jobId,

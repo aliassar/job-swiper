@@ -80,53 +80,52 @@ export default function ApplicationTimeline({ currentStage, timestamps = {}, int
 
   return (
     <div className="w-full">
-      {/* Horizontal timeline for main stages */}
-      <div className="relative flex items-start justify-between mb-8 overflow-x-auto">
+      {/* Horizontal timeline for main stages - wraps to next line if overflow */}
+      <div className="relative flex items-start flex-wrap gap-x-2 gap-y-4 mb-6">
         {APPLICATION_STAGES.map((stage, index) => {
           const status = getStageStatus(stage, index);
           const isLast = index === APPLICATION_STAGES.length - 1;
 
           return (
-            <div key={stage.name} className="flex flex-col items-center flex-1 relative min-w-[60px]">
-              {/* Horizontal line connector */}
+            <div key={stage.name} className="flex flex-col items-center relative min-w-[50px]">
+              {/* Horizontal line connector - only for same row */}
               {!isLast && (
                 <div
-                  className={`absolute top-4 left-1/2 right-0 h-0.5 -translate-y-1/2 ${
+                  className={`absolute top-3 left-full h-0.5 w-2 ${
                     status === 'completed'
                       ? 'bg-green-500'
                       : 'bg-gray-200'
                   }`}
-                  style={{ width: 'calc(100% - 0.5rem)' }}
                 />
               )}
 
               {/* Stage indicator */}
-              <div className="relative z-10 flex-shrink-0 mb-2">
+              <div className="relative z-10 flex-shrink-0 mb-1">
                 <div
                   className={`${iconSize} rounded-full border-2 flex items-center justify-center ${getStageColor(status)}`}
                 >
                   {status === 'completed' ? (
-                    <CheckCircleIcon className="h-4 w-4 text-white" />
+                    <CheckCircleIcon className="h-3 w-3 text-white" />
                   ) : status === 'current' ? (
-                    <ClockIcon className="h-4 w-4 text-white" />
+                    <ClockIcon className="h-3 w-3 text-white" />
                   ) : (
-                    <div className="w-2.5 h-2.5 rounded-full bg-gray-400" />
+                    <div className="w-2 h-2 rounded-full bg-gray-400" />
                   )}
                 </div>
               </div>
 
               {/* Stage content */}
               <div className={`text-center ${maxWidth}`}>
-                <p className={`${textSize} font-medium ${getStageTextColor(status)} leading-tight`}>
+                <p className={`${textSize} font-medium ${getStageTextColor(status)} leading-tight whitespace-nowrap`}>
                   {stage.short}
                 </p>
                 {status === 'current' && (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-blue-100 text-blue-700 mt-1">
-                    Current
+                  <span className="inline-flex items-center px-1 py-0.5 rounded-full text-[9px] bg-blue-100 text-blue-700 mt-0.5">
+                    Now
                   </span>
                 )}
                 {timestamps[stage.name] && (
-                  <p className="text-[10px] text-gray-500 mt-1">
+                  <p className="text-[9px] text-gray-500 mt-0.5">
                     {formatTimestamp(timestamps[stage.name])}
                   </p>
                 )}
