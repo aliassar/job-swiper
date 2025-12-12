@@ -6,8 +6,11 @@ import HistoryItem from '@/components/HistoryItem';
 import SearchInput from '@/components/SearchInput';
 
 export default function HistoryPage() {
-  const { history, rollbackDecision } = useJobs();
+  const { sessionActions, rollbackLastAction } = useJobs();
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Map sessionActions to history format
+  const history = sessionActions || [];
 
   const handleSearch = useCallback((query) => {
     setSearchQuery(query);
@@ -17,9 +20,10 @@ export default function HistoryPage() {
   const filteredHistory = searchQuery && history
     ? history.filter(item => {
         const searchLower = searchQuery.toLowerCase();
+        const job = item.job || {};
         return (
-          item.company.toLowerCase().includes(searchLower) ||
-          item.position.toLowerCase().includes(searchLower) ||
+          (job.company || '').toLowerCase().includes(searchLower) ||
+          (job.position || '').toLowerCase().includes(searchLower) ||
           item.action.toLowerCase().includes(searchLower)
         );
       })
@@ -73,9 +77,16 @@ export default function HistoryPage() {
           <div>
             {filteredHistory.map((item) => (
               <HistoryItem 
-                key={`${item.id}-${item.timestamp}`} 
-                item={item}
-                onRollback={rollbackDecision}
+                key={`${item.jobId}-${item.timestamp}`} 
+                item={{
+                  id: item.jobId,
+                  company: item.job?.company || 'Unknown',
+                  position: item.job?.position || 'Unknown',
+                  location: item.job?.location || 'Unknown',
+                  action: item.action,
+                  timestamp: item.timestamp,
+                }}
+                onRollback={rollbackLastAction}
               />
             ))}
           </div>
