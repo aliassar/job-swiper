@@ -13,7 +13,8 @@ import {
   EXIT_ROTATION, 
   EXIT_PADDING, 
   EXIT_FALLBACK, 
-  DRAG_CONSTRAINTS 
+  DRAG_CONSTRAINTS,
+  ANIMATION_SYNC_DELAY 
 } from '@/lib/constants';
 
 // Dynamic exit distance based on screen width
@@ -108,7 +109,7 @@ export default function SwipeContainer() {
       // Small delay to ensure exit animation starts before state update
       setTimeout(() => {
         acceptJob(currentJob);
-      }, 50);
+      }, ANIMATION_SYNC_DELAY);
       return;
     }
 
@@ -117,7 +118,7 @@ export default function SwipeContainer() {
       // Small delay to ensure exit animation starts before state update
       setTimeout(() => {
         rejectJob(currentJob);
-      }, 50);
+      }, ANIMATION_SYNC_DELAY);
       return;
     }
 
@@ -126,7 +127,7 @@ export default function SwipeContainer() {
       // Small delay to ensure exit animation starts before state update
       setTimeout(() => {
         rejectJob(currentJob);
-      }, 50);
+      }, ANIMATION_SYNC_DELAY);
       return;
     }
 
@@ -140,7 +141,7 @@ export default function SwipeContainer() {
     // Small delay to ensure exit animation starts before state update
     setTimeout(() => {
       acceptJob(currentJob);
-    }, 50);
+    }, ANIMATION_SYNC_DELAY);
   }, [currentJob, acceptJob, exitDistance]);
 
   const handleReject = useCallback(() => {
@@ -149,7 +150,7 @@ export default function SwipeContainer() {
     // Small delay to ensure exit animation starts before state update
     setTimeout(() => {
       rejectJob(currentJob);
-    }, 50);
+    }, ANIMATION_SYNC_DELAY);
   }, [currentJob, rejectJob, exitDistance]);
 
   const handleSkip = useCallback(() => {
@@ -158,7 +159,7 @@ export default function SwipeContainer() {
     // Small delay to ensure exit animation starts before state update
     setTimeout(() => {
       skipJob(currentJob);
-    }, 50);
+    }, ANIMATION_SYNC_DELAY);
   }, [currentJob, skipJob, exitDistance]);
 
   const handleSaveJob = useCallback(() => {
@@ -302,7 +303,7 @@ export default function SwipeContainer() {
 
               return (
                 <motion.div
-                  key={isTopCard ? job.id : `${job.id}-${index}`}
+                  key={`job-card-${job.id}-${currentIndex + index}`}
                   layoutId={`job-card-${job.id}`}
                   className={`absolute inset-0 ${isTopCard ? swipeDirection : ''}`}
                   style={
