@@ -100,48 +100,56 @@ export function useSwipeStateMachine() {
   }, []);
   
   /**
-   * Side effect: Queue API calls when history changes
+   * Side effect: Queue API calls when history grows (new swipe)
    * This runs AFTER the UI state has updated
    * API calls do NOT block the UI
    */
-  useEffect(() => {
-    const lastSwipe = state.history[state.history.length - 1];
-    if (!lastSwipe) return;
-    
-    // Queue API call (non-blocking)
-    const { jobId, action } = lastSwipe;
-    
-    offlineQueue.addOperation({
-      type: action,
-      id: jobId,
-      payload: { jobId },
-      apiCall: async (payload) => {
-        switch (action) {
-          case SwipeActionType.ACCEPT:
-            await jobsApi.acceptJob(payload.jobId);
-            break;
-          case SwipeActionType.REJECT:
-            await jobsApi.rejectJob(payload.jobId);
-            break;
-          case SwipeActionType.SKIP:
-            await jobsApi.skipJob(payload.jobId);
-            break;
-        }
-      },
-    }).catch(error => {
-      console.error('Error queuing API call:', error);
-    });
-  }, [state.history, offlineQueue]);
-  
-  /**
-   * Side effect: Queue rollback API calls
-   * Only when history decreases (rollback occurred)
-   */
   const prevHistoryLengthRef = useRef(0);
+  const processedSwipesRef = useRef(new Set());
+  
   useEffect(() => {
     const currentLength = state.history.length;
     const prevLength = prevHistoryLengthRef.current;
     
+    // Only process when history grows (new swipe added)
+    if (currentLength > prevLength) {
+      const lastSwipe = state.history[state.history.length - 1];
+      if (!lastSwipe) return;
+      
+      // Create unique key for this swipe event
+      const swipeKey = `${lastSwipe.jobId}-${lastSwipe.action}-${lastSwipe.timestamp}`;
+      
+      // Only process if we haven't seen this exact swipe before
+      if (!processedSwipesRef.current.has(swipeKey)) {
+        processedSwipesRef.current.add(swipeKey);
+        
+        // Queue API call (non-blocking)
+        const { jobId, action } = lastSwipe;
+        
+        offlineQueue.addOperation({
+          type: action,
+          id: jobId,
+          payload: { jobId },
+          apiCall: async (payload) => {
+            switch (action) {
+              case SwipeActionType.ACCEPT:
+                await jobsApi.acceptJob(payload.jobId);
+                break;
+              case SwipeActionType.REJECT:
+                await jobsApi.rejectJob(payload.jobId);
+                break;
+              case SwipeActionType.SKIP:
+                await jobsApi.skipJob(payload.jobId);
+                break;
+            }
+          },
+        }).catch(error => {
+          console.error('Error queuing API call:', error);
+        });
+      }
+    }
+    
+    // Handle rollback (history shrinks)
     if (currentLength < prevLength) {
       // Rollback occurred
       const rolledBackJob = state.jobs[state.cursor];
@@ -160,7 +168,7 @@ export function useSwipeStateMachine() {
     }
     
     prevHistoryLengthRef.current = currentLength;
-  }, [state.history.length, state.cursor, state.jobs, offlineQueue]);
+  }, [state.history.length, state.cursor, state.jobs, state.history, offlineQueue]);
   
   // Computed values
   const currentJob = getCurrentJob(state);
