@@ -10,9 +10,16 @@ import { ArrowUturnLeftIcon, WifiIcon } from '@heroicons/react/24/outline';
 
 // Constants - optimized for better responsiveness
 const SWIPE_THRESHOLD = 60; // Reduced from 130
-const EXIT_DISTANCE = 300; // Reduced from 600
 const VELOCITY_THRESHOLD = 300; // New: for flick detection
 const DRAG_CONSTRAINTS = { top: 0, bottom: 0, left: 0, right: 0 };
+
+// Dynamic exit distance based on screen width
+const getExitDistance = () => {
+  if (typeof window !== 'undefined') {
+    return window.innerWidth + 200;
+  }
+  return 800; // fallback for SSR
+};
 
 export default function SwipeContainer() {
   const { 
@@ -35,7 +42,6 @@ export default function SwipeContainer() {
 
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-300, 300], [-20, 20]);
-  const opacity = useTransform(x, [-300, -150, 0, 150, 300], [0, 1, 1, 1, 0]);
 
   const [exit, setExit] = useState({ x: 0, y: 0 });
   const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -78,6 +84,8 @@ export default function SwipeContainer() {
 
   // ALL useCallback and useMemo hooks MUST be here, BEFORE any conditional returns
   const handleDragEnd = useCallback((_event, info) => {
+    const exitDistance = getExitDistance();
+    
     // Check for velocity-based swipes (flicks)
     const flickedRight = info.velocity.x > VELOCITY_THRESHOLD;
     const flickedLeft = info.velocity.x < -VELOCITY_THRESHOLD;
@@ -89,19 +97,19 @@ export default function SwipeContainer() {
     const draggedUp = info.offset.y < -SWIPE_THRESHOLD;
 
     if (draggedRight || flickedRight) {
-      setExit({ x: EXIT_DISTANCE, y: 0 });
+      setExit({ x: exitDistance, y: 0 });
       acceptJob(currentJob);
       return;
     }
 
     if (draggedLeft || flickedLeft) {
-      setExit({ x: -EXIT_DISTANCE, y: 0 });
+      setExit({ x: -exitDistance, y: 0 });
       rejectJob(currentJob);
       return;
     }
 
     if (draggedUp || flickedUp) {
-      setExit({ x: 0, y: -EXIT_DISTANCE });
+      setExit({ x: 0, y: -exitDistance });
       rejectJob(currentJob);
       return;
     }
@@ -111,17 +119,20 @@ export default function SwipeContainer() {
   }, [currentJob, acceptJob, rejectJob]);
 
   const handleAccept = useCallback(() => {
-    setExit({ x: EXIT_DISTANCE, y: 0 });
+    const exitDistance = getExitDistance();
+    setExit({ x: exitDistance, y: 0 });
     acceptJob(currentJob);
   }, [currentJob, acceptJob]);
 
   const handleReject = useCallback(() => {
-    setExit({ x: -EXIT_DISTANCE, y: 0 });
+    const exitDistance = getExitDistance();
+    setExit({ x: -exitDistance, y: 0 });
     rejectJob(currentJob);
   }, [currentJob, rejectJob]);
 
   const handleSkip = useCallback(() => {
-    setExit({ x: 0, y: -EXIT_DISTANCE });
+    const exitDistance = getExitDistance();
+    setExit({ x: 0, y: -exitDistance });
     skipJob(currentJob);
   }, [currentJob, skipJob]);
 
@@ -241,7 +252,7 @@ export default function SwipeContainer() {
 
         {/* Card stack container with padding for floating actions */}
         <div className="relative h-full px-4 pt-4 pb-28">
-          <AnimatePresence mode="wait" onExitComplete={() => x.set(0)}>
+          <AnimatePresence mode="popLayout" onExitComplete={() => x.set(0)}>
             {visibleJobs.map((job, index) => {
               const isTopCard = index === 0;
               const scale = 1 - index * 0.05;
@@ -256,7 +267,6 @@ export default function SwipeContainer() {
                       ? { 
                           x, 
                           rotate, 
-                          opacity, 
                           zIndex: 10,
                           touchAction: 'none',
                           willChange: 'transform'
@@ -265,7 +275,6 @@ export default function SwipeContainer() {
                           scale,
                           y: yOffset,
                           pointerEvents: 'none',
-                          opacity: 0.95,
                           zIndex: 10 - index,
                         }
                   }
@@ -273,12 +282,12 @@ export default function SwipeContainer() {
                   dragElastic={0.8}
                   dragConstraints={DRAG_CONSTRAINTS}
                   onDragEnd={handleDragEnd}
-                  initial={{ scale: 0.95, opacity: 0 }}
-                  animate={{ scale: isTopCard ? 1 : scale, opacity: 1 }}
+                  initial={{ scale: 0.95 }}
+                  animate={{ scale: isTopCard ? 1 : scale }}
                   exit={{
                     x: exit.x,
                     y: exit.y,
-                    opacity: 0,
+                    rotate: exit.x > 0 ? 20 : exit.x < 0 ? -20 : 0,
                     transition: { duration: 0.3, ease: 'easeOut' }
                   }}
                   onAnimationComplete={() => {
