@@ -10,9 +10,19 @@ import { ArrowUturnLeftIcon, WifiIcon } from '@heroicons/react/24/outline';
 
 // Constants - optimized for better responsiveness
 const SWIPE_THRESHOLD = 60; // Reduced from 130
-const EXIT_DISTANCE = 300; // Reduced from 600
 const VELOCITY_THRESHOLD = 300; // New: for flick detection
+const EXIT_ROTATION = 20; // Rotation angle for exit animation
+const EXIT_PADDING = 200; // Extra distance beyond viewport to ensure card fully exits
+const EXIT_FALLBACK = 800; // Fallback exit distance for SSR
 const DRAG_CONSTRAINTS = { top: 0, bottom: 0, left: 0, right: 0 };
+
+// Dynamic exit distance based on screen width
+const getExitDistance = () => {
+  if (typeof window !== 'undefined') {
+    return window.innerWidth + EXIT_PADDING;
+  }
+  return EXIT_FALLBACK;
+};
 
 export default function SwipeContainer() {
   const { 
@@ -34,14 +44,16 @@ export default function SwipeContainer() {
   } = useJobs();
 
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-300, 300], [-20, 20]);
-  const opacity = useTransform(x, [-300, -150, 0, 150, 300], [0, 1, 1, 1, 0]);
+  const rotate = useTransform(x, [-300, 300], [-EXIT_ROTATION, EXIT_ROTATION]);
 
   const [exit, setExit] = useState({ x: 0, y: 0 });
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [jobToReport, setJobToReport] = useState(null);
   const [isOnline, setIsOnline] = useState(true);
   const [swipeDirection, setSwipeDirection] = useState(''); // '', 'swiping-right', or 'swiping-left'
+  
+  // Memoize exit distance to avoid repeated calculations
+  const exitDistance = useMemo(() => getExitDistance(), []);
 
   // Track swipe direction for CSS class updates
   useMotionValueEvent(x, "change", (latest) => {
@@ -89,41 +101,41 @@ export default function SwipeContainer() {
     const draggedUp = info.offset.y < -SWIPE_THRESHOLD;
 
     if (draggedRight || flickedRight) {
-      setExit({ x: EXIT_DISTANCE, y: 0 });
+      setExit({ x: exitDistance, y: 0 });
       acceptJob(currentJob);
       return;
     }
 
     if (draggedLeft || flickedLeft) {
-      setExit({ x: -EXIT_DISTANCE, y: 0 });
+      setExit({ x: -exitDistance, y: 0 });
       rejectJob(currentJob);
       return;
     }
 
     if (draggedUp || flickedUp) {
-      setExit({ x: 0, y: -EXIT_DISTANCE });
+      setExit({ x: 0, y: -exitDistance });
       rejectJob(currentJob);
       return;
     }
 
     setExit({ x: 0, y: 0 }); // reset if not passed threshold
     setSwipeDirection(''); // reset swipe direction
-  }, [currentJob, acceptJob, rejectJob]);
+  }, [currentJob, acceptJob, rejectJob, exitDistance]);
 
   const handleAccept = useCallback(() => {
-    setExit({ x: EXIT_DISTANCE, y: 0 });
+    setExit({ x: exitDistance, y: 0 });
     acceptJob(currentJob);
-  }, [currentJob, acceptJob]);
+  }, [currentJob, acceptJob, exitDistance]);
 
   const handleReject = useCallback(() => {
-    setExit({ x: -EXIT_DISTANCE, y: 0 });
+    setExit({ x: -exitDistance, y: 0 });
     rejectJob(currentJob);
-  }, [currentJob, rejectJob]);
+  }, [currentJob, rejectJob, exitDistance]);
 
   const handleSkip = useCallback(() => {
-    setExit({ x: 0, y: -EXIT_DISTANCE });
+    setExit({ x: 0, y: -exitDistance });
     skipJob(currentJob);
-  }, [currentJob, skipJob]);
+  }, [currentJob, skipJob, exitDistance]);
 
   const handleSaveJob = useCallback(() => {
     if (currentJob) {
@@ -241,7 +253,7 @@ export default function SwipeContainer() {
 
         {/* Card stack container with padding for floating actions */}
         <div className="relative h-full px-4 pt-4 pb-28">
-          <AnimatePresence mode="wait" onExitComplete={() => x.set(0)}>
+          <AnimatePresence mode="popLayout" onExitComplete={() => x.set(0)}>
             {visibleJobs.map((job, index) => {
               const isTopCard = index === 0;
               const scale = 1 - index * 0.05;
@@ -256,7 +268,6 @@ export default function SwipeContainer() {
                       ? { 
                           x, 
                           rotate, 
-                          opacity, 
                           zIndex: 10,
                           touchAction: 'none',
                           willChange: 'transform'
@@ -265,7 +276,6 @@ export default function SwipeContainer() {
                           scale,
                           y: yOffset,
                           pointerEvents: 'none',
-                          opacity: 0.95,
                           zIndex: 10 - index,
                         }
                   }
@@ -273,13 +283,13 @@ export default function SwipeContainer() {
                   dragElastic={0.8}
                   dragConstraints={DRAG_CONSTRAINTS}
                   onDragEnd={handleDragEnd}
-                  initial={{ scale: 0.95, opacity: 0 }}
-                  animate={{ scale: isTopCard ? 1 : scale, opacity: 1 }}
+                  initial={{ scale: 0.95 }}
+                  animate={{ scale: isTopCard ? 1 : scale }}
                   exit={{
                     x: exit.x,
                     y: exit.y,
-                    opacity: 0,
-                    transition: { duration: 0.3, ease: 'easeOut' }
+                    rotate: exit.x > 0 ? EXIT_ROTATION : exit.x < 0 ? -EXIT_ROTATION : 0,
+                    transition: { duration: 0.5, ease: 'easeOut' }
                   }}
                   onAnimationComplete={() => {
                     if (isTopCard) {
