@@ -193,6 +193,9 @@ export default function SwipeContainer() {
   /**
    * Handle rollback button click
    * This is a pure synchronous operation
+   * 
+   * CRITICAL: Rollback brings a card BACK, there's no exit animation
+   * We must unlock immediately, not wait for onExitComplete
    */
   const handleRollback = useCallback(() => {
     if (!canPerformRollback) return;
@@ -200,7 +203,11 @@ export default function SwipeContainer() {
     // Set exit direction for the current card to animate back in
     setExitDirection({ x: 0, y: 0 });
     rollback();
-  }, [canPerformRollback, rollback]);
+    
+    // Unlock immediately - rollback has no exit animation to trigger onExitComplete
+    // The rolled-back job just appears, it doesn't exit
+    setTimeout(() => unlock(), 0);
+  }, [canPerformRollback, rollback, unlock]);
   
   /**
    * Animation completion handler
@@ -225,25 +232,15 @@ export default function SwipeContainer() {
     }
   }, [jobToReport]);
   
-  // Unlock when transitioning to/from empty state (no animation to unlock otherwise)
+  // Unlock when entering empty state (no animation to unlock otherwise)
   // This must be before any conditional returns to follow Rules of Hooks
   const shouldShowEmpty = !loading && !currentJob && remainingJobs === 0;
-  const wasEmptyRef = useRef(false);
   useEffect(() => {
     // Unlock when entering empty state (finished all jobs)
+    // There's no more cards to animate, so onExitComplete won't fire
     if (shouldShowEmpty && isLocked) {
       unlock();
     }
-    
-    // Unlock when leaving empty state (rollback from empty)
-    // This is critical: when rolling back from empty state, we need to unlock
-    // because there's no exit animation to trigger onExitComplete
-    if (!shouldShowEmpty && wasEmptyRef.current && isLocked) {
-      unlock();
-    }
-    
-    // Track whether we were in empty state for next render
-    wasEmptyRef.current = shouldShowEmpty;
   }, [shouldShowEmpty, isLocked, unlock]);
   
   // Show error state
