@@ -53,6 +53,7 @@ export default function SwipeContainer() {
   const [jobToReport, setJobToReport] = useState(null);
   const [isOnline, setIsOnline] = useState(true);
   const [swipeDirection, setSwipeDirection] = useState(''); // '', 'swiping-right', or 'swiping-left'
+  const [isActionInProgress, setIsActionInProgress] = useState(false);
   
   // Memoize exit distance to avoid repeated calculations
   const exitDistance = useMemo(() => getExitDistance(), []);
@@ -73,6 +74,7 @@ export default function SwipeContainer() {
     x.set(0);
     setExit({ x: 0, y: 0 });
     setSwipeDirection('');
+    setIsActionInProgress(false);
   }, [currentJob, x]);
 
   // Monitor online/offline status
@@ -92,7 +94,7 @@ export default function SwipeContainer() {
 
   // ALL useCallback and useMemo hooks MUST be here, BEFORE any conditional returns
   const handleDragEnd = useCallback((_event, info) => {
-    if (!currentJob) return;
+    if (!currentJob || isActionInProgress) return;
     
     // Check for velocity-based swipes (flicks)
     const flickedRight = info.velocity.x > VELOCITY_THRESHOLD;
@@ -106,67 +108,63 @@ export default function SwipeContainer() {
 
     if (draggedRight || flickedRight) {
       setExit({ x: exitDistance, y: 0 });
-      // Small delay to ensure exit animation starts before state update
-      setTimeout(() => {
-        acceptJob(currentJob);
-      }, ANIMATION_SYNC_DELAY);
+      setIsActionInProgress(true);
+      acceptJob(currentJob);
       return;
     }
 
     if (draggedLeft || flickedLeft) {
       setExit({ x: -exitDistance, y: 0 });
-      // Small delay to ensure exit animation starts before state update
-      setTimeout(() => {
-        rejectJob(currentJob);
-      }, ANIMATION_SYNC_DELAY);
+      setIsActionInProgress(true);
+      rejectJob(currentJob);
       return;
     }
 
     if (draggedUp || flickedUp) {
       setExit({ x: 0, y: -exitDistance });
-      // Small delay to ensure exit animation starts before state update
-      setTimeout(() => {
-        rejectJob(currentJob);
-      }, ANIMATION_SYNC_DELAY);
+      setIsActionInProgress(true);
+      rejectJob(currentJob);
       return;
     }
 
     setExit({ x: 0, y: 0 }); // reset if not passed threshold
     setSwipeDirection(''); // reset swipe direction
-  }, [currentJob, acceptJob, rejectJob, exitDistance]);
+  }, [currentJob, acceptJob, rejectJob, exitDistance, isActionInProgress]);
 
   const handleAccept = useCallback(() => {
-    if (!currentJob) return;
+    if (!currentJob || isActionInProgress) return;
     setExit({ x: exitDistance, y: 0 });
-    // Small delay to ensure exit animation starts before state update
-    setTimeout(() => {
-      acceptJob(currentJob);
-    }, ANIMATION_SYNC_DELAY);
-  }, [currentJob, acceptJob, exitDistance]);
+    setIsActionInProgress(true);
+    acceptJob(currentJob);
+  }, [currentJob, acceptJob, exitDistance, isActionInProgress]);
 
   const handleReject = useCallback(() => {
-    if (!currentJob) return;
+    if (!currentJob || isActionInProgress) return;
     setExit({ x: -exitDistance, y: 0 });
-    // Small delay to ensure exit animation starts before state update
-    setTimeout(() => {
-      rejectJob(currentJob);
-    }, ANIMATION_SYNC_DELAY);
-  }, [currentJob, rejectJob, exitDistance]);
+    setIsActionInProgress(true);
+    rejectJob(currentJob);
+  }, [currentJob, rejectJob, exitDistance, isActionInProgress]);
 
   const handleSkip = useCallback(() => {
-    if (!currentJob) return;
+    if (!currentJob || isActionInProgress) return;
     setExit({ x: 0, y: -exitDistance });
-    // Small delay to ensure exit animation starts before state update
-    setTimeout(() => {
-      skipJob(currentJob);
-    }, ANIMATION_SYNC_DELAY);
-  }, [currentJob, skipJob, exitDistance]);
+    setIsActionInProgress(true);
+    skipJob(currentJob);
+  }, [currentJob, skipJob, exitDistance, isActionInProgress]);
 
   const handleSaveJob = useCallback(() => {
     if (currentJob) {
       toggleSaveJob(currentJob);
     }
   }, [currentJob, toggleSaveJob]);
+
+  const handleRollback = useCallback(() => {
+    if (sessionActions.length === 0 || isActionInProgress) return;
+    setIsActionInProgress(true);
+    rollbackLastAction();
+    // Reset action flag after a short delay to allow UI to update
+    setTimeout(() => setIsActionInProgress(false), 100);
+  }, [sessionActions, rollbackLastAction, isActionInProgress]);
 
   const handleOpenReportModal = useCallback((job) => {
     setJobToReport(job);
@@ -260,8 +258,9 @@ export default function SwipeContainer() {
           {/* Rollback button - bottom right */}
           {sessionActions.length > 0 && (
             <button
-              onClick={rollbackLastAction}
-              className="fixed bottom-24 right-6 z-40 bg-gray-800 text-white rounded-full p-3 shadow-xl hover:scale-110 transition-transform active:scale-95 flex items-center gap-2"
+              onClick={handleRollback}
+              disabled={isActionInProgress}
+              className="fixed bottom-24 right-6 z-40 bg-gray-800 text-white rounded-full p-3 shadow-xl hover:scale-110 transition-transform active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Undo last action"
             >
               <ArrowUturnLeftIcon className="h-6 w-6" />
@@ -295,7 +294,7 @@ export default function SwipeContainer() {
 
         {/* Card stack container with padding for floating actions */}
         <div className="relative h-full px-4 pt-4 pb-28">
-          <AnimatePresence mode="wait" onExitComplete={() => x.set(0)}>
+          <AnimatePresence mode="popLayout" onExitComplete={() => x.set(0)}>
             {visibleJobs.map((job, index) => {
               const isTopCard = index === 0;
               const scale = 1 - index * 0.05;
@@ -303,8 +302,7 @@ export default function SwipeContainer() {
 
               return (
                 <motion.div
-                  key={`job-card-${job.id}-${currentIndex + index}`}
-                  layoutId={`job-card-${job.id}`}
+                  key={job.id}
                   className={`absolute inset-0 ${isTopCard ? swipeDirection : ''}`}
                   style={
                     isTopCard
@@ -359,14 +357,15 @@ export default function SwipeContainer() {
           onSkip={handleSkip}
           onFavorite={handleSaveJob}
           isFavorite={isSaved}
-          disabled={!currentJob}
+          disabled={!currentJob || isActionInProgress}
         />
 
         {/* Rollback button - bottom right */}
         {sessionActions.length > 0 && (
           <button
-            onClick={rollbackLastAction}
-            className="fixed bottom-24 right-6 z-40 bg-gray-800 text-white rounded-full p-3 shadow-xl hover:scale-110 transition-transform active:scale-95 flex items-center gap-2"
+            onClick={handleRollback}
+            disabled={isActionInProgress}
+            className="fixed bottom-24 right-6 z-40 bg-gray-800 text-white rounded-full p-3 shadow-xl hover:scale-110 transition-transform active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Undo last action"
           >
             <ArrowUturnLeftIcon className="h-6 w-6" />
