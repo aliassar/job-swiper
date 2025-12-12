@@ -1,13 +1,11 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { jobsApi, favoritesApi, applicationsApi, reportedApi } from '@/lib/api';
 import { getOfflineQueue } from '@/lib/offlineQueue';
+import { MAX_FETCH_RETRIES } from '@/lib/constants';
 
 const JobContext = createContext();
-
-// Configuration constants
-const MAX_FETCH_RETRIES = 5;
 
 export function JobProvider({ children }) {
   const [jobs, setJobs] = useState([]);
@@ -22,8 +20,11 @@ export function JobProvider({ children }) {
   const [fetchError, setFetchError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
 
-  // Initialize offline queue
-  const offlineQueue = getOfflineQueue();
+  // Bug Fix 3: Track retry timeout for cleanup
+  const retryTimeoutRef = useRef(null);
+
+  // Bug Fix 1 & Optimization 5: Memoize offlineQueue to prevent recreation
+  const offlineQueue = useMemo(() => getOfflineQueue(), []);
 
   // Fetch jobs and saved jobs on mount
   useEffect(() => {
@@ -44,8 +45,14 @@ export function JobProvider({ children }) {
       }
     });
 
-    return unsubscribe;
-  }, []);
+    // Bug Fix 3: Cleanup function for retry timeout
+    return () => {
+      unsubscribe();
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, [offlineQueue]);
 
   const fetchJobs = async (retryAttempt = 0, search = '') => {
     setLoading(true);
@@ -66,7 +73,8 @@ export function JobProvider({ children }) {
         console.log(`Retrying in ${delay / 1000}s...`);
         setRetryCount(retryAttempt + 1);
         
-        setTimeout(() => {
+        // Bug Fix 3: Store timeout reference for cleanup
+        retryTimeoutRef.current = setTimeout(() => {
           fetchJobs(retryAttempt + 1, search);
         }, delay);
       } else {
@@ -322,10 +330,14 @@ export function JobProvider({ children }) {
     // Remove from session actions
     setSessionActions(prev => prev.slice(0, -1));
     
+    // Bug Fix 2: Use functional update to get current index at execution time
     // Add job back to the top of the swipe queue
     setJobs(prev => {
+      // Get current index dynamically within setter
+      const currentJobIndex = prev.findIndex(j => j.id === prev[currentIndex]?.id);
+      const insertIndex = currentJobIndex >= 0 ? currentJobIndex : currentIndex;
       const newJobs = [...prev];
-      newJobs.splice(currentIndex, 0, lastAction.job);
+      newJobs.splice(insertIndex, 0, lastAction.job);
       return newJobs;
     });
     
@@ -460,6 +472,7 @@ export function JobProvider({ children }) {
       value={{
         jobs,
         currentJob,
+        currentIndex,
         remainingJobs,
         savedJobs,
         favorites: savedJobs, // Keep for backward compatibility

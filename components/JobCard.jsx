@@ -1,5 +1,6 @@
 'use client';
 
+import PropTypes from 'prop-types';
 import { FlagIcon } from '@heroicons/react/24/outline';
 import { FlagIcon as FlagIconSolid } from '@heroicons/react/24/solid';
 import { useJobs } from '@/context/JobContext';
@@ -131,3 +132,19 @@ export default function JobCard({ job, style, onSwipe, onReportClick }) {
     </div>
   );
 }
+
+JobCard.propTypes = {
+  job: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    company: PropTypes.string.isRequired,
+    position: PropTypes.string.isRequired,
+    location: PropTypes.string.isRequired,
+    skills: PropTypes.arrayOf(PropTypes.string).isRequired,
+    description: PropTypes.string.isRequired,
+    postedDate: PropTypes.string.isRequired,
+    logo: PropTypes.string,
+  }),
+  style: PropTypes.object,
+  onSwipe: PropTypes.func,
+  onReportClick: PropTypes.func,
+};
