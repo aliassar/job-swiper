@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, useMotionValue, useTransform, AnimatePresence, useMotionValueEvent } from 'framer-motion';
 import JobCard from './JobCard';
 import FloatingActions from './FloatingActions';
@@ -54,6 +54,7 @@ export default function SwipeContainer() {
   const [isOnline, setIsOnline] = useState(true);
   const [swipeDirection, setSwipeDirection] = useState(''); // '', 'swiping-right', or 'swiping-left'
   const [isActionInProgress, setIsActionInProgress] = useState(false);
+  const actionTimeoutRef = useRef(null);
   
   // Memoize exit distance to avoid repeated calculations
   const exitDistance = useMemo(() => getExitDistance(), []);
@@ -75,6 +76,12 @@ export default function SwipeContainer() {
     setExit({ x: 0, y: 0 });
     setSwipeDirection('');
     setIsActionInProgress(false);
+    
+    // Clear any pending timeout
+    if (actionTimeoutRef.current) {
+      clearTimeout(actionTimeoutRef.current);
+      actionTimeoutRef.current = null;
+    }
   }, [currentJob, x]);
 
   // Monitor online/offline status
@@ -110,6 +117,8 @@ export default function SwipeContainer() {
       setExit({ x: exitDistance, y: 0 });
       setIsActionInProgress(true);
       acceptJob(currentJob);
+      // Safety timeout to reset flag if currentJob doesn't change
+      actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), 1000);
       return;
     }
 
@@ -117,6 +126,8 @@ export default function SwipeContainer() {
       setExit({ x: -exitDistance, y: 0 });
       setIsActionInProgress(true);
       rejectJob(currentJob);
+      // Safety timeout to reset flag if currentJob doesn't change
+      actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), 1000);
       return;
     }
 
@@ -124,6 +135,8 @@ export default function SwipeContainer() {
       setExit({ x: 0, y: -exitDistance });
       setIsActionInProgress(true);
       rejectJob(currentJob);
+      // Safety timeout to reset flag if currentJob doesn't change
+      actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), 1000);
       return;
     }
 
@@ -136,6 +149,8 @@ export default function SwipeContainer() {
     setExit({ x: exitDistance, y: 0 });
     setIsActionInProgress(true);
     acceptJob(currentJob);
+    // Safety timeout to reset flag if currentJob doesn't change
+    actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), 1000);
   }, [currentJob, acceptJob, exitDistance, isActionInProgress]);
 
   const handleReject = useCallback(() => {
@@ -143,6 +158,8 @@ export default function SwipeContainer() {
     setExit({ x: -exitDistance, y: 0 });
     setIsActionInProgress(true);
     rejectJob(currentJob);
+    // Safety timeout to reset flag if currentJob doesn't change
+    actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), 1000);
   }, [currentJob, rejectJob, exitDistance, isActionInProgress]);
 
   const handleSkip = useCallback(() => {
@@ -150,6 +167,8 @@ export default function SwipeContainer() {
     setExit({ x: 0, y: -exitDistance });
     setIsActionInProgress(true);
     skipJob(currentJob);
+    // Safety timeout to reset flag if currentJob doesn't change
+    actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), 1000);
   }, [currentJob, skipJob, exitDistance, isActionInProgress]);
 
   const handleSaveJob = useCallback(() => {
@@ -162,6 +181,8 @@ export default function SwipeContainer() {
     if (sessionActions.length === 0 || isActionInProgress) return;
     setIsActionInProgress(true);
     rollbackLastAction();
+    // Safety timeout to reset flag if currentJob doesn't change
+    actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), 1000);
   }, [sessionActions, rollbackLastAction, isActionInProgress]);
 
   const handleOpenReportModal = useCallback((job) => {
