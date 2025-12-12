@@ -12,14 +12,16 @@ import { ArrowUturnLeftIcon, WifiIcon } from '@heroicons/react/24/outline';
 const SWIPE_THRESHOLD = 60; // Reduced from 130
 const VELOCITY_THRESHOLD = 300; // New: for flick detection
 const EXIT_ROTATION = 20; // Rotation angle for exit animation
+const EXIT_PADDING = 200; // Extra distance beyond viewport to ensure card fully exits
+const EXIT_FALLBACK = 800; // Fallback exit distance for SSR
 const DRAG_CONSTRAINTS = { top: 0, bottom: 0, left: 0, right: 0 };
 
 // Dynamic exit distance based on screen width
 const getExitDistance = () => {
   if (typeof window !== 'undefined') {
-    return window.innerWidth + 200;
+    return window.innerWidth + EXIT_PADDING;
   }
-  return 800; // fallback for SSR
+  return EXIT_FALLBACK;
 };
 
 export default function SwipeContainer() {
