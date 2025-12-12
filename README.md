@@ -88,11 +88,14 @@ Each full-screen job card displays:
 
 ## Tech Stack
 
-- **Next.js 14** - App Router
-- **React 18** - UI components
-- **Tailwind CSS** - Styling
+- **Next.js 14** - App Router with Server Actions
+- **React 18** - UI components with hooks
+- **Tailwind CSS** - Styling with system fonts
 - **Framer Motion** - Swipe animations
 - **Heroicons** - Icon library
+- **NextAuth.js** - Authentication (GitHub & Google OAuth)
+- **SWR** - Data fetching with caching
+- **PropTypes** - Runtime type checking
 
 ## Getting Started
 
@@ -113,14 +116,22 @@ cd job-swiper
 npm install
 ```
 
-3. Run the development server:
+3. (Optional) Set up environment variables for authentication:
+```bash
+cp .env.example .env.local
+# Edit .env.local with your OAuth credentials
+```
+
+4. Run the development server:
 ```bash
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 The app is optimized for mobile viewports (375px - 428px width) but works on all screen sizes.
+
+**Note**: Authentication features require OAuth credentials. See "Setup Authentication" section below for details.
 
 ## Project Structure
 
@@ -277,14 +288,66 @@ See `docs/API_SPECIFICATION.md` for detailed migration guide, complete Prisma sc
 ## Future Enhancements
 
 Potential features for future releases:
-- User authentication (NextAuth.js)
+- ✅ User authentication (NextAuth.js) - **Implemented**
 - Real job API integration (Indeed, LinkedIn)
 - Advanced filtering (location, salary, remote)
-- Job search functionality
+- ✅ Job search functionality - **Implemented**
 - Email notifications for application updates
 - Resume upload and management
 - Company reviews and ratings
 - Salary insights and comparison
+- Infinite scroll pagination for list pages
+- Enhanced state persistence with IndexedDB
+
+## Recent Improvements
+
+This codebase has been enhanced with 25+ comprehensive improvements:
+
+### Bug Fixes
+- Fixed missing offlineQueue dependency in useEffect
+- Resolved stale closure issue in rollbackLastAction
+- Added cleanup for retry timeout to prevent memory leaks
+- Fixed inconsistent AnimatePresence keys for stable animations
+
+### Optimizations
+- Memoized offlineQueue to prevent unnecessary recreation
+- Added debounce to search functionality
+- Extracted constants to centralized location (lib/constants.js)
+- Optimized currentIndex usage from context
+- Added logo caching with job.logo field support
+
+### Best Practices
+- Created ErrorBoundary component for graceful error handling
+- Added PropTypes validation to all components
+- Implemented input sanitization utility
+- Added rate limiting utilities (debounce/throttle)
+
+### New Features
+- **NextAuth.js Authentication**: GitHub and Google OAuth integration
+- **Server Actions**: Next.js server actions for optimized database operations
+- **Viewport Configuration**: Proper Next.js viewport metadata
+- **System Fonts**: Native system font stack for better performance
+- **Enhanced Offline Queue**: Deterministic handlers for reliable operation replay
+
+### Setup Authentication
+
+To enable authentication features:
+
+1. Copy `.env.example` to `.env.local`:
+```bash
+cp .env.example .env.local
+```
+
+2. Configure OAuth providers:
+   - **GitHub**: Create OAuth app at https://github.com/settings/developers
+   - **Google**: Create OAuth credentials at https://console.cloud.google.com/apis/credentials
+
+3. Set environment variables in `.env.local`:
+   - `NEXTAUTH_SECRET`: Generate with `openssl rand -base64 32`
+   - `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`
+   - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
+
+4. Access the login page at `/login`
 
 ## License
 
