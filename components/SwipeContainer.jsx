@@ -76,13 +76,7 @@ export default function SwipeContainer() {
     x.set(0);
     setExit({ x: 0, y: 0 });
     setSwipeDirection('');
-    setIsActionInProgress(false);
-    
-    // Clear any pending timeout
-    if (actionTimeoutRef.current) {
-      clearTimeout(actionTimeoutRef.current);
-      actionTimeoutRef.current = null;
-    }
+    // Don't reset isActionInProgress here - it will be reset in onExitComplete
   }, [currentJob, x]);
 
   // Monitor online/offline status
@@ -314,7 +308,14 @@ export default function SwipeContainer() {
 
         {/* Card stack container with padding for floating actions */}
         <div className="relative h-full px-4 pt-4 pb-28">
-          <AnimatePresence mode="popLayout" onExitComplete={() => x.set(0)}>
+          <AnimatePresence mode="popLayout" onExitComplete={() => {
+            x.set(0);
+            setIsActionInProgress(false);
+            if (actionTimeoutRef.current) {
+              clearTimeout(actionTimeoutRef.current);
+              actionTimeoutRef.current = null;
+            }
+          }}>
             {visibleJobs.map((job, index) => {
               const isTopCard = index === 0;
               const scale = 1 - index * 0.05;
