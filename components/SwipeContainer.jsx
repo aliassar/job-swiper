@@ -49,6 +49,9 @@ export default function SwipeContainer() {
   const [jobToReport, setJobToReport] = useState(null);
   const [isOnline, setIsOnline] = useState(true);
   const [swipeDirection, setSwipeDirection] = useState(''); // '', 'swiping-right', or 'swiping-left'
+  
+  // Memoize exit distance to avoid repeated calculations
+  const exitDistance = useMemo(() => getExitDistance(), []);
 
   // Track swipe direction for CSS class updates
   useMotionValueEvent(x, "change", (latest) => {
@@ -85,8 +88,6 @@ export default function SwipeContainer() {
 
   // ALL useCallback and useMemo hooks MUST be here, BEFORE any conditional returns
   const handleDragEnd = useCallback((_event, info) => {
-    const exitDistance = getExitDistance();
-    
     // Check for velocity-based swipes (flicks)
     const flickedRight = info.velocity.x > VELOCITY_THRESHOLD;
     const flickedLeft = info.velocity.x < -VELOCITY_THRESHOLD;
@@ -117,25 +118,22 @@ export default function SwipeContainer() {
 
     setExit({ x: 0, y: 0 }); // reset if not passed threshold
     setSwipeDirection(''); // reset swipe direction
-  }, [currentJob, acceptJob, rejectJob]);
+  }, [currentJob, acceptJob, rejectJob, exitDistance]);
 
   const handleAccept = useCallback(() => {
-    const exitDistance = getExitDistance();
     setExit({ x: exitDistance, y: 0 });
     acceptJob(currentJob);
-  }, [currentJob, acceptJob]);
+  }, [currentJob, acceptJob, exitDistance]);
 
   const handleReject = useCallback(() => {
-    const exitDistance = getExitDistance();
     setExit({ x: -exitDistance, y: 0 });
     rejectJob(currentJob);
-  }, [currentJob, rejectJob]);
+  }, [currentJob, rejectJob, exitDistance]);
 
   const handleSkip = useCallback(() => {
-    const exitDistance = getExitDistance();
     setExit({ x: 0, y: -exitDistance });
     skipJob(currentJob);
-  }, [currentJob, skipJob]);
+  }, [currentJob, skipJob, exitDistance]);
 
   const handleSaveJob = useCallback(() => {
     if (currentJob) {
