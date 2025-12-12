@@ -5,7 +5,7 @@ import { generateId } from '@/lib/utils';
 export async function POST(request, { params }) {
   const jobId = parseInt(params.id);
   const body = await request.json();
-  const { favorite } = body;
+  const { saved } = body;
   
   const job = jobsStorage.jobs.find(j => j.id === jobId);
   if (!job) {
@@ -15,20 +15,21 @@ export async function POST(request, { params }) {
   // Get existing status or create new one
   const existingStatus = jobsStorage.userJobStatus.get(jobId) || {
     status: 'pending',
-    favorite: false,
+    saved: false,
   };
 
-  // Update favorite status
+  // Update saved status
   jobsStorage.userJobStatus.set(jobId, {
     ...existingStatus,
-    favorite,
+    saved,
+    savedAt: saved ? new Date().toISOString() : existingStatus.savedAt,
   });
 
   // Log action
   jobsStorage.history.push({
     id: generateId('history'),
     jobId,
-    action: favorite ? 'favorited' : 'unfavorited',
+    action: saved ? 'saved' : 'unsaved',
     timestamp: new Date().toISOString(),
     metadata: { company: job.company, position: job.position },
   });
@@ -36,6 +37,6 @@ export async function POST(request, { params }) {
   return NextResponse.json({ 
     success: true, 
     jobId,
-    favorite
+    saved
   });
 }

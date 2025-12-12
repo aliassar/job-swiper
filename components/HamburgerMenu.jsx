@@ -13,6 +13,7 @@ import {
   FlagIcon,
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
+  CogIcon,
 } from '@heroicons/react/24/outline';
 
 export default function HamburgerMenu() {
@@ -51,6 +52,12 @@ export default function HamburgerMenu() {
       href: '/reported',
       icon: FlagIcon,
       description: 'View jobs you\'ve reported',
+    },
+    {
+      name: 'Settings',
+      href: '/settings',
+      icon: CogIcon,
+      description: 'Manage your preferences',
     },
   ];
 
