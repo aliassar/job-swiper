@@ -2,6 +2,7 @@ import './globals.css';
 import { JobProvider } from '@/context/JobContext';
 import HamburgerMenu from '@/components/HamburgerMenu';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import SessionProvider from '@/components/SessionProvider';
 import Script from 'next/script';
 
 export const metadata = {
@@ -52,15 +53,17 @@ export default function RootLayout({ children }) {
         </Script>
 
         <ErrorBoundary>
-          <JobProvider>
-            {/* Hamburger menu - available on all pages */}
-            <HamburgerMenu />
-            
-            {/* Main content - full height, no top bar */}
-            <main className="h-full overflow-hidden">
-              {children}
-            </main>
-          </JobProvider>
+          <SessionProvider>
+            <JobProvider>
+              {/* Hamburger menu - available on all pages */}
+              <HamburgerMenu />
+              
+              {/* Main content - full height, no top bar */}
+              <main className="h-full overflow-hidden">
+                {children}
+              </main>
+            </JobProvider>
+          </SessionProvider>
         </ErrorBoundary>
       </body>
     </html>
