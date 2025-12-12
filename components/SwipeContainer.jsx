@@ -91,6 +91,8 @@ export default function SwipeContainer() {
 
   // ALL useCallback and useMemo hooks MUST be here, BEFORE any conditional returns
   const handleDragEnd = useCallback((_event, info) => {
+    if (!currentJob) return;
+    
     // Check for velocity-based swipes (flicks)
     const flickedRight = info.velocity.x > VELOCITY_THRESHOLD;
     const flickedLeft = info.velocity.x < -VELOCITY_THRESHOLD;
@@ -103,19 +105,28 @@ export default function SwipeContainer() {
 
     if (draggedRight || flickedRight) {
       setExit({ x: exitDistance, y: 0 });
-      acceptJob(currentJob);
+      // Small delay to ensure exit animation starts before state update
+      setTimeout(() => {
+        acceptJob(currentJob);
+      }, 50);
       return;
     }
 
     if (draggedLeft || flickedLeft) {
       setExit({ x: -exitDistance, y: 0 });
-      rejectJob(currentJob);
+      // Small delay to ensure exit animation starts before state update
+      setTimeout(() => {
+        rejectJob(currentJob);
+      }, 50);
       return;
     }
 
     if (draggedUp || flickedUp) {
       setExit({ x: 0, y: -exitDistance });
-      rejectJob(currentJob);
+      // Small delay to ensure exit animation starts before state update
+      setTimeout(() => {
+        rejectJob(currentJob);
+      }, 50);
       return;
     }
 
@@ -124,18 +135,30 @@ export default function SwipeContainer() {
   }, [currentJob, acceptJob, rejectJob, exitDistance]);
 
   const handleAccept = useCallback(() => {
+    if (!currentJob) return;
     setExit({ x: exitDistance, y: 0 });
-    acceptJob(currentJob);
+    // Small delay to ensure exit animation starts before state update
+    setTimeout(() => {
+      acceptJob(currentJob);
+    }, 50);
   }, [currentJob, acceptJob, exitDistance]);
 
   const handleReject = useCallback(() => {
+    if (!currentJob) return;
     setExit({ x: -exitDistance, y: 0 });
-    rejectJob(currentJob);
+    // Small delay to ensure exit animation starts before state update
+    setTimeout(() => {
+      rejectJob(currentJob);
+    }, 50);
   }, [currentJob, rejectJob, exitDistance]);
 
   const handleSkip = useCallback(() => {
+    if (!currentJob) return;
     setExit({ x: 0, y: -exitDistance });
-    skipJob(currentJob);
+    // Small delay to ensure exit animation starts before state update
+    setTimeout(() => {
+      skipJob(currentJob);
+    }, 50);
   }, [currentJob, skipJob, exitDistance]);
 
   const handleSaveJob = useCallback(() => {
@@ -218,15 +241,32 @@ export default function SwipeContainer() {
     );
   }
 
-  if (!currentJob || remainingJobs === 0) {
+  // Guard against premature empty state - ensure loading is complete and we have actual empty state
+  const shouldShowEmptyState = !loading && jobs.length > 0 && (!currentJob || currentIndex >= jobs.length);
+  
+  if (shouldShowEmptyState) {
     return (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center px-6">
-            <div className="text-6xl mb-4">🎉</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">All caught up!</h2>
-            <p className="text-gray-600">You've reviewed all available jobs.</p>
-            <p className="text-sm text-gray-500 mt-2">Check back later for more opportunities!</p>
+        <div className="relative h-full w-full">
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center px-6">
+              <div className="text-6xl mb-4">🎉</div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">All caught up!</h2>
+              <p className="text-gray-600">You've reviewed all available jobs.</p>
+              <p className="text-sm text-gray-500 mt-2">Check back later for more opportunities!</p>
+            </div>
           </div>
+          
+          {/* Rollback button - bottom right */}
+          {sessionActions.length > 0 && (
+            <button
+              onClick={rollbackLastAction}
+              className="fixed bottom-24 right-6 z-40 bg-gray-800 text-white rounded-full p-3 shadow-xl hover:scale-110 transition-transform active:scale-95 flex items-center gap-2"
+              aria-label="Undo last action"
+            >
+              <ArrowUturnLeftIcon className="h-6 w-6" />
+              <span className="text-sm font-medium pr-1">{sessionActions.length}</span>
+            </button>
+          )}
         </div>
     );
   }
@@ -254,7 +294,7 @@ export default function SwipeContainer() {
 
         {/* Card stack container with padding for floating actions */}
         <div className="relative h-full px-4 pt-4 pb-28">
-          <AnimatePresence mode="popLayout" onExitComplete={() => x.set(0)}>
+          <AnimatePresence mode="wait" onExitComplete={() => x.set(0)}>
             {visibleJobs.map((job, index) => {
               const isTopCard = index === 0;
               const scale = 1 - index * 0.05;
@@ -262,7 +302,8 @@ export default function SwipeContainer() {
 
               return (
                 <motion.div
-                  key={job.id}
+                  key={isTopCard ? job.id : `${job.id}-${index}`}
+                  layoutId={`job-card-${job.id}`}
                   className={`absolute inset-0 ${isTopCard ? swipeDirection : ''}`}
                   style={
                     isTopCard

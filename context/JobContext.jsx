@@ -107,6 +107,7 @@ export function JobProvider({ children }) {
             if (persistedState.savedJobs) dispatch({ type: ACTIONS.SET_SAVED_JOBS, payload: persistedState.savedJobs });
             if (persistedState.reportedJobs) dispatch({ type: ACTIONS.SET_REPORTED_JOBS, payload: persistedState.reportedJobs });
             if (persistedState.skippedJobs) dispatch({ type: ACTIONS.SET_SKIPPED_JOBS, payload: persistedState.skippedJobs });
+            if (typeof persistedState.currentIndex === 'number') dispatch({ type: ACTIONS.SET_CURRENT_INDEX, payload: persistedState.currentIndex });
           }
         }
       } catch (error) {
@@ -154,6 +155,7 @@ export function JobProvider({ children }) {
           savedJobs: state.savedJobs,
           reportedJobs: state.reportedJobs,
           skippedJobs: state.skippedJobs,
+          currentIndex: state.currentIndex,
           timestamp: Date.now(),
         });
       } catch (error) {
@@ -164,7 +166,7 @@ export function JobProvider({ children }) {
     // Debounce the save operation
     const timeoutId = setTimeout(persistState, 1000);
     return () => clearTimeout(timeoutId);
-  }, [state.applications, state.savedJobs, state.reportedJobs, state.skippedJobs]);
+  }, [state.applications, state.savedJobs, state.reportedJobs, state.skippedJobs, state.currentIndex]);
 
   const acceptJob = async (job) => {
     // Create initial application with "Syncing" stage

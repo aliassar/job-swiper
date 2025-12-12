@@ -183,6 +183,7 @@ export function jobReducer(state, action) {
       return {
         ...state,
         jobs: newJobs,
+        currentIndex: Math.max(0, state.currentIndex - 1),
         sessionActions: state.sessionActions.slice(0, -1),
         applications: lastAction.action === 'accepted'
           ? state.applications.filter(app => app.jobId !== lastAction.jobId)
