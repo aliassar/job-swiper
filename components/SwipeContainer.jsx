@@ -1,11 +1,21 @@
+/**
+ * Swipe Container V2 - State Machine Architecture
+ * 
+ * This component implements a clean, deterministic swipe UI that:
+ * - Uses a pure state machine for all state transitions
+ * - Has NO setTimeout in UI logic
+ * - Decouples UI state from API state completely
+ * - Serializes all user actions through animation lifecycle
+ * - Makes rollback a simple, synchronous local operation
+ */
+
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { motion, useMotionValue, useTransform, AnimatePresence, useMotionValueEvent } from 'framer-motion';
 import JobCard from './JobCard';
 import FloatingActions from './FloatingActions';
 import ReportModal from './ReportModal';
-import { useJobs } from '@/context/JobContext';
 import { ArrowUturnLeftIcon, WifiIcon } from '@heroicons/react/24/outline';
 import { 
   SWIPE_THRESHOLD, 
@@ -13,10 +23,12 @@ import {
   EXIT_ROTATION, 
   EXIT_PADDING, 
   EXIT_FALLBACK, 
-  DRAG_CONSTRAINTS,
-  ANIMATION_SYNC_DELAY,
-  ACTION_TIMEOUT_MS
+  DRAG_CONSTRAINTS 
 } from '@/lib/constants';
+import { useSwipeStateMachine } from '@/context/useSwipeStateMachine';
+import { SwipeActionType } from '@/context/swipeStateMachine';
+import { jobsApi } from '@/lib/api';
+import { useState } from 'react';
 
 // Dynamic exit distance based on screen width
 const getExitDistance = () => {
@@ -27,40 +39,41 @@ const getExitDistance = () => {
 };
 
 export default function SwipeContainer() {
-  const { 
-    currentJob, 
-    currentIndex,
-    jobs, 
-    acceptJob, 
-    rejectJob, 
-    skipJob,
-    toggleSaveJob,
-    savedJobs,
-    loading, 
+  const {
+    currentJob,
+    nextJob,
     remainingJobs,
-    sessionActions,
-    rollbackLastAction,
-    reportJob,
-    fetchError,
-    retryCount,
-    manualRetry,
-  } = useJobs();
-
+    isLocked,
+    loading,
+    error,
+    history,
+    canRollback: canPerformRollback,
+    canSwipe: canPerformSwipe,
+    initializeJobs,
+    setLoading,
+    setError,
+    swipe,
+    rollback,
+    unlock,
+  } = useSwipeStateMachine();
+  
+  // Animation state (local to UI only)
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-300, 300], [-EXIT_ROTATION, EXIT_ROTATION]);
-
-  const [exit, setExit] = useState({ x: 0, y: 0 });
+  const [exitDirection, setExitDirection] = useState({ x: 0, y: 0 });
+  const [swipeDirection, setSwipeDirection] = useState('');
+  
+  // Report modal state
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [jobToReport, setJobToReport] = useState(null);
-  const [isOnline, setIsOnline] = useState(true);
-  const [swipeDirection, setSwipeDirection] = useState(''); // '', 'swiping-right', or 'swiping-left'
-  const [isActionInProgress, setIsActionInProgress] = useState(false);
-  const actionTimeoutRef = useRef(null);
   
-  // Memoize exit distance to avoid repeated calculations
+  // Online status
+  const [isOnline, setIsOnline] = useState(true);
+  
+  // Memoize exit distance
   const exitDistance = useMemo(() => getExitDistance(), []);
-
-  // Track swipe direction for CSS class updates
+  
+  // Track swipe direction for CSS classes
   useMotionValueEvent(x, "change", (latest) => {
     if (latest > 20) {
       setSwipeDirection('swiping-right');
@@ -70,148 +83,156 @@ export default function SwipeContainer() {
       setSwipeDirection('');
     }
   });
-
-  // Reset motion values when currentJob changes
+  
+  // Reset animation state when current job changes
   useEffect(() => {
     x.set(0);
-    setExit({ x: 0, y: 0 });
+    setExitDirection({ x: 0, y: 0 });
     setSwipeDirection('');
-    // Don't reset isActionInProgress here - it will be reset in onExitComplete
   }, [currentJob, x]);
-
+  
   // Monitor online/offline status
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-
+    
     setIsOnline(navigator.onLine);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
+    
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
-
-  // ALL useCallback and useMemo hooks MUST be here, BEFORE any conditional returns
-  const handleDragEnd = useCallback((_event, info) => {
-    if (!currentJob || isActionInProgress) return;
+  
+  // Load jobs on mount
+  useEffect(() => {
+    const loadJobs = async () => {
+      setLoading(true);
+      try {
+        const data = await jobsApi.getJobs();
+        initializeJobs(data.jobs);
+      } catch (err) {
+        setError({
+          message: 'Unable to load jobs. Please check your connection and try again.',
+          canRetry: true,
+        });
+      }
+    };
     
-    // Check for velocity-based swipes (flicks)
+    loadJobs();
+  }, [initializeJobs, setLoading, setError]);
+  
+  /**
+   * Handle drag end - determines swipe action
+   * This is the ONLY place where swipes are triggered
+   */
+  const handleDragEnd = useCallback((_event, info) => {
+    if (!currentJob || isLocked) return;
+    
+    // Determine swipe type from velocity or position
     const flickedRight = info.velocity.x > VELOCITY_THRESHOLD;
     const flickedLeft = info.velocity.x < -VELOCITY_THRESHOLD;
     const flickedUp = info.velocity.y < -VELOCITY_THRESHOLD;
-
-    // Check for position-based swipes
+    
     const draggedRight = info.offset.x > SWIPE_THRESHOLD;
     const draggedLeft = info.offset.x < -SWIPE_THRESHOLD;
     const draggedUp = info.offset.y < -SWIPE_THRESHOLD;
-
+    
     if (draggedRight || flickedRight) {
-      setExit({ x: exitDistance, y: 0 });
-      setIsActionInProgress(true);
-      acceptJob(currentJob);
-      // Safety timeout to reset flag if currentJob doesn't change
-      actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), ACTION_TIMEOUT_MS);
+      setExitDirection({ x: exitDistance, y: 0 });
+      swipe(currentJob.id, SwipeActionType.ACCEPT);
       return;
     }
-
+    
     if (draggedLeft || flickedLeft) {
-      setExit({ x: -exitDistance, y: 0 });
-      setIsActionInProgress(true);
-      rejectJob(currentJob);
-      // Safety timeout to reset flag if currentJob doesn't change
-      actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), ACTION_TIMEOUT_MS);
+      setExitDirection({ x: -exitDistance, y: 0 });
+      swipe(currentJob.id, SwipeActionType.REJECT);
       return;
     }
-
+    
     if (draggedUp || flickedUp) {
-      setExit({ x: 0, y: -exitDistance });
-      setIsActionInProgress(true);
-      rejectJob(currentJob);
-      // Safety timeout to reset flag if currentJob doesn't change
-      actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), ACTION_TIMEOUT_MS);
+      setExitDirection({ x: 0, y: -exitDistance });
+      swipe(currentJob.id, SwipeActionType.SKIP);
       return;
     }
-
-    setExit({ x: 0, y: 0 }); // reset if not passed threshold
-    setSwipeDirection(''); // reset swipe direction
-  }, [currentJob, acceptJob, rejectJob, exitDistance, isActionInProgress]);
-
+    
+    // Reset if threshold not met
+    setExitDirection({ x: 0, y: 0 });
+    setSwipeDirection('');
+  }, [currentJob, isLocked, exitDistance, swipe]);
+  
+  /**
+   * Handle accept button click
+   */
   const handleAccept = useCallback(() => {
-    if (!currentJob || isActionInProgress) return;
-    setExit({ x: exitDistance, y: 0 });
-    setIsActionInProgress(true);
-    acceptJob(currentJob);
-    // Safety timeout to reset flag if currentJob doesn't change
-    actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), ACTION_TIMEOUT_MS);
-  }, [currentJob, acceptJob, exitDistance, isActionInProgress]);
-
+    if (!currentJob || isLocked) return;
+    setExitDirection({ x: exitDistance, y: 0 });
+    swipe(currentJob.id, SwipeActionType.ACCEPT);
+  }, [currentJob, isLocked, exitDistance, swipe]);
+  
+  /**
+   * Handle reject button click
+   */
   const handleReject = useCallback(() => {
-    if (!currentJob || isActionInProgress) return;
-    setExit({ x: -exitDistance, y: 0 });
-    setIsActionInProgress(true);
-    rejectJob(currentJob);
-    // Safety timeout to reset flag if currentJob doesn't change
-    actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), ACTION_TIMEOUT_MS);
-  }, [currentJob, rejectJob, exitDistance, isActionInProgress]);
-
+    if (!currentJob || isLocked) return;
+    setExitDirection({ x: -exitDistance, y: 0 });
+    swipe(currentJob.id, SwipeActionType.REJECT);
+  }, [currentJob, isLocked, exitDistance, swipe]);
+  
+  /**
+   * Handle skip button click
+   */
   const handleSkip = useCallback(() => {
-    if (!currentJob || isActionInProgress) return;
-    setExit({ x: 0, y: -exitDistance });
-    setIsActionInProgress(true);
-    skipJob(currentJob);
-    // Safety timeout to reset flag if currentJob doesn't change
-    actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), ACTION_TIMEOUT_MS);
-  }, [currentJob, skipJob, exitDistance, isActionInProgress]);
-
-  const handleSaveJob = useCallback(() => {
-    if (currentJob) {
-      toggleSaveJob(currentJob);
-    }
-  }, [currentJob, toggleSaveJob]);
-
+    if (!currentJob || isLocked) return;
+    setExitDirection({ x: 0, y: -exitDistance });
+    swipe(currentJob.id, SwipeActionType.SKIP);
+  }, [currentJob, isLocked, exitDistance, swipe]);
+  
+  /**
+   * Handle rollback button click
+   * This is a pure synchronous operation
+   */
   const handleRollback = useCallback(() => {
-    if (sessionActions.length === 0 || isActionInProgress) return;
-    setIsActionInProgress(true);
-    rollbackLastAction();
-    // Safety timeout to reset flag if currentJob doesn't change
-    actionTimeoutRef.current = setTimeout(() => setIsActionInProgress(false), ACTION_TIMEOUT_MS);
-  }, [sessionActions, rollbackLastAction, isActionInProgress]);
-
+    if (!canPerformRollback) return;
+    
+    // Set exit direction for the current card to animate back in
+    setExitDirection({ x: 0, y: 0 });
+    rollback();
+  }, [canPerformRollback, rollback]);
+  
+  /**
+   * Animation completion handler
+   * This is where we unlock the state machine
+   */
+  const handleAnimationComplete = useCallback(() => {
+    unlock();
+  }, [unlock]);
+  
+  /**
+   * Handle report modal
+   */
   const handleOpenReportModal = useCallback((job) => {
     setJobToReport(job);
     setReportModalOpen(true);
   }, []);
-
+  
   const handleReport = useCallback((reason) => {
     if (jobToReport) {
-      reportJob(jobToReport, reason);
+      // Report is a side effect, doesn't affect swipe state
+      console.log('Report job:', jobToReport.id, 'reason:', reason);
     }
-  }, [jobToReport, reportJob]);
-
-  // Optimization 10: Use currentIndex from context instead of recalculating
-  const visibleJobs = useMemo(() => jobs.slice(currentIndex, currentIndex + 2), [jobs, currentIndex]);
-  const isSaved = useMemo(() => currentJob ? savedJobs.some(saved => saved.id === currentJob.id) : false, [currentJob, savedJobs]);
-
-  // Show error state with manual retry option
-  if (fetchError && !loading) {
+  }, [jobToReport]);
+  
+  // Show error state
+  if (error && !loading) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center px-6 max-w-sm">
           <div className="text-6xl mb-4">😕</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Unable to Load Jobs</h2>
-          <p className="text-gray-600 mb-6">{fetchError.message}</p>
-          
-          {fetchError.canRetry && (
-            <button
-              onClick={manualRetry}
-              className="px-6 py-3 bg-blue-500 text-white rounded-full font-medium hover:bg-blue-600 transition-colors shadow-lg"
-            >
-              Try Again
-            </button>
-          )}
+          <p className="text-gray-600 mb-6">{error.message}</p>
           
           {!isOnline && (
             <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-sm">
@@ -223,80 +244,66 @@ export default function SwipeContainer() {
       </div>
     );
   }
-
+  
+  // Show loading state
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center px-6">
-          {/* Animated loading spinner */}
           <div className="relative w-20 h-20 mx-auto mb-6">
             <div className="absolute inset-0 rounded-full border-4 border-blue-100"></div>
             <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
           </div>
-          
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading jobs...</h2>
           <p className="text-sm text-gray-500">Finding the best opportunities for you</p>
-          
-          {/* Show retry count if retrying */}
-          {retryCount > 0 && (
-            <p className="text-xs text-gray-400 mt-2">Retry attempt {retryCount}/5</p>
-          )}
-          
-          {/* Network status indicator */}
-          {!isOnline && (
-            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-sm">
-              <WifiIcon className="h-4 w-4" />
-              <span>You're offline - will retry when connected</span>
-            </div>
-          )}
         </div>
       </div>
     );
   }
-
-  // Guard against premature empty state - ensure loading is complete and we have actual empty state
-  const shouldShowEmptyState = !loading && jobs.length > 0 && (!currentJob || currentIndex >= jobs.length);
   
-  if (shouldShowEmptyState) {
+  // Show empty state
+  if (!currentJob) {
     return (
-        <div className="relative h-full w-full">
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center px-6">
-              <div className="text-6xl mb-4">🎉</div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">All caught up!</h2>
-              <p className="text-gray-600">You've reviewed all available jobs.</p>
-              <p className="text-sm text-gray-500 mt-2">Check back later for more opportunities!</p>
-            </div>
+      <div className="relative h-full w-full">
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center px-6">
+            <div className="text-6xl mb-4">🎉</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">All caught up!</h2>
+            <p className="text-gray-600">You've reviewed all available jobs.</p>
+            <p className="text-sm text-gray-500 mt-2">Check back later for more opportunities!</p>
           </div>
-          
-          {/* Rollback button - bottom right */}
-          {sessionActions.length > 0 && (
-            <button
-              onClick={handleRollback}
-              disabled={isActionInProgress}
-              className="fixed bottom-24 right-6 z-40 bg-gray-800 text-white rounded-full p-3 shadow-xl hover:scale-110 transition-transform active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="Undo last action"
-            >
-              <ArrowUturnLeftIcon className="h-6 w-6" />
-              <span className="text-sm font-medium pr-1">{sessionActions.length}</span>
-            </button>
-          )}
         </div>
+        
+        {/* Rollback button still available in empty state */}
+        {canPerformRollback && (
+          <button
+            onClick={handleRollback}
+            disabled={isLocked}
+            className="fixed bottom-24 right-6 z-40 bg-gray-800 text-white rounded-full p-3 shadow-xl hover:scale-110 transition-transform active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Undo last action"
+          >
+            <ArrowUturnLeftIcon className="h-6 w-6" />
+            <span className="text-sm font-medium pr-1">{history.length}</span>
+          </button>
+        )}
+      </div>
     );
   }
-
+  
+  // Prepare visible jobs for rendering (current + preview)
+  const visibleJobs = [currentJob, nextJob].filter(Boolean);
+  
   return (
     <div className="relative h-full w-full overflow-hidden">
       <div className="relative h-full max-w-md mx-auto">
-        
-        {/* Small jobs remaining counter - top left */}
+        {/* Jobs remaining counter */}
         <div className="absolute top-4 left-4 z-20 pointer-events-none">
           <div className="bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-full font-medium">
             {remainingJobs} {remainingJobs === 1 ? 'job' : 'jobs'}
           </div>
         </div>
-
-        {/* Network status indicator when offline */}
+        
+        {/* Offline indicator */}
         {!isOnline && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
             <div className="bg-orange-500 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-full font-medium flex items-center gap-1.5 shadow-lg">
@@ -305,31 +312,24 @@ export default function SwipeContainer() {
             </div>
           </div>
         )}
-
-        {/* Card stack container with padding for floating actions */}
+        
+        {/* Card stack */}
         <div className="relative h-full px-4 pt-4 pb-28">
-          <AnimatePresence mode="popLayout" onExitComplete={() => {
-            x.set(0);
-            setIsActionInProgress(false);
-            if (actionTimeoutRef.current) {
-              clearTimeout(actionTimeoutRef.current);
-              actionTimeoutRef.current = null;
-            }
-          }}>
+          <AnimatePresence mode="popLayout" onExitComplete={handleAnimationComplete}>
             {visibleJobs.map((job, index) => {
               const isTopCard = index === 0;
               const scale = 1 - index * 0.05;
               const yOffset = index * 12;
-
+              
               return (
                 <motion.div
                   key={job.id}
                   className={`absolute inset-0 ${isTopCard ? swipeDirection : ''}`}
                   style={
                     isTopCard
-                      ? { 
-                          x, 
-                          rotate, 
+                      ? {
+                          x,
+                          rotate,
                           zIndex: 10,
                           touchAction: 'none',
                           willChange: 'transform'
@@ -348,17 +348,10 @@ export default function SwipeContainer() {
                   initial={{ scale: 0.95 }}
                   animate={{ scale: isTopCard ? 1 : scale }}
                   exit={{
-                    x: exit.x,
-                    y: exit.y,
-                    rotate: exit.x > 0 ? EXIT_ROTATION : exit.x < 0 ? -EXIT_ROTATION : 0,
-                    transition: { duration: 0.5, ease: 'easeOut' }
-                  }}
-                  onAnimationComplete={() => {
-                    if (isTopCard) {
-                      x.set(0);
-                      setExit({ x: 0, y: 0 });
-                      setSwipeDirection('');
-                    }
+                    x: exitDirection.x,
+                    y: exitDirection.y,
+                    rotate: exitDirection.x > 0 ? EXIT_ROTATION : exitDirection.x < 0 ? -EXIT_ROTATION : 0,
+                    transition: { duration: 0.3, ease: 'easeOut' }
                   }}
                 >
                   <JobCard 
@@ -370,30 +363,30 @@ export default function SwipeContainer() {
             })}
           </AnimatePresence>
         </div>
-
+        
         {/* Floating action buttons */}
         <FloatingActions
           onReject={handleReject}
           onAccept={handleAccept}
           onSkip={handleSkip}
-          onFavorite={handleSaveJob}
-          isFavorite={isSaved}
-          disabled={!currentJob || isActionInProgress}
+          onFavorite={() => {}} // Favorite is handled separately
+          isFavorite={false}
+          disabled={!canPerformSwipe || isLocked}
         />
-
-        {/* Rollback button - bottom right */}
-        {sessionActions.length > 0 && (
+        
+        {/* Rollback button */}
+        {canPerformRollback && (
           <button
             onClick={handleRollback}
-            disabled={isActionInProgress}
+            disabled={isLocked}
             className="fixed bottom-24 right-6 z-40 bg-gray-800 text-white rounded-full p-3 shadow-xl hover:scale-110 transition-transform active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Undo last action"
           >
             <ArrowUturnLeftIcon className="h-6 w-6" />
-            <span className="text-sm font-medium pr-1">{sessionActions.length}</span>
+            <span className="text-sm font-medium pr-1">{history.length}</span>
           </button>
         )}
-
+        
         {/* Report Modal */}
         <ReportModal
           isOpen={reportModalOpen}
