@@ -1,5 +1,6 @@
 'use client';
 
+import PropTypes from 'prop-types';
 import { 
   XMarkIcon, 
   CheckIcon, 
@@ -68,3 +69,12 @@ export default function FloatingActions({
     </div>
   );
 }
+
+FloatingActions.propTypes = {
+  onReject: PropTypes.func.isRequired,
+  onAccept: PropTypes.func.isRequired,
+  onSkip: PropTypes.func.isRequired,
+  onFavorite: PropTypes.func.isRequired,
+  isFavorite: PropTypes.bool,
+  disabled: PropTypes.bool,
+};

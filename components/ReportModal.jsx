@@ -1,5 +1,6 @@
 'use client';
 
+import PropTypes from 'prop-types';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -92,3 +93,14 @@ export default function ReportModal({ isOpen, onClose, onReport, job }) {
     </AnimatePresence>
   );
 }
+
+ReportModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onReport: PropTypes.func.isRequired,
+  job: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    company: PropTypes.string.isRequired,
+    position: PropTypes.string.isRequired,
+  }),
+};
