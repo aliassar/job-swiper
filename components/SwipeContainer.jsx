@@ -265,6 +265,13 @@ export default function SwipeContainer() {
   // Guard against premature empty state during transitions
   const shouldShowEmpty = !loading && !currentJob && remainingJobs === 0;
   
+  // Unlock when transitioning to empty state (no animation to unlock otherwise)
+  useEffect(() => {
+    if (shouldShowEmpty && isLocked) {
+      unlock();
+    }
+  }, [shouldShowEmpty, isLocked, unlock]);
+  
   if (shouldShowEmpty) {
     return (
       <div className="relative h-full w-full">
