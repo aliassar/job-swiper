@@ -5,6 +5,10 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const searchQuery = searchParams.get('search')?.toLowerCase() || '';
   
+  // Feature 24: Pagination support
+  const page = parseInt(searchParams.get('page') || '0');
+  const limit = parseInt(searchParams.get('limit') || '20');
+  
   // Initialize reportedJobs array if it doesn't exist
   if (!jobsStorage.reportedJobs) {
     jobsStorage.reportedJobs = [];
@@ -33,8 +37,17 @@ export async function GET(request) {
     (a, b) => new Date(b.reportedAt) - new Date(a.reportedAt)
   );
   
+  const total = sortedReportedJobs.length;
+  const start = page * limit;
+  const end = start + limit;
+  const paginatedReportedJobs = sortedReportedJobs.slice(start, end);
+  const hasMore = end < total;
+  
   return NextResponse.json({ 
-    reportedJobs: sortedReportedJobs,
-    total: sortedReportedJobs.length 
+    reportedJobs: paginatedReportedJobs,
+    total,
+    hasMore,
+    page,
+    limit
   });
 }

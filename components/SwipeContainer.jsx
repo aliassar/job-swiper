@@ -7,14 +7,14 @@ import FloatingActions from './FloatingActions';
 import ReportModal from './ReportModal';
 import { useJobs } from '@/context/JobContext';
 import { ArrowUturnLeftIcon, WifiIcon } from '@heroicons/react/24/outline';
-
-// Constants - optimized for better responsiveness
-const SWIPE_THRESHOLD = 60; // Reduced from 130
-const VELOCITY_THRESHOLD = 300; // New: for flick detection
-const EXIT_ROTATION = 20; // Rotation angle for exit animation
-const EXIT_PADDING = 200; // Extra distance beyond viewport to ensure card fully exits
-const EXIT_FALLBACK = 800; // Fallback exit distance for SSR
-const DRAG_CONSTRAINTS = { top: 0, bottom: 0, left: 0, right: 0 };
+import { 
+  SWIPE_THRESHOLD, 
+  VELOCITY_THRESHOLD, 
+  EXIT_ROTATION, 
+  EXIT_PADDING, 
+  EXIT_FALLBACK, 
+  DRAG_CONSTRAINTS 
+} from '@/lib/constants';
 
 // Dynamic exit distance based on screen width
 const getExitDistance = () => {
@@ -27,6 +27,7 @@ const getExitDistance = () => {
 export default function SwipeContainer() {
   const { 
     currentJob, 
+    currentIndex,
     jobs, 
     acceptJob, 
     rejectJob, 
@@ -154,7 +155,7 @@ export default function SwipeContainer() {
     }
   }, [jobToReport, reportJob]);
 
-  const currentIndex = jobs.indexOf(currentJob);
+  // Optimization 10: Use currentIndex from context instead of recalculating
   const visibleJobs = useMemo(() => jobs.slice(currentIndex, currentIndex + 2), [jobs, currentIndex]);
   const isSaved = useMemo(() => currentJob ? savedJobs.some(saved => saved.id === currentJob.id) : false, [currentJob, savedJobs]);
 
@@ -261,7 +262,7 @@ export default function SwipeContainer() {
 
               return (
                 <motion.div
-                  key={isTopCard ? job.id : `${job.id}-bottom`}
+                  key={job.id}
                   className={`absolute inset-0 ${isTopCard ? swipeDirection : ''}`}
                   style={
                     isTopCard

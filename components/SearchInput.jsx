@@ -1,7 +1,9 @@
 'use client';
 
+import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { sanitizeInput } from '@/lib/utils';
 
 export default function SearchInput({ 
   placeholder = 'Search...', 
@@ -14,7 +16,9 @@ export default function SearchInput({
   useEffect(() => {
     // Debounce search
     const timer = setTimeout(() => {
-      onSearch(value);
+      // Best Practice 14: Sanitize search input before passing to API
+      const sanitized = sanitizeInput(value, 200);
+      onSearch(sanitized);
     }, debounceMs);
 
     return () => clearTimeout(timer);
@@ -50,3 +54,10 @@ export default function SearchInput({
     </div>
   );
 }
+
+SearchInput.propTypes = {
+  placeholder: PropTypes.string,
+  onSearch: PropTypes.func.isRequired,
+  debounceMs: PropTypes.number,
+  className: PropTypes.string,
+};

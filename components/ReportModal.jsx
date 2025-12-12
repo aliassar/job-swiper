@@ -1,7 +1,9 @@
 'use client';
 
+import PropTypes from 'prop-types';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
+import { sanitizeInput } from '@/lib/utils';
 
 export default function ReportModal({ isOpen, onClose, onReport, job }) {
   if (!job) return null;
@@ -13,7 +15,9 @@ export default function ReportModal({ isOpen, onClose, onReport, job }) {
   ];
 
   const handleReport = (reason) => {
-    onReport(reason);
+    // Best Practice 14: Sanitize input before reporting
+    const sanitizedReason = sanitizeInput(reason, 100);
+    onReport(sanitizedReason);
     onClose();
   };
 
@@ -92,3 +96,14 @@ export default function ReportModal({ isOpen, onClose, onReport, job }) {
     </AnimatePresence>
   );
 }
+
+ReportModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onReport: PropTypes.func.isRequired,
+  job: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    company: PropTypes.string.isRequired,
+    position: PropTypes.string.isRequired,
+  }),
+};
