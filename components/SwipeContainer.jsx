@@ -34,7 +34,6 @@ export default function SwipeContainer() {
 
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-300, 300], [-20, 20]);
-  const opacity = useTransform(x, [-300, -150, 0, 150, 300], [0, 1, 1, 1, 0]);
 
   const [exit, setExit] = useState({ x: 0, y: 0 });
   const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -234,12 +233,11 @@ export default function SwipeContainer() {
                   className="absolute inset-0"
                   style={
                     isTopCard
-                      ? { x, rotate, opacity, zIndex: 10 }
+                      ? { x, rotate, zIndex: 10 }
                       : {
                           scale,
                           y: yOffset,
                           pointerEvents: 'none',
-                          opacity: 0.95,
                           zIndex: 10 - index,
                         }
                   }
@@ -247,13 +245,12 @@ export default function SwipeContainer() {
                   dragElastic={0.15}
                   dragConstraints={DRAG_CONSTRAINTS}
                   onDragEnd={handleDragEnd}
-                  initial={{ scale: 0.95, opacity: 0 }}
-                  animate={{ scale: isTopCard ? 1 : scale, opacity: 1 }}
+                  initial={{ scale: 0.95 }}
+                  animate={{ scale: isTopCard ? 1 : scale }}
                   exit={{
                     x: exit.x,
                     y: exit.y,
-                    opacity: 0,
-                    transition: { duration: 0.3, ease: 'easeOut' }
+                    transition: { duration: 0.25, ease: 'easeOut' }
                   }}
                   onAnimationComplete={() => {
                     if (isTopCard) {
