@@ -20,6 +20,79 @@ export function JobProvider({ children }) {
   // Bug Fix 1 & Optimization 5: Memoize offlineQueue to prevent recreation
   const offlineQueue = useMemo(() => getOfflineQueue(), []);
 
+  // Optimization 8: useCallback for fetch functions (defined before useEffects that use them)
+  const fetchJobs = useCallback(async (retryAttempt = 0, search = '') => {
+    dispatch({ type: ACTIONS.SET_LOADING, payload: true });
+    dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: null });
+    
+    try {
+      const data = await jobsApi.getJobs(search);
+      dispatch({ type: ACTIONS.SET_JOBS, payload: data.jobs });
+      dispatch({ type: ACTIONS.SET_RETRY_COUNT, payload: 0 });
+      dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: null });
+      dispatch({ type: ACTIONS.SET_LOADING, payload: false });
+    } catch (error) {
+      console.error(`Error fetching jobs (attempt ${retryAttempt + 1}):`, error);
+      
+      if (retryAttempt < MAX_FETCH_RETRIES) {
+        // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+        const delay = Math.pow(2, retryAttempt) * 1000;
+        console.log(`Retrying in ${delay / 1000}s...`);
+        dispatch({ type: ACTIONS.SET_RETRY_COUNT, payload: retryAttempt + 1 });
+        
+        // Bug Fix 3: Store timeout reference for cleanup
+        retryTimeoutRef.current = setTimeout(() => {
+          fetchJobs(retryAttempt + 1, search);
+        }, delay);
+      } else {
+        // Max retries reached
+        dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: {
+          message: 'Unable to load jobs. Please check your connection and try again.',
+          canRetry: true,
+        }});
+        dispatch({ type: ACTIONS.SET_LOADING, payload: false });
+      }
+    }
+  }, []); // Empty deps - uses dispatch
+
+  const fetchSavedJobs = useCallback(async (search = '') => {
+    try {
+      const data = await favoritesApi.getFavorites(search);
+      dispatch({ type: ACTIONS.SET_SAVED_JOBS, payload: data.favorites });
+    } catch (error) {
+      console.error('Error fetching saved jobs:', error);
+    }
+  }, []);
+
+  const fetchApplications = useCallback(async (search = '') => {
+    try {
+      const data = await applicationsApi.getApplications(search);
+      dispatch({ type: ACTIONS.SET_APPLICATIONS, payload: data.applications });
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+    }
+  }, []);
+
+  const fetchReportedJobs = useCallback(async (search = '') => {
+    try {
+      const data = await reportedApi.getReportedJobs(search);
+      dispatch({ type: ACTIONS.SET_REPORTED_JOBS, payload: data.reportedJobs });
+    } catch (error) {
+      console.error('Error fetching reported jobs:', error);
+    }
+  }, []);
+
+  const fetchSkippedJobs = useCallback(async (search = '') => {
+    try {
+      const data = await jobsApi.getSkippedJobs(search);
+      // Merge with local skippedJobs, prioritizing local ones
+      const serverSkipped = data.jobs.map(job => ({ ...job, pendingSync: false }));
+      dispatch({ type: ACTIONS.MERGE_SKIPPED_JOBS, payload: serverSkipped });
+    } catch (error) {
+      console.error('Error fetching skipped jobs:', error);
+    }
+  }, []);
+
   // Feature 19: Load persisted state from IndexedDB on mount
   useEffect(() => {
     const loadPersistedState = async () => {
@@ -92,79 +165,6 @@ export function JobProvider({ children }) {
     const timeoutId = setTimeout(persistState, 1000);
     return () => clearTimeout(timeoutId);
   }, [state.applications, state.savedJobs, state.reportedJobs, state.skippedJobs]);
-
-  // Optimization 8: useCallback for fetch functions
-  const fetchJobs = useCallback(async (retryAttempt = 0, search = '') => {
-    dispatch({ type: ACTIONS.SET_LOADING, payload: true });
-    dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: null });
-    
-    try {
-      const data = await jobsApi.getJobs(search);
-      dispatch({ type: ACTIONS.SET_JOBS, payload: data.jobs });
-      dispatch({ type: ACTIONS.SET_RETRY_COUNT, payload: 0 });
-      dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: null });
-      dispatch({ type: ACTIONS.SET_LOADING, payload: false });
-    } catch (error) {
-      console.error(`Error fetching jobs (attempt ${retryAttempt + 1}):`, error);
-      
-      if (retryAttempt < MAX_FETCH_RETRIES) {
-        // Exponential backoff: 1s, 2s, 4s, 8s, 16s
-        const delay = Math.pow(2, retryAttempt) * 1000;
-        console.log(`Retrying in ${delay / 1000}s...`);
-        dispatch({ type: ACTIONS.SET_RETRY_COUNT, payload: retryAttempt + 1 });
-        
-        // Bug Fix 3: Store timeout reference for cleanup
-        retryTimeoutRef.current = setTimeout(() => {
-          fetchJobs(retryAttempt + 1, search);
-        }, delay);
-      } else {
-        // Max retries reached
-        dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: {
-          message: 'Unable to load jobs. Please check your connection and try again.',
-          canRetry: true,
-        }});
-        dispatch({ type: ACTIONS.SET_LOADING, payload: false });
-      }
-    }
-  }, []); // Empty deps - uses dispatch
-
-  const fetchSavedJobs = useCallback(async (search = '') => {
-    try {
-      const data = await favoritesApi.getFavorites(search);
-      dispatch({ type: ACTIONS.SET_SAVED_JOBS, payload: data.favorites });
-    } catch (error) {
-      console.error('Error fetching saved jobs:', error);
-    }
-  }, []);
-
-  const fetchApplications = useCallback(async (search = '') => {
-    try {
-      const data = await applicationsApi.getApplications(search);
-      dispatch({ type: ACTIONS.SET_APPLICATIONS, payload: data.applications });
-    } catch (error) {
-      console.error('Error fetching applications:', error);
-    }
-  }, []);
-
-  const fetchReportedJobs = useCallback(async (search = '') => {
-    try {
-      const data = await reportedApi.getReportedJobs(search);
-      dispatch({ type: ACTIONS.SET_REPORTED_JOBS, payload: data.reportedJobs });
-    } catch (error) {
-      console.error('Error fetching reported jobs:', error);
-    }
-  }, []);
-
-  const fetchSkippedJobs = useCallback(async (search = '') => {
-    try {
-      const data = await jobsApi.getSkippedJobs(search);
-      // Merge with local skippedJobs, prioritizing local ones
-      const serverSkipped = data.jobs.map(job => ({ ...job, pendingSync: false }));
-      dispatch({ type: ACTIONS.MERGE_SKIPPED_JOBS, payload: serverSkipped });
-    } catch (error) {
-      console.error('Error fetching skipped jobs:', error);
-    }
-  }, []);
 
   const acceptJob = async (job) => {
     // Create initial application with "Syncing" stage
