@@ -261,8 +261,11 @@ export default function SwipeContainer() {
     );
   }
   
-  // Show empty state
-  if (!currentJob) {
+  // Show empty state - only when truly at the end
+  // Guard against premature empty state during transitions
+  const shouldShowEmpty = !loading && !currentJob && remainingJobs === 0;
+  
+  if (shouldShowEmpty) {
     return (
       <div className="relative h-full w-full">
         <div className="flex items-center justify-center h-full">
@@ -279,13 +282,28 @@ export default function SwipeContainer() {
           <button
             onClick={handleRollback}
             disabled={isLocked}
-            className="fixed bottom-24 right-6 z-40 bg-gray-800 text-white rounded-full p-3 shadow-xl hover:scale-110 transition-transform active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="fixed bottom-24 right-6 z-50 bg-gray-800 text-white rounded-full p-3 shadow-xl hover:scale-110 transition-transform active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Undo last action"
           >
             <ArrowUturnLeftIcon className="h-6 w-6" />
             <span className="text-sm font-medium pr-1">{history.length}</span>
           </button>
         )}
+      </div>
+    );
+  }
+  
+  // If still loading or in transition, show loading indicator
+  if (!currentJob) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center px-6">
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full border-4 border-blue-100"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
+          </div>
+          <p className="text-sm text-gray-500">Loading next job...</p>
+        </div>
       </div>
     );
   }
@@ -379,7 +397,7 @@ export default function SwipeContainer() {
           <button
             onClick={handleRollback}
             disabled={isLocked}
-            className="fixed bottom-24 right-6 z-40 bg-gray-800 text-white rounded-full p-3 shadow-xl hover:scale-110 transition-transform active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="fixed bottom-24 right-6 z-50 bg-gray-800 text-white rounded-full p-3 shadow-xl hover:scale-110 transition-transform active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Undo last action"
           >
             <ArrowUturnLeftIcon className="h-6 w-6" />
