@@ -1,9 +1,10 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { jobsApi, favoritesApi, applicationsApi, reportedApi } from '@/lib/api';
 import { getOfflineQueue } from '@/lib/offlineQueue';
 import { MAX_FETCH_RETRIES } from '@/lib/constants';
+import { debounce } from '@/lib/utils';
 
 const JobContext = createContext();
 
