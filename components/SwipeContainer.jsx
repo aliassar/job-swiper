@@ -11,7 +11,7 @@
 
 'use client';
 
-import { useEffect, useCallback, useMemo } from 'react';
+import { useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, useMotionValue, useTransform, AnimatePresence, useMotionValueEvent } from 'framer-motion';
 import JobCard from './JobCard';
 import FloatingActions from './FloatingActions';
@@ -225,13 +225,25 @@ export default function SwipeContainer() {
     }
   }, [jobToReport]);
   
-  // Unlock when transitioning to empty state (no animation to unlock otherwise)
+  // Unlock when transitioning to/from empty state (no animation to unlock otherwise)
   // This must be before any conditional returns to follow Rules of Hooks
   const shouldShowEmpty = !loading && !currentJob && remainingJobs === 0;
+  const wasEmptyRef = useRef(false);
   useEffect(() => {
+    // Unlock when entering empty state (finished all jobs)
     if (shouldShowEmpty && isLocked) {
       unlock();
     }
+    
+    // Unlock when leaving empty state (rollback from empty)
+    // This is critical: when rolling back from empty state, we need to unlock
+    // because there's no exit animation to trigger onExitComplete
+    if (!shouldShowEmpty && wasEmptyRef.current && isLocked) {
+      unlock();
+    }
+    
+    // Track whether we were in empty state for next render
+    wasEmptyRef.current = shouldShowEmpty;
   }, [shouldShowEmpty, isLocked, unlock]);
   
   // Show error state
