@@ -54,14 +54,13 @@ export default function SavedJobsPage() {
           </p>
         </div>
 
-        {hasJobs && (
-          <div className="mb-4">
-            <SearchInput 
-              placeholder="Search by company, position, or skills..."
-              onSearch={handleSearch}
-            />
-          </div>
-        )}
+        {/* Always show search bar */}
+        <div className="mb-4">
+          <SearchInput 
+            placeholder="Search by company, position, or skills..."
+            onSearch={handleSearch}
+          />
+        </div>
 
         {isLoading && (
           <div className="flex flex-col items-center justify-center h-full px-6 text-center">

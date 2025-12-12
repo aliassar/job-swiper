@@ -92,72 +92,133 @@ export default function ApplicationDetailPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Timeline section at the top */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <div className="mb-4">
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Application Timeline</h3>
-            <p className="text-xs text-gray-600">
-              Track your application progress through each stage
-            </p>
-          </div>
-
-          <ApplicationTimeline 
-            currentStage={application.stage}
-            timestamps={{
-              'Applied': application.appliedAt,
-              [application.stage]: application.updatedAt || application.appliedAt,
-            }}
-            interviewCount={application.interviewCount || 1}
-          />
-        </div>
-
-        {/* Job header card */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-8">
-            <div className="flex items-center gap-6">
+        {/* Single consolidated card with all information */}
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          {/* Company header with gradient */}
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
+            <div className="flex items-center gap-4">
               <img 
                 src={logoUrl}
                 alt={`${application.company} logo`}
-                className="w-24 h-24 rounded-2xl shadow-lg bg-white"
+                className="w-16 h-16 rounded-xl shadow-lg bg-white flex-shrink-0"
               />
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold text-white mb-2">{application.company}</h1>
-                <p className="text-blue-100 text-lg">{application.location}</p>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl font-bold text-white mb-1">{application.company}</h1>
+                <p className="text-blue-100">{application.location}</p>
               </div>
             </div>
           </div>
 
-          <div className="p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          {/* Main content area */}
+          <div className="p-6">
+            {/* Position title */}
+            <h2 className="text-xl font-bold text-gray-900 mb-3">
               {application.position}
             </h2>
 
             {/* Application dates */}
-            <div className="mb-6">
-              <p className="text-sm text-gray-600">
-                Applied {new Date(application.appliedAt).toLocaleDateString('en-US', { 
-                  month: 'long', 
-                  day: 'numeric', 
-                  year: 'numeric' 
-                })}
-                {application.updatedAt && application.updatedAt !== application.appliedAt && (
-                  <> • Updated {new Date(application.updatedAt).toLocaleDateString('en-US', { 
-                    month: 'short', 
-                    day: 'numeric' 
-                  })}</>
-                )}
-              </p>
+            <div className="mb-4 text-sm text-gray-600">
+              Applied {new Date(application.appliedAt).toLocaleDateString('en-US', { 
+                month: 'long', 
+                day: 'numeric', 
+                year: 'numeric' 
+              })}
+              {application.updatedAt && application.updatedAt !== application.appliedAt && (
+                <> • Updated {new Date(application.updatedAt).toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}</>
+              )}
+            </div>
+
+            {/* Timeline section */}
+            <div className="mb-6 pb-6 border-b border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Application Progress</h3>
+              <ApplicationTimeline 
+                currentStage={application.stage}
+                timestamps={{
+                  'Applied': application.appliedAt,
+                  [application.stage]: application.updatedAt || application.appliedAt,
+                }}
+                interviewCount={application.interviewCount || 1}
+              />
+            </div>
+
+            {/* Stage selector */}
+            <div className="mb-6 pb-6 border-b border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Update Status</h3>
+              
+              {application.pendingSync && (
+                <div className="mb-3 inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium">
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Syncing changes...</span>
+                </div>
+              )}
+
+              <select
+                value={application.stage}
+                onChange={handleStageChange}
+                disabled={application.stage === 'Syncing'}
+                className={`w-full px-4 py-3 rounded-lg text-sm font-medium border-0 ${
+                  application.stage === 'Syncing'
+                    ? 'cursor-not-allowed opacity-70' 
+                    : 'cursor-pointer'
+                } ${getStageColor(application.stage)}`}
+              >
+                {APPLICATION_STAGES.map((stage) => (
+                  <option key={stage} value={stage}>
+                    {stage}
+                  </option>
+                ))}
+              </select>
+              {application.stage === 'Syncing' && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Application is being synced. Status cannot be changed until sync is complete.
+                </p>
+              )}
+            </div>
+
+            {/* Application Documents */}
+            <div className="mb-6 pb-6 border-b border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Application Documents</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => {
+                    // TODO: Implement resume download
+                    console.log('Download resume for application:', application.id);
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+                >
+                  <ArrowDownTrayIcon className="h-4 w-4" />
+                  Resume
+                </button>
+                <button
+                  onClick={() => {
+                    // TODO: Implement cover letter download
+                    console.log('Download cover letter for application:', application.id);
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors"
+                >
+                  <ArrowDownTrayIcon className="h-4 w-4" />
+                  Cover Letter
+                </button>
+              </div>
             </div>
 
             {/* Skills */}
             {application.skills && application.skills.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Required Skills</h3>
+              <div className="mb-6 pb-6 border-b border-gray-200">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Required Skills</h3>
                 <div className="flex flex-wrap gap-2">
                   {application.skills.map((skill, index) => (
                     <span
                       key={index}
-                      className="px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-sm font-medium"
+                      className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium"
                     >
                       {skill}
                     </span>
@@ -166,89 +227,14 @@ export default function ApplicationDetailPage() {
               </div>
             )}
 
-            {/* Resume and Cover Letter Downloads */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Application Documents</h3>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    // TODO: Implement resume download
-                    console.log('Download resume for application:', application.id);
-                  }}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition-colors"
-                >
-                  <ArrowDownTrayIcon className="h-5 w-5" />
-                  Download Resume
-                </button>
-                <button
-                  onClick={() => {
-                    // TODO: Implement cover letter download
-                    console.log('Download cover letter for application:', application.id);
-                  }}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-50 text-green-700 rounded-lg font-medium hover:bg-green-100 transition-colors"
-                >
-                  <ArrowDownTrayIcon className="h-5 w-5" />
-                  Download Cover Letter
-                </button>
-              </div>
-            </div>
-
             {/* Description if available */}
             {application.description && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Description</h3>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Description</h3>
+                <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
                   {application.description}
                 </p>
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Stage selector */}
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <div className="mb-4">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Update Stage</h3>
-            <p className="text-sm text-gray-600">
-              Change the current application stage
-            </p>
-          </div>
-
-          {application.pendingSync && (
-            <div className="mb-4 inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium">
-              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span>Syncing changes...</span>
-            </div>
-          )}
-
-          <div>
-            <label htmlFor="stage-selector" className="text-sm text-gray-600 mb-2 block">
-              Current Stage
-            </label>
-            <select
-              id="stage-selector"
-              value={application.stage}
-              onChange={handleStageChange}
-              disabled={application.stage === 'Syncing'}
-              className={`w-full px-4 py-3 rounded-lg text-base font-medium border-0 ${
-                application.stage === 'Syncing'
-                  ? 'cursor-not-allowed opacity-70' 
-                  : 'cursor-pointer'
-              } ${getStageColor(application.stage)}`}
-            >
-              {APPLICATION_STAGES.map((stage) => (
-                <option key={stage} value={stage}>
-                  {stage}
-                </option>
-              ))}
-            </select>
-            {application.stage === 'Syncing' && (
-              <p className="mt-2 text-xs text-gray-500">
-                Application is being synced. Status cannot be changed until sync is complete.
-              </p>
             )}
           </div>
         </div>

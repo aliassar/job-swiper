@@ -62,14 +62,13 @@ export default function ApplicationsPage() {
           </p>
         </div>
 
-        {hasApplications && (
-          <div className="mb-4">
-            <SearchInput 
-              placeholder="Search by company, position, or skills..."
-              onSearch={handleSearch}
-            />
-          </div>
-        )}
+        {/* Always show search bar */}
+        <div className="mb-4">
+          <SearchInput 
+            placeholder="Search by company, position, or skills..."
+            onSearch={handleSearch}
+          />
+        </div>
 
         {isLoading && (
           <div className="flex flex-col items-center justify-center h-full px-6 text-center mt-20">
@@ -154,19 +153,22 @@ export default function ApplicationsPage() {
                   </div>
                 )}
 
-                {/* Compact Timeline */}
-                <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-                  <ApplicationTimeline 
-                    currentStage={app.stage}
-                    timestamps={{
-                      'Applied': app.appliedAt,
-                      [app.stage]: app.updatedAt || app.appliedAt,
-                    }}
-                    interviewCount={app.interviewCount || 1}
-                  />
+                {/* Current Status with timestamp */}
+                <div className="mt-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-600">Current Status:</span>
+                    <span className={`text-xs font-semibold ${getStageColor(app.stage).includes('bg-') ? '' : 'text-gray-900'}`}>
+                      {app.stage}
+                    </span>
+                    {app.updatedAt && (
+                      <span className="text-xs text-gray-500">
+                        • {new Date(app.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                {/* Footer with date and skills */}
+                {/* Footer with application date and skills */}
                 <div className="mt-2 pt-2 border-t border-gray-100">
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <span>
