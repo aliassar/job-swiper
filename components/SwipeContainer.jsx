@@ -289,7 +289,7 @@ export default function SwipeContainer() {
                     x: exit.x,
                     y: exit.y,
                     rotate: exit.x > 0 ? EXIT_ROTATION : exit.x < 0 ? -EXIT_ROTATION : 0,
-                    transition: { duration: 0.3, ease: 'easeOut' }
+                    transition: { duration: 0.5, ease: 'easeOut' }
                   }}
                   onAnimationComplete={() => {
                     if (isTopCard) {
