@@ -50,7 +50,7 @@ export default function ApplicationsPage() {
   };
 
   return (
-    <div className="min-h-full p-4 pb-8 overflow-y-auto">
+    <div className="h-full overflow-y-auto p-4 pb-8">
       <div className="max-w-md mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">
@@ -105,8 +105,7 @@ export default function ApplicationsPage() {
             return (
               <div 
                 key={app.id}
-                onClick={() => router.push(`/application/${app.id}`)}
-                className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow"
               >
                 <div className="flex items-start gap-4">
                   <img 
@@ -137,11 +136,31 @@ export default function ApplicationsPage() {
                       </div>
                     )}
 
-                    {/* Current stage badge */}
-                    <div className="mt-3">
-                      <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium ${getStageColor(app.stage)}`}>
-                        {app.stage}
-                      </span>
+                    {/* Stage selector and detail link */}
+                    <div className="mt-3 flex items-center gap-2">
+                      <select
+                        value={app.stage}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          updateApplicationStage(app.id, e.target.value);
+                          mutate();
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        disabled={app.pendingSync || app.stage === 'Syncing' || app.stage === 'Being Applied'}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border-0 ${(app.pendingSync || app.stage === 'Syncing' || app.stage === 'Being Applied') ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'} ${getStageColor(app.stage)}`}
+                      >
+                        {APPLICATION_STAGES.map((stage) => (
+                          <option key={stage} value={stage}>
+                            {stage}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => router.push(`/application/${app.id}`)}
+                        className="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors whitespace-nowrap"
+                      >
+                        View
+                      </button>
                     </div>
 
                     {/* Application date */}

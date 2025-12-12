@@ -5,12 +5,12 @@ import { CheckCircleIcon, ClockIcon } from '@heroicons/react/24/solid';
 import { XCircleIcon } from '@heroicons/react/24/outline';
 
 const APPLICATION_STAGES = [
-  { name: 'Syncing', description: 'Application being synced' },
-  { name: 'Being Applied', description: 'Application in progress' },
-  { name: 'Applied', description: 'Application submitted' },
-  { name: 'Phone Screen', description: 'Initial phone screening' },
-  { name: 'Interview', description: 'Interview scheduled' },
-  { name: 'Offer', description: 'Offer received' },
+  { name: 'Syncing', short: 'Sync' },
+  { name: 'Being Applied', short: 'Applying' },
+  { name: 'Applied', short: 'Applied' },
+  { name: 'Phone Screen', short: 'Phone' },
+  { name: 'Interview', short: 'Interview' },
+  { name: 'Offer', short: 'Offer' },
 ];
 
 const TERMINAL_STAGES = ['Rejected', 'Accepted', 'Withdrawn'];
@@ -47,32 +47,33 @@ export default function ApplicationTimeline({ currentStage, timestamps = {} }) {
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return null;
     const date = new Date(timestamp);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   return (
-    <div className="space-y-6">
-      {/* Main stages timeline */}
-      <div className="relative">
+    <div className="w-full">
+      {/* Horizontal timeline for main stages */}
+      <div className="relative flex items-start justify-between mb-8">
         {APPLICATION_STAGES.map((stage, index) => {
           const status = getStageStatus(stage, index);
           const isLast = index === APPLICATION_STAGES.length - 1;
 
           return (
-            <div key={stage.name} className="relative flex items-start gap-4 pb-8">
-              {/* Vertical line connector */}
+            <div key={stage.name} className="flex flex-col items-center flex-1 relative">
+              {/* Horizontal line connector */}
               {!isLast && (
                 <div
-                  className={`absolute left-4 top-8 bottom-0 w-0.5 ${
-                    status === 'completed' || (status === 'current' && index < APPLICATION_STAGES.length - 1)
+                  className={`absolute top-4 left-1/2 right-0 h-0.5 -translate-y-1/2 ${
+                    status === 'completed'
                       ? 'bg-green-500'
                       : 'bg-gray-200'
                   }`}
+                  style={{ width: 'calc(100% - 1rem)' }}
                 />
               )}
 
               {/* Stage indicator */}
-              <div className="relative z-10 flex-shrink-0">
+              <div className="relative z-10 flex-shrink-0 mb-2">
                 <div
                   className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${getStageColor(status)}`}
                 >
@@ -87,20 +88,17 @@ export default function ApplicationTimeline({ currentStage, timestamps = {} }) {
               </div>
 
               {/* Stage content */}
-              <div className="flex-1 pt-0.5">
-                <h4 className={`text-sm font-medium ${getStageTextColor(status)}`}>
-                  {stage.name}
-                  {status === 'current' && (
-                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700">
-                      Current
-                    </span>
-                  )}
-                </h4>
-                <p className={`text-xs mt-0.5 ${status === 'pending' ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {stage.description}
+              <div className="text-center max-w-[80px]">
+                <p className={`text-xs font-medium ${getStageTextColor(status)} leading-tight`}>
+                  {stage.short}
                 </p>
+                {status === 'current' && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-blue-100 text-blue-700 mt-1">
+                    Current
+                  </span>
+                )}
                 {timestamps[stage.name] && (
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-[10px] text-gray-500 mt-1">
                     {formatTimestamp(timestamps[stage.name])}
                   </p>
                 )}
@@ -112,8 +110,8 @@ export default function ApplicationTimeline({ currentStage, timestamps = {} }) {
 
       {/* Terminal stage indicator if applicable */}
       {isTerminalStage && (
-        <div className="relative flex items-start gap-4 pt-2 border-t border-gray-200">
-          <div className="relative z-10 flex-shrink-0">
+        <div className="flex items-center justify-center gap-3 pt-4 border-t border-gray-200">
+          <div className="flex-shrink-0">
             <div
               className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
                 currentStage === 'Accepted'
@@ -133,17 +131,12 @@ export default function ApplicationTimeline({ currentStage, timestamps = {} }) {
             </div>
           </div>
 
-          <div className="flex-1 pt-0.5">
-            <h4 className="text-sm font-semibold text-gray-900">
+          <div className="text-center">
+            <p className="text-sm font-semibold text-gray-900">
               {currentStage}
               <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700">
-                Final Status
+                Final
               </span>
-            </h4>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {currentStage === 'Accepted' && 'Offer accepted'}
-              {currentStage === 'Rejected' && 'Application not selected'}
-              {currentStage === 'Withdrawn' && 'Application withdrawn'}
             </p>
             {timestamps[currentStage] && (
               <p className="text-xs text-gray-500 mt-1">

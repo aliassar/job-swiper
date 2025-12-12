@@ -19,7 +19,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-full bg-gray-50 pb-20">
+    <div className="h-full overflow-y-auto bg-gray-50 pb-20">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4">
