@@ -46,7 +46,7 @@ export default function JobCard({ job, style, onSwipe, onReportClick }) {
 
   return (
     <div 
-      className="absolute inset-0 w-full h-full select-none"
+      className="absolute inset-0 w-full h-full select-none swipeable-card"
       style={style}
     >
       <div className="bg-white rounded-2xl shadow-2xl overflow-hidden h-full flex flex-col">

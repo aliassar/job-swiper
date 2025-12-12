@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { motion, useMotionValue, useTransform, AnimatePresence, useMotionValueEvent } from 'framer-motion';
 import JobCard from './JobCard';
 import FloatingActions from './FloatingActions';
 import ReportModal from './ReportModal';
 import { useJobs } from '@/context/JobContext';
 import { ArrowUturnLeftIcon, WifiIcon } from '@heroicons/react/24/outline';
 
-// Constants
-const SWIPE_THRESHOLD = 130;
-const EXIT_DISTANCE = 600;
+// Constants - optimized for better responsiveness
+const SWIPE_THRESHOLD = 60; // Reduced from 130
+const EXIT_DISTANCE = 300; // Reduced from 600
+const VELOCITY_THRESHOLD = 300; // New: for flick detection
 const DRAG_CONSTRAINTS = { top: 0, bottom: 0, left: 0, right: 0 };
 
 export default function SwipeContainer() {
@@ -40,11 +41,24 @@ export default function SwipeContainer() {
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [jobToReport, setJobToReport] = useState(null);
   const [isOnline, setIsOnline] = useState(true);
+  const [swipeDirection, setSwipeDirection] = useState(''); // '', 'swiping-right', or 'swiping-left'
+
+  // Track swipe direction for CSS class updates
+  useMotionValueEvent(x, "change", (latest) => {
+    if (latest > 20) {
+      setSwipeDirection('swiping-right');
+    } else if (latest < -20) {
+      setSwipeDirection('swiping-left');
+    } else {
+      setSwipeDirection('');
+    }
+  });
 
   // Reset motion values when currentJob changes
   useEffect(() => {
     x.set(0);
     setExit({ x: 0, y: 0 });
+    setSwipeDirection('');
   }, [currentJob, x]);
 
   // Monitor online/offline status
@@ -61,6 +75,76 @@ export default function SwipeContainer() {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  // ALL useCallback and useMemo hooks MUST be here, BEFORE any conditional returns
+  const handleDragEnd = useCallback((_event, info) => {
+    // Check for velocity-based swipes (flicks)
+    const flickedRight = info.velocity.x > VELOCITY_THRESHOLD;
+    const flickedLeft = info.velocity.x < -VELOCITY_THRESHOLD;
+    const flickedUp = info.velocity.y < -VELOCITY_THRESHOLD;
+
+    // Check for position-based swipes
+    const draggedRight = info.offset.x > SWIPE_THRESHOLD;
+    const draggedLeft = info.offset.x < -SWIPE_THRESHOLD;
+    const draggedUp = info.offset.y < -SWIPE_THRESHOLD;
+
+    if (draggedRight || flickedRight) {
+      setExit({ x: EXIT_DISTANCE, y: 0 });
+      acceptJob(currentJob);
+      return;
+    }
+
+    if (draggedLeft || flickedLeft) {
+      setExit({ x: -EXIT_DISTANCE, y: 0 });
+      rejectJob(currentJob);
+      return;
+    }
+
+    if (draggedUp || flickedUp) {
+      setExit({ x: 0, y: -EXIT_DISTANCE });
+      rejectJob(currentJob);
+      return;
+    }
+
+    setExit({ x: 0, y: 0 }); // reset if not passed threshold
+    setSwipeDirection(''); // reset swipe direction
+  }, [currentJob, acceptJob, rejectJob]);
+
+  const handleAccept = useCallback(() => {
+    setExit({ x: EXIT_DISTANCE, y: 0 });
+    acceptJob(currentJob);
+  }, [currentJob, acceptJob]);
+
+  const handleReject = useCallback(() => {
+    setExit({ x: -EXIT_DISTANCE, y: 0 });
+    rejectJob(currentJob);
+  }, [currentJob, rejectJob]);
+
+  const handleSkip = useCallback(() => {
+    setExit({ x: 0, y: -EXIT_DISTANCE });
+    skipJob(currentJob);
+  }, [currentJob, skipJob]);
+
+  const handleSaveJob = useCallback(() => {
+    if (currentJob) {
+      toggleSaveJob(currentJob);
+    }
+  }, [currentJob, toggleSaveJob]);
+
+  const handleOpenReportModal = useCallback((job) => {
+    setJobToReport(job);
+    setReportModalOpen(true);
+  }, []);
+
+  const handleReport = useCallback((reason) => {
+    if (jobToReport) {
+      reportJob(jobToReport, reason);
+    }
+  }, [jobToReport, reportJob]);
+
+  const currentIndex = jobs.indexOf(currentJob);
+  const visibleJobs = useMemo(() => jobs.slice(currentIndex, currentIndex + 2), [jobs, currentIndex]);
+  const isSaved = useMemo(() => currentJob ? savedJobs.some(saved => saved.id === currentJob.id) : false, [currentJob, savedJobs]);
 
   // Show error state with manual retry option
   if (fetchError && !loading) {
@@ -134,71 +218,6 @@ export default function SwipeContainer() {
     );
   }
 
-  const handleDragEnd = (_event, info) => {
-    const thresholdX = SWIPE_THRESHOLD;
-    const thresholdY = SWIPE_THRESHOLD;
-
-    const draggedRight = info.offset.x > thresholdX;
-    const draggedLeft = info.offset.x < -thresholdX;
-    const draggedUp = info.offset.y < -thresholdY;
-
-    if (draggedRight) {
-      setExit({ x: EXIT_DISTANCE, y: 0 });
-      acceptJob(currentJob);
-      return;
-    }
-
-    if (draggedLeft) {
-      setExit({ x: -EXIT_DISTANCE, y: 0 });
-      rejectJob(currentJob);
-      return;
-    }
-
-    if (draggedUp) {
-      setExit({ x: 0, y: -EXIT_DISTANCE });
-      rejectJob(currentJob);
-      return;
-    }
-
-    setExit({ x: 0, y: 0 }); // reset if not passed threshold
-  };
-
-  const handleAccept = () => {
-    setExit({ x: EXIT_DISTANCE, y: 0 });
-    acceptJob(currentJob);
-  };
-
-  const handleReject = () => {
-    setExit({ x: -EXIT_DISTANCE, y: 0 });
-    rejectJob(currentJob);
-  };
-
-  const handleSkip = () => {
-    setExit({ x: 0, y: -EXIT_DISTANCE });
-    skipJob(currentJob);
-  };
-
-  const handleSaveJob = () => {
-    if (currentJob) {
-      toggleSaveJob(currentJob);
-    }
-  };
-
-  const handleOpenReportModal = (job) => {
-    setJobToReport(job);
-    setReportModalOpen(true);
-  };
-
-  const handleReport = (reason) => {
-    if (jobToReport) {
-      reportJob(jobToReport, reason);
-    }
-  };
-
-  const currentIndex = jobs.indexOf(currentJob);
-  const visibleJobs = jobs.slice(currentIndex, currentIndex + 2);
-  const isSaved = currentJob ? savedJobs.some(saved => saved.id === currentJob.id) : false;
-
   return (
     <div className="relative h-full w-full overflow-hidden">
       <div className="relative h-full max-w-md mx-auto">
@@ -222,7 +241,7 @@ export default function SwipeContainer() {
 
         {/* Card stack container with padding for floating actions */}
         <div className="relative h-full px-4 pt-4 pb-28">
-          <AnimatePresence mode="popLayout" onExitComplete={() => x.set(0)}>
+          <AnimatePresence mode="wait" onExitComplete={() => x.set(0)}>
             {visibleJobs.map((job, index) => {
               const isTopCard = index === 0;
               const scale = 1 - index * 0.05;
@@ -231,10 +250,17 @@ export default function SwipeContainer() {
               return (
                 <motion.div
                   key={isTopCard ? job.id : `${job.id}-bottom`}
-                  className="absolute inset-0"
+                  className={`absolute inset-0 ${isTopCard ? swipeDirection : ''}`}
                   style={
                     isTopCard
-                      ? { x, rotate, opacity, zIndex: 10 }
+                      ? { 
+                          x, 
+                          rotate, 
+                          opacity, 
+                          zIndex: 10,
+                          touchAction: 'none',
+                          willChange: 'transform'
+                        }
                       : {
                           scale,
                           y: yOffset,
@@ -244,7 +270,7 @@ export default function SwipeContainer() {
                         }
                   }
                   drag={isTopCard}
-                  dragElastic={0.15}
+                  dragElastic={0.8}
                   dragConstraints={DRAG_CONSTRAINTS}
                   onDragEnd={handleDragEnd}
                   initial={{ scale: 0.95, opacity: 0 }}
@@ -259,6 +285,7 @@ export default function SwipeContainer() {
                     if (isTopCard) {
                       x.set(0);
                       setExit({ x: 0, y: 0 });
+                      setSwipeDirection('');
                     }
                   }}
                 >

@@ -23,6 +23,13 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
   
+  /* GPU acceleration for swipeable cards */
+  .swipeable-card {
+    touch-action: none;
+    will-change: transform;
+    transform: translateZ(0);
+  }
+  
   /* Swipe indicator animations - show based on drag direction */
   /* Default: hide both indicators */
   .swipe-accept,
@@ -31,13 +38,13 @@
     transition: opacity var(--swipe-transition-duration);
   }
   
-  /* Show ACCEPT when dragging right (positive x) */
-  [style*="translateX("][style*="px"]:not([style*="translateX(-"]) .swipe-accept {
+  /* Show ACCEPT when dragging right (class applied via JS) */
+  .swiping-right .swipe-accept {
     opacity: 1;
   }
   
-  /* Show REJECT when dragging left (negative x) */
-  [style*="translateX(-"] .swipe-reject {
+  /* Show REJECT when dragging left (class applied via JS) */
+  .swiping-left .swipe-reject {
     opacity: 1;
   }
 }
