@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useMemo, useRef, useCallback, useReducer } from 'react';
-import { jobsApi, favoritesApi, applicationsApi, reportedApi } from '@/lib/api';
+import { jobsApi, savedJobsApi, applicationsApi, reportedApi } from '@/lib/api';
 import { getOfflineQueue } from '@/lib/offlineQueue';
 import { MAX_FETCH_RETRIES } from '@/lib/constants';
 import { debounce } from '@/lib/utils';
@@ -57,8 +57,8 @@ export function JobProvider({ children }) {
 
   const fetchSavedJobs = useCallback(async (search = '') => {
     try {
-      const data = await favoritesApi.getFavorites(search);
-      dispatch({ type: ACTIONS.SET_SAVED_JOBS, payload: data.favorites });
+      const data = await savedJobsApi.getSaveds(search);
+      dispatch({ type: ACTIONS.SET_SAVED_JOBS, payload: data.saveds });
     } catch (error) {
       console.error('Error fetching saved jobs:', error);
     }
@@ -199,12 +199,6 @@ export function JobProvider({ children }) {
     
     // Add to offline queue
     try {
-      // Update stage to "Being Applied"
-      dispatch({ type: ACTIONS.UPDATE_APPLICATION, payload: {
-        id: tempApplication.id,
-        updates: { stage: 'Being Applied' }
-      }});
-      
       await offlineQueue.addOperation({
         type: 'accept',
         id: job.id,
@@ -212,7 +206,7 @@ export function JobProvider({ children }) {
         apiCall: async (payload) => {
           const result = await jobsApi.acceptJob(payload.jobId);
           
-          // Update applications on success - change to "Applied" and use real ID
+          // Update applications on success - use server response for stage and real ID
           if (result.application) {
             dispatch({ type: ACTIONS.UPDATE_APPLICATION_WITH_RESULT, payload: {
               jobId: payload.jobId,
@@ -329,12 +323,12 @@ export function JobProvider({ children }) {
       await offlineQueue.addOperation({
         type: 'saveJob',
         id: job.id,
-        payload: { jobId: job.id, favorite: newSavedState },
+        payload: { jobId: job.id, saved: newSavedState },
         apiCall: async (payload) => {
-          await jobsApi.toggleFavorite(payload.jobId, payload.favorite);
+          await jobsApi.toggleSaveJob(payload.jobId, payload.saved);
           
           // Mark as synced
-          if (payload.favorite) {
+          if (payload.saved) {
             dispatch({ type: ACTIONS.MARK_SAVED_JOB_SYNCED, payload: {
               jobId: payload.jobId
             }});
@@ -399,6 +393,13 @@ export function JobProvider({ children }) {
   };
 
   const reportJob = async (job, reason = 'other') => {
+    // Check if already reported to avoid duplicates
+    const alreadyReported = state.reportedJobs.some(r => r.jobId === job.id);
+    if (alreadyReported) {
+      console.log(`Job ${job.id} already reported, skipping`);
+      return;
+    }
+    
     // Optimistic UI update
     const reportId = `report-${job.id}-${Date.now()}`;
     const newReport = {
@@ -415,9 +416,9 @@ export function JobProvider({ children }) {
     
     // Add to offline queue with retry capability
     try {
-      await offlineQueue.addOperation({
+      const operation = await offlineQueue.addOperation({
         type: 'report',
-        id: job.id,
+        id: `report-${job.id}`, // Use consistent ID to prevent duplicates
         payload: { jobId: job.id, reason },
         apiCall: async (payload) => {
           await reportedApi.reportJob(payload.jobId, payload.reason);
@@ -428,6 +429,12 @@ export function JobProvider({ children }) {
           }});
         },
       });
+      
+      // If operation is null, it means it cancelled a pending unreport
+      // This is expected when user toggles report/unreport quickly
+      if (operation === null) {
+        console.log(`Cancelled pending unreport for job ${job.id}`);
+      }
     } catch (error) {
       console.error('Error queuing report:', error);
       // Operation is still in queue for retry
@@ -438,17 +445,23 @@ export function JobProvider({ children }) {
     // Optimistic UI update - remove from reported jobs immediately
     dispatch({ type: ACTIONS.REMOVE_REPORTED_JOB, payload: jobId });
     
-    // Add to offline queue
+    // Try to add unreport operation (will cancel pending report if it exists)
     try {
-      await offlineQueue.addOperation({
+      const operation = await offlineQueue.addOperation({
         type: 'unreport',
-        id: jobId,
+        id: `report-${jobId}`, // Use same ID as report for proper cancellation
         payload: { jobId },
         apiCall: async (payload) => {
           await reportedApi.unreportJob(payload.jobId);
           // Successfully unreported - UI already updated
         },
       });
+      
+      // If operation is null, it means it cancelled a pending report
+      // In that case, we're done - no need to unreport from server since it was never reported
+      if (operation === null) {
+        console.log(`Cancelled pending report for job ${jobId}, no server unreport needed`);
+      }
     } catch (error) {
       console.error('Error queuing unreport:', error);
       // Operation is still in queue for retry
@@ -472,7 +485,7 @@ export function JobProvider({ children }) {
         currentIndex: state.currentIndex,
         remainingJobs,
         savedJobs: state.savedJobs,
-        favorites: state.savedJobs, // Keep for backward compatibility
+        saveds: state.savedJobs, // Keep for backward compatibility
         applications: state.applications,
         reportedJobs: state.reportedJobs,
         skippedJobs: state.skippedJobs,
@@ -485,7 +498,7 @@ export function JobProvider({ children }) {
         rejectJob,
         skipJob,
         toggleSaveJob,
-        toggleFavorite: toggleSaveJob, // Keep for backward compatibility
+        toggleSaveJob: toggleSaveJob, // Keep for backward compatibility
         reportJob,
         unreportJob,
         rollbackLastAction,

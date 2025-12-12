@@ -40,12 +40,33 @@ export default function SkippedJobsPage() {
 
   if (!hasJobs) {
     return (
-      <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-        <div className="text-6xl mb-4">⏭️</div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">No skipped jobs</h2>
-        <p className="text-gray-600">
-          Jobs you skip will appear here for later review.
-        </p>
+      <div className="h-full overflow-y-auto p-4 pb-8">
+        <div className="max-w-md mx-auto">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">
+              Skipped Jobs
+            </h1>
+            <p className="text-sm text-gray-600">
+              Review jobs you skipped and add them back to your queue
+            </p>
+          </div>
+
+          {/* Always show search bar */}
+          <div className="mb-4">
+            <SearchInput 
+              placeholder="Search by company, position, or skills..."
+              onSearch={handleSearch}
+            />
+          </div>
+
+          <div className="flex flex-col items-center justify-center h-full px-6 text-center mt-20">
+            <div className="text-6xl mb-4">⏭️</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">No skipped jobs</h2>
+            <p className="text-gray-600">
+              Jobs you skip will appear here for later review.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -62,14 +83,13 @@ export default function SkippedJobsPage() {
           </p>
         </div>
 
-        {hasJobs && (
-          <div className="mb-4">
-            <SearchInput 
-              placeholder="Search by company, position, or skills..."
-              onSearch={handleSearch}
-            />
-          </div>
-        )}
+        {/* Always show search bar */}
+        <div className="mb-4">
+          <SearchInput 
+            placeholder="Search by company, position, or skills..."
+            onSearch={handleSearch}
+          />
+        </div>
 
         {!hasResults && hasJobs && (
           <div className="flex flex-col items-center justify-center px-6 text-center mt-20">

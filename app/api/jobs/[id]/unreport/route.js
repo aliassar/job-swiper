@@ -15,11 +15,12 @@ export async function POST(request, { params }) {
     report => report.jobId === jobId
   );
   
+  // If report not found, it's already unreported - return success (idempotent)
   if (reportIndex === -1) {
-    return NextResponse.json(
-      { error: 'Report not found' },
-      { status: 404 }
-    );
+    return NextResponse.json({
+      success: true,
+      message: 'Job unreported successfully',
+    });
   }
   
   // Remove the report
@@ -28,7 +29,7 @@ export async function POST(request, { params }) {
   // Log to history
   jobsStorage.history.push({
     action: 'unreport',
-    jobId: jobId,
+    jobId,
     timestamp: new Date().toISOString(),
   });
   

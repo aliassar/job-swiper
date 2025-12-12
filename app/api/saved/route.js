@@ -9,24 +9,24 @@ export async function GET(request) {
   const page = parseInt(searchParams.get('page') || '0');
   const limit = parseInt(searchParams.get('limit') || '20');
   
-  // Get all favorited jobs
-  let favorites = jobsStorage.jobs
+  // Get all saved jobs
+  let saveds = jobsStorage.jobs
     .filter(job => {
       const status = jobsStorage.userJobStatus.get(job.id);
-      return status && status.favorite === true;
+      return status && status.saved === true;
     })
     .map(job => {
       const status = jobsStorage.userJobStatus.get(job.id);
       return {
         ...job,
-        favorite: true,
-        favoritedAt: status.favoritedAt || new Date().toISOString(),
+        saved: true,
+        savedAt: status.savedAt || new Date().toISOString(),
       };
     });
   
   // Apply search filter if query provided
   if (searchQuery) {
-    favorites = favorites.filter(job => {
+    saveds = saveds.filter(job => {
       const searchableText = [
         job.company,
         job.position,
@@ -38,14 +38,14 @@ export async function GET(request) {
     });
   }
   
-  const total = favorites.length;
+  const total = saveds.length;
   const start = page * limit;
   const end = start + limit;
-  const paginatedFavorites = favorites.slice(start, end);
+  const paginatedSaveds = saveds.slice(start, end);
   const hasMore = end < total;
   
   return NextResponse.json({ 
-    favorites: paginatedFavorites,
+    saveds: paginatedSaveds,
     total,
     hasMore,
     page,

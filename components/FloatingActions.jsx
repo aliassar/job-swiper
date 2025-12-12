@@ -13,8 +13,8 @@ export default function FloatingActions({
   onReject, 
   onAccept, 
   onSkip,
-  onFavorite,
-  isFavorite = false,
+  onSave,
+  isSaved = false,
   disabled = false,
 }) {
   return (
@@ -41,14 +41,14 @@ export default function FloatingActions({
             <ForwardIcon className="h-6 w-6 text-gray-600" />
           </button>
 
-          {/* Favorite Button */}
+          {/* Save Button */}
           <button
-            onClick={onFavorite}
+            onClick={onSave}
             disabled={disabled}
             className="w-14 h-14 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
-            aria-label="Favorite job"
+            aria-label="Save job"
           >
-            {isFavorite ? (
+            {isSaved ? (
               <BookmarkIconSolid className="h-7 w-7 text-blue-500" />
             ) : (
               <BookmarkIcon className="h-7 w-7 text-gray-600" />
@@ -74,7 +74,7 @@ FloatingActions.propTypes = {
   onReject: PropTypes.func.isRequired,
   onAccept: PropTypes.func.isRequired,
   onSkip: PropTypes.func.isRequired,
-  onFavorite: PropTypes.func.isRequired,
-  isFavorite: PropTypes.bool,
+  onSave: PropTypes.func.isRequired,
+  isSaved: PropTypes.bool,
   disabled: PropTypes.bool,
 };

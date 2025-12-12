@@ -15,7 +15,7 @@ export async function POST(request, { params }) {
   // Update job status
   jobsStorage.userJobStatus.set(jobId, {
     status: 'accepted',
-    favorite: jobsStorage.userJobStatus.get(jobId)?.favorite || false,
+    saved: jobsStorage.userJobStatus.get(jobId)?.saved || false,
     acceptedAt: now,
     decisionAt: now,
   });
