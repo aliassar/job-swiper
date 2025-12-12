@@ -88,52 +88,6 @@ export default function SettingsPage() {
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">General Settings</h2>
           
-          {/* Theme Setting */}
-          <div className="mb-4">
-            <label htmlFor="theme" className="block text-sm font-medium text-gray-700 mb-2">
-              Theme
-            </label>
-            <select
-              id="theme"
-              value={settings.theme}
-              onChange={(e) => updateSetting('theme', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-              <option value="system">System</option>
-            </select>
-            <p className="text-xs text-gray-500 mt-1">Choose your preferred color theme</p>
-          </div>
-
-          {/* Notifications Toggle */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <label htmlFor="notifications" className="block text-sm font-medium text-gray-700">
-                  Notifications
-                </label>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Receive in-app notifications
-                </p>
-              </div>
-              <button
-                id="notifications"
-                type="button"
-                onClick={() => updateSetting('notificationsEnabled', !settings.notificationsEnabled)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.notificationsEnabled ? 'bg-blue-500' : 'bg-gray-200'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.notificationsEnabled ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-          </div>
-
           {/* Email Notifications Toggle */}
           <div className="mb-0">
             <div className="flex items-center justify-between">
@@ -167,87 +121,87 @@ export default function SettingsPage() {
         <div className="bg-white rounded-2xl shadow-lg p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-2">Application Automation</h2>
           <p className="text-sm text-gray-600 mb-4">
-            Choose which application stages should be processed automatically without manual intervention
+            Configure which tasks should be automated during the application process
           </p>
           
-          {/* Syncing Stage */}
+          {/* Auto Tailor Resume and Cover Letter */}
           <div className="mb-4">
             <div className="flex items-center justify-between">
               <div>
-                <label htmlFor="auto-syncing" className="block text-sm font-medium text-gray-700">
-                  Syncing Stage
+                <label htmlFor="auto-tailor" className="block text-sm font-medium text-gray-700">
+                  Auto Tailor Resume and Cover Letter
                 </label>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Automatically sync applications with job boards
+                  Automatically customize resume and cover letter for each job
                 </p>
               </div>
               <button
-                id="auto-syncing"
+                id="auto-tailor"
                 type="button"
-                onClick={() => updateAutomationStage('syncing', !settings.automationStages.syncing)}
+                onClick={() => updateAutomationStage('autoTailorResumeCoverLetter', !settings.automationStages.autoTailorResumeCoverLetter)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.automationStages.syncing ? 'bg-blue-500' : 'bg-gray-200'
+                  settings.automationStages.autoTailorResumeCoverLetter ? 'bg-blue-500' : 'bg-gray-200'
                 }`}
               >
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.automationStages.syncing ? 'translate-x-6' : 'translate-x-1'
+                    settings.automationStages.autoTailorResumeCoverLetter ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
               </button>
             </div>
           </div>
 
-          {/* Being Applied Stage */}
+          {/* Auto Fill Form or Send Email */}
           <div className="mb-4">
             <div className="flex items-center justify-between">
               <div>
-                <label htmlFor="auto-being-applied" className="block text-sm font-medium text-gray-700">
-                  Being Applied Stage
+                <label htmlFor="auto-fill" className="block text-sm font-medium text-gray-700">
+                  Automatically Fill Form or Send Email
                 </label>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Automatically process application submissions
+                  Auto-complete application forms or send application emails
                 </p>
               </div>
               <button
-                id="auto-being-applied"
+                id="auto-fill"
                 type="button"
-                onClick={() => updateAutomationStage('beingApplied', !settings.automationStages.beingApplied)}
+                onClick={() => updateAutomationStage('autoFillFormOrEmail', !settings.automationStages.autoFillFormOrEmail)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.automationStages.beingApplied ? 'bg-blue-500' : 'bg-gray-200'
+                  settings.automationStages.autoFillFormOrEmail ? 'bg-blue-500' : 'bg-gray-200'
                 }`}
               >
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.automationStages.beingApplied ? 'translate-x-6' : 'translate-x-1'
+                    settings.automationStages.autoFillFormOrEmail ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
               </button>
             </div>
           </div>
 
-          {/* Applied Stage */}
+          {/* Auto Set Job Status */}
           <div className="mb-0">
             <div className="flex items-center justify-between">
               <div>
-                <label htmlFor="auto-applied" className="block text-sm font-medium text-gray-700">
-                  Applied Stage
+                <label htmlFor="auto-status" className="block text-sm font-medium text-gray-700">
+                  Automatically Set Job Status
                 </label>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Automatically mark as applied when submission is confirmed
+                  Update status when rejected or invited to interview
                 </p>
               </div>
               <button
-                id="auto-applied"
+                id="auto-status"
                 type="button"
-                onClick={() => updateAutomationStage('applied', !settings.automationStages.applied)}
+                onClick={() => updateAutomationStage('autoSetJobStatus', !settings.automationStages.autoSetJobStatus)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.automationStages.applied ? 'bg-blue-500' : 'bg-gray-200'
+                  settings.automationStages.autoSetJobStatus ? 'bg-blue-500' : 'bg-gray-200'
                 }`}
               >
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.automationStages.applied ? 'translate-x-6' : 'translate-x-1'
+                    settings.automationStages.autoSetJobStatus ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
               </button>

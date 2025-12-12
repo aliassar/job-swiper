@@ -4,18 +4,36 @@ import PropTypes from 'prop-types';
 import { CheckCircleIcon, ClockIcon } from '@heroicons/react/24/solid';
 import { XCircleIcon } from '@heroicons/react/24/outline';
 
-const APPLICATION_STAGES = [
+const BASE_STAGES = [
   { name: 'Syncing', short: 'Sync' },
   { name: 'Being Applied', short: 'Applying' },
   { name: 'Applied', short: 'Applied' },
   { name: 'Phone Screen', short: 'Phone' },
-  { name: 'Interview', short: 'Interview' },
-  { name: 'Offer', short: 'Offer' },
 ];
 
 const TERMINAL_STAGES = ['Rejected', 'Accepted', 'Withdrawn'];
 
-export default function ApplicationTimeline({ currentStage, timestamps = {} }) {
+export default function ApplicationTimeline({ currentStage, timestamps = {}, interviewCount = 1 }) {
+  // Build dynamic stages with multiple interviews
+  const buildStages = () => {
+    const stages = [...BASE_STAGES];
+    
+    // Add interview stages dynamically based on count
+    for (let i = 1; i <= Math.max(interviewCount, 1); i++) {
+      stages.push({
+        name: i === 1 ? 'Interview' : `Interview ${i}`,
+        short: i === 1 ? 'Interview' : `Int ${i}`,
+      });
+    }
+    
+    // Add Offer stage
+    stages.push({ name: 'Offer', short: 'Offer' });
+    
+    return stages;
+  };
+
+  const APPLICATION_STAGES = buildStages();
+  
   // Find the index of the current stage in the main stages
   const currentStageIndex = APPLICATION_STAGES.findIndex(stage => stage.name === currentStage);
   const isTerminalStage = TERMINAL_STAGES.includes(currentStage);
@@ -50,16 +68,26 @@ export default function ApplicationTimeline({ currentStage, timestamps = {} }) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  // Calculate responsive size based on number of stages
+  const stageCount = APPLICATION_STAGES.length;
+  const getResponsiveSize = () => {
+    if (stageCount <= 6) return { iconSize: 'w-8 h-8', textSize: 'text-xs', maxWidth: 'max-w-[80px]' };
+    if (stageCount <= 8) return { iconSize: 'w-7 h-7', textSize: 'text-[11px]', maxWidth: 'max-w-[70px]' };
+    return { iconSize: 'w-6 h-6', textSize: 'text-[10px]', maxWidth: 'max-w-[60px]' };
+  };
+
+  const { iconSize, textSize, maxWidth } = getResponsiveSize();
+
   return (
     <div className="w-full">
       {/* Horizontal timeline for main stages */}
-      <div className="relative flex items-start justify-between mb-8">
+      <div className="relative flex items-start justify-between mb-8 overflow-x-auto">
         {APPLICATION_STAGES.map((stage, index) => {
           const status = getStageStatus(stage, index);
           const isLast = index === APPLICATION_STAGES.length - 1;
 
           return (
-            <div key={stage.name} className="flex flex-col items-center flex-1 relative">
+            <div key={stage.name} className="flex flex-col items-center flex-1 relative min-w-[60px]">
               {/* Horizontal line connector */}
               {!isLast && (
                 <div
@@ -68,28 +96,28 @@ export default function ApplicationTimeline({ currentStage, timestamps = {} }) {
                       ? 'bg-green-500'
                       : 'bg-gray-200'
                   }`}
-                  style={{ width: 'calc(100% - 1rem)' }}
+                  style={{ width: 'calc(100% - 0.5rem)' }}
                 />
               )}
 
               {/* Stage indicator */}
               <div className="relative z-10 flex-shrink-0 mb-2">
                 <div
-                  className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${getStageColor(status)}`}
+                  className={`${iconSize} rounded-full border-2 flex items-center justify-center ${getStageColor(status)}`}
                 >
                   {status === 'completed' ? (
-                    <CheckCircleIcon className="h-5 w-5 text-white" />
+                    <CheckCircleIcon className="h-4 w-4 text-white" />
                   ) : status === 'current' ? (
-                    <ClockIcon className="h-5 w-5 text-white" />
+                    <ClockIcon className="h-4 w-4 text-white" />
                   ) : (
-                    <div className="w-3 h-3 rounded-full bg-gray-400" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-gray-400" />
                   )}
                 </div>
               </div>
 
               {/* Stage content */}
-              <div className="text-center max-w-[80px]">
-                <p className={`text-xs font-medium ${getStageTextColor(status)} leading-tight`}>
+              <div className={`text-center ${maxWidth}`}>
+                <p className={`${textSize} font-medium ${getStageTextColor(status)} leading-tight`}>
                   {stage.short}
                 </p>
                 {status === 'current' && (
@@ -153,4 +181,5 @@ export default function ApplicationTimeline({ currentStage, timestamps = {} }) {
 ApplicationTimeline.propTypes = {
   currentStage: PropTypes.string.isRequired,
   timestamps: PropTypes.object,
+  interviewCount: PropTypes.number,
 };

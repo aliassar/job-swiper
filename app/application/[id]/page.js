@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useJobs } from '@/context/JobContext';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
 
 const APPLICATION_STAGES = [
@@ -107,6 +107,7 @@ export default function ApplicationDetailPage() {
               'Applied': application.appliedAt,
               [application.stage]: application.updatedAt || application.appliedAt,
             }}
+            interviewCount={application.interviewCount || 1}
           />
         </div>
 
@@ -165,6 +166,33 @@ export default function ApplicationDetailPage() {
               </div>
             )}
 
+            {/* Resume and Cover Letter Downloads */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Application Documents</h3>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    // TODO: Implement resume download
+                    console.log('Download resume for application:', application.id);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition-colors"
+                >
+                  <ArrowDownTrayIcon className="h-5 w-5" />
+                  Download Resume
+                </button>
+                <button
+                  onClick={() => {
+                    // TODO: Implement cover letter download
+                    console.log('Download cover letter for application:', application.id);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-50 text-green-700 rounded-lg font-medium hover:bg-green-100 transition-colors"
+                >
+                  <ArrowDownTrayIcon className="h-5 w-5" />
+                  Download Cover Letter
+                </button>
+              </div>
+            </div>
+
             {/* Description if available */}
             {application.description && (
               <div className="mb-6">
@@ -204,9 +232,9 @@ export default function ApplicationDetailPage() {
               id="stage-selector"
               value={application.stage}
               onChange={handleStageChange}
-              disabled={application.pendingSync || application.stage === 'Syncing' || application.stage === 'Being Applied'}
+              disabled={application.stage === 'Syncing'}
               className={`w-full px-4 py-3 rounded-lg text-base font-medium border-0 ${
-                (application.pendingSync || application.stage === 'Syncing' || application.stage === 'Being Applied') 
+                application.stage === 'Syncing'
                   ? 'cursor-not-allowed opacity-70' 
                   : 'cursor-pointer'
               } ${getStageColor(application.stage)}`}
@@ -217,9 +245,9 @@ export default function ApplicationDetailPage() {
                 </option>
               ))}
             </select>
-            {(application.stage === 'Syncing' || application.stage === 'Being Applied') && (
+            {application.stage === 'Syncing' && (
               <p className="mt-2 text-xs text-gray-500">
-                This stage is managed automatically and cannot be changed manually
+                Application is being synced. Status cannot be changed until sync is complete.
               </p>
             )}
           </div>
