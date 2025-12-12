@@ -29,7 +29,7 @@ export async function POST(request, { params }) {
   // Log to history
   jobsStorage.history.push({
     action: 'unreport',
-    jobId: jobId,
+    jobId,
     timestamp: new Date().toISOString(),
   });
   
