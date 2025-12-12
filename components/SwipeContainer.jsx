@@ -278,7 +278,7 @@ export default function SwipeContainer() {
         </div>
         
         {/* Rollback button still available in empty state */}
-        {canPerformRollback && (
+        {history.length > 0 && (
           <button
             onClick={handleRollback}
             disabled={isLocked}
@@ -393,7 +393,7 @@ export default function SwipeContainer() {
         />
         
         {/* Rollback button */}
-        {canPerformRollback && (
+        {history.length > 0 && (
           <button
             onClick={handleRollback}
             disabled={isLocked}
