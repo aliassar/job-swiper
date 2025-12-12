@@ -77,65 +77,63 @@ export default function ApplicationDetailPage() {
   const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(application.company)}&size=120&background=0D8ABC&color=fff&bold=true`;
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50 pb-20">
+    <div className="h-full overflow-y-auto bg-gray-50">
       {/* Header with back button */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-4">
+        <div className="max-w-2xl mx-auto px-4 py-2">
           <button
             onClick={() => router.push('/applications')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors text-sm"
           >
-            <ArrowLeftIcon className="h-5 w-5" />
-            <span>Back to Applications</span>
+            <ArrowLeftIcon className="h-4 w-4" />
+            <span>Back</span>
           </button>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-3">
         {/* Single consolidated card with all information */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          {/* Company header with gradient */}
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
-            <div className="flex items-center gap-4">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          {/* Company header with gradient - smaller */}
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-3">
+            <div className="flex items-center gap-3">
               <img 
                 src={logoUrl}
                 alt={`${application.company} logo`}
-                className="w-16 h-16 rounded-xl shadow-lg bg-white flex-shrink-0"
+                className="w-12 h-12 rounded-lg shadow-lg bg-white flex-shrink-0"
               />
               <div className="flex-1 min-w-0">
-                <h1 className="text-2xl font-bold text-white mb-1">{application.company}</h1>
-                <p className="text-blue-100">{application.location}</p>
+                <h1 className="text-lg font-bold text-white mb-0.5">{application.company}</h1>
+                <p className="text-sm text-blue-100">{application.location}</p>
               </div>
             </div>
           </div>
 
-          {/* Main content area */}
-          <div className="p-6">
+          {/* Main content area - reduced spacing */}
+          <div className="p-4">
             {/* Position title */}
-            <h2 className="text-xl font-bold text-gray-900 mb-3">
+            <h2 className="text-base font-bold text-gray-900 mb-2">
               {application.position}
             </h2>
 
-            {/* Application dates */}
-            <div className="mb-4 text-sm text-gray-600">
+            {/* Application dates - smaller */}
+            <div className="mb-3 text-xs text-gray-600">
               Applied {new Date(application.appliedAt).toLocaleDateString('en-US', { 
-                month: 'long', 
+                month: 'short', 
                 day: 'numeric', 
                 year: 'numeric' 
               })}
               {application.updatedAt && application.updatedAt !== application.appliedAt && (
                 <> • Updated {new Date(application.updatedAt).toLocaleDateString('en-US', { 
                   month: 'short', 
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
+                  day: 'numeric'
                 })}</>
               )}
             </div>
 
-            {/* Timeline section */}
-            <div className="mb-6 pb-6 border-b border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Application Progress</h3>
+            {/* Timeline section - reduced spacing */}
+            <div className="mb-3 pb-3 border-b border-gray-200">
+              <h3 className="text-xs font-semibold text-gray-700 mb-2">Progress</h3>
               <ApplicationTimeline 
                 currentStage={application.stage}
                 timestamps={{
@@ -146,17 +144,17 @@ export default function ApplicationDetailPage() {
               />
             </div>
 
-            {/* Stage selector */}
-            <div className="mb-6 pb-6 border-b border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Update Status</h3>
+            {/* Stage selector - reduced spacing */}
+            <div className="mb-3 pb-3 border-b border-gray-200">
+              <h3 className="text-xs font-semibold text-gray-700 mb-2">Update Status</h3>
               
               {application.pendingSync && (
-                <div className="mb-3 inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium">
-                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <div className="mb-2 inline-flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium">
+                  <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <span>Syncing changes...</span>
+                  <span>Syncing...</span>
                 </div>
               )}
 
@@ -164,7 +162,7 @@ export default function ApplicationDetailPage() {
                 value={application.stage}
                 onChange={handleStageChange}
                 disabled={application.stage === 'Syncing'}
-                className={`w-full px-4 py-3 rounded-lg text-sm font-medium border-0 ${
+                className={`w-full px-3 py-2 rounded-lg text-sm font-medium border-0 ${
                   application.stage === 'Syncing'
                     ? 'cursor-not-allowed opacity-70' 
                     : 'cursor-pointer'
@@ -177,24 +175,24 @@ export default function ApplicationDetailPage() {
                 ))}
               </select>
               {application.stage === 'Syncing' && (
-                <p className="mt-2 text-xs text-gray-500">
-                  Application is being synced. Status cannot be changed until sync is complete.
+                <p className="mt-1 text-[10px] text-gray-500">
+                  Status locked until sync completes
                 </p>
               )}
             </div>
 
-            {/* Application Documents */}
-            <div className="mb-6 pb-6 border-b border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Application Documents</h3>
-              <div className="grid grid-cols-2 gap-3">
+            {/* Application Documents - reduced spacing */}
+            <div className="mb-3 pb-3 border-b border-gray-200">
+              <h3 className="text-xs font-semibold text-gray-700 mb-2">Documents</h3>
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => {
                     // TODO: Implement resume download
                     console.log('Download resume for application:', application.id);
                   }}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors"
                 >
-                  <ArrowDownTrayIcon className="h-4 w-4" />
+                  <ArrowDownTrayIcon className="h-3.5 w-3.5" />
                   Resume
                 </button>
                 <button
@@ -202,36 +200,41 @@ export default function ApplicationDetailPage() {
                     // TODO: Implement cover letter download
                     console.log('Download cover letter for application:', application.id);
                   }}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors"
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-xs font-medium hover:bg-green-100 transition-colors"
                 >
-                  <ArrowDownTrayIcon className="h-4 w-4" />
+                  <ArrowDownTrayIcon className="h-3.5 w-3.5" />
                   Cover Letter
                 </button>
               </div>
             </div>
 
-            {/* Skills */}
+            {/* Skills - reduced spacing */}
             {application.skills && application.skills.length > 0 && (
-              <div className="mb-6 pb-6 border-b border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Required Skills</h3>
-                <div className="flex flex-wrap gap-2">
-                  {application.skills.map((skill, index) => (
+              <div className="mb-3 pb-3 border-b border-gray-200">
+                <h3 className="text-xs font-semibold text-gray-700 mb-2">Skills</h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {application.skills.slice(0, 6).map((skill, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium"
+                      className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-[10px] font-medium"
                     >
                       {skill}
                     </span>
                   ))}
+                  {application.skills.length > 6 && (
+                    <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-[10px] font-medium">
+                      +{application.skills.length - 6} more
+                    </span>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Description if available */}
+            {/* Description if available - reduced */}
             {application.description && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Description</h3>
-                <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
+                <h3 className="text-xs font-semibold text-gray-700 mb-2">Description</h3>
+                <p className="text-gray-700 text-xs leading-relaxed whitespace-pre-line line-clamp-4">
                   {application.description}
                 </p>
               </div>

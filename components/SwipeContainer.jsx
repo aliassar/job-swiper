@@ -238,9 +238,9 @@ export default function SwipeContainer() {
   }, [jobToReport, reportJob]);
   
   /**
-   * Handle favorite/save toggle
+   * Handle saved/save toggle
    */
-  const handleToggleFavorite = useCallback(() => {
+  const handleToggleSaved = useCallback(() => {
     if (!currentJob || isLocked) return;
     toggleSaveJob(currentJob);
   }, [currentJob, isLocked, toggleSaveJob]);
@@ -422,8 +422,8 @@ export default function SwipeContainer() {
           onReject={handleReject}
           onAccept={handleAccept}
           onSkip={handleSkip}
-          onFavorite={handleToggleFavorite}
-          isFavorite={isCurrentJobSaved}
+          onSave={handleToggleSaved}
+          isSaved={isCurrentJobSaved}
           disabled={!canPerformSwipe || isLocked}
         />
         
