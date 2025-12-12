@@ -31,6 +31,16 @@ export const ACTIONS = {
   REMOVE_REPORTED_JOB: 'REMOVE_REPORTED_JOB',
   ROLLBACK_JOB: 'ROLLBACK_JOB',
   INCREMENT_INDEX: 'INCREMENT_INDEX',
+  
+  // Mark as synced actions
+  MARK_APPLICATION_SYNCED: 'MARK_APPLICATION_SYNCED',
+  MARK_SESSION_ACTION_SYNCED: 'MARK_SESSION_ACTION_SYNCED',
+  MARK_SKIPPED_JOB_SYNCED: 'MARK_SKIPPED_JOB_SYNCED',
+  MARK_SAVED_JOB_SYNCED: 'MARK_SAVED_JOB_SYNCED',
+  MARK_REPORTED_JOB_SYNCED: 'MARK_REPORTED_JOB_SYNCED',
+  
+  // Update application with result
+  UPDATE_APPLICATION_WITH_RESULT: 'UPDATE_APPLICATION_WITH_RESULT',
 };
 
 // Initial state
@@ -186,6 +196,66 @@ export function jobReducer(state, action) {
       return {
         ...state,
         currentIndex: state.currentIndex + 1,
+      };
+      
+    case ACTIONS.MARK_APPLICATION_SYNCED:
+      return {
+        ...state,
+        applications: state.applications.map(app =>
+          app.jobId === action.payload.jobId && app.id.startsWith('temp-')
+            ? { ...app, pendingSync: false }
+            : app
+        ),
+      };
+      
+    case ACTIONS.UPDATE_APPLICATION_WITH_RESULT:
+      return {
+        ...state,
+        applications: state.applications.map(app =>
+          app.jobId === action.payload.jobId && app.id.startsWith('temp-')
+            ? { ...action.payload.application, stage: 'Applied', pendingSync: false }
+            : app
+        ),
+      };
+      
+    case ACTIONS.MARK_SESSION_ACTION_SYNCED:
+      return {
+        ...state,
+        sessionActions: state.sessionActions.map(a =>
+          a.jobId === action.payload.jobId && a.action === action.payload.action
+            ? { ...a, pendingSync: false }
+            : a
+        ),
+      };
+      
+    case ACTIONS.MARK_SKIPPED_JOB_SYNCED:
+      return {
+        ...state,
+        skippedJobs: state.skippedJobs.map(s =>
+          s.id === action.payload.jobId
+            ? { ...s, pendingSync: false }
+            : s
+        ),
+      };
+      
+    case ACTIONS.MARK_SAVED_JOB_SYNCED:
+      return {
+        ...state,
+        savedJobs: state.savedJobs.map(s =>
+          s.id === action.payload.jobId
+            ? { ...s, pendingSync: false }
+            : s
+        ),
+      };
+      
+    case ACTIONS.MARK_REPORTED_JOB_SYNCED:
+      return {
+        ...state,
+        reportedJobs: state.reportedJobs.map(r =>
+          r.jobId === action.payload.jobId
+            ? { ...r, pendingSync: false }
+            : r
+        ),
       };
       
     default:

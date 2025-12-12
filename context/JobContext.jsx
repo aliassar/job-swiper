@@ -182,27 +182,26 @@ export function JobProvider({ children }) {
     };
     
     // Optimistic UI update
-    setApplications(prev => [tempApplication, ...prev]);
+    dispatch({ type: ACTIONS.ADD_APPLICATION, payload: tempApplication });
     
-    setSessionActions(prev => [...prev, { 
+    dispatch({ type: ACTIONS.ADD_SESSION_ACTION, payload: { 
       jobId: job.id, 
       action: 'accepted', 
       timestamp: new Date().toISOString(),
       job: job,
       pendingSync: true,
-    }]);
+    }});
     
     // Move to next job immediately
-    setCurrentIndex(prev => prev + 1);
+    dispatch({ type: ACTIONS.INCREMENT_INDEX });
     
     // Add to offline queue
     try {
       // Update stage to "Being Applied"
-      setApplications(prev => prev.map(app =>
-        app.jobId === job.id && app.id.startsWith('temp-')
-          ? { ...app, stage: 'Being Applied' }
-          : app
-      ));
+      dispatch({ type: ACTIONS.UPDATE_APPLICATION, payload: {
+        id: tempApplication.id,
+        updates: { stage: 'Being Applied' }
+      }});
       
       await offlineQueue.addOperation({
         type: 'accept',
@@ -213,19 +212,17 @@ export function JobProvider({ children }) {
           
           // Update applications on success - change to "Applied" and use real ID
           if (result.application) {
-            setApplications(prev => prev.map(app =>
-              app.jobId === payload.jobId && app.id.startsWith('temp-')
-                ? { ...result.application, stage: 'Applied', pendingSync: false }
-                : app
-            ));
+            dispatch({ type: ACTIONS.UPDATE_APPLICATION_WITH_RESULT, payload: {
+              jobId: payload.jobId,
+              application: result.application
+            }});
           }
           
           // Mark as synced
-          setSessionActions(prev => prev.map(a =>
-            a.jobId === payload.jobId && a.action === 'accepted'
-              ? { ...a, pendingSync: false }
-              : a
-          ));
+          dispatch({ type: ACTIONS.MARK_SESSION_ACTION_SYNCED, payload: {
+            jobId: payload.jobId,
+            action: 'accepted'
+          }});
         },
       });
     } catch (error) {
@@ -235,16 +232,16 @@ export function JobProvider({ children }) {
 
   const rejectJob = async (job) => {
     // Optimistic UI update
-    setSessionActions(prev => [...prev, { 
+    dispatch({ type: ACTIONS.ADD_SESSION_ACTION, payload: { 
       jobId: job.id, 
       action: 'rejected', 
       timestamp: new Date().toISOString(),
       job: job,
       pendingSync: true,
-    }]);
+    }});
     
     // Move to next job immediately
-    setCurrentIndex(prev => prev + 1);
+    dispatch({ type: ACTIONS.INCREMENT_INDEX });
     
     // Add to offline queue
     try {
@@ -256,11 +253,10 @@ export function JobProvider({ children }) {
           await jobsApi.rejectJob(payload.jobId);
           
           // Mark as synced
-          setSessionActions(prev => prev.map(a =>
-            a.jobId === payload.jobId && a.action === 'rejected'
-              ? { ...a, pendingSync: false }
-              : a
-          ));
+          dispatch({ type: ACTIONS.MARK_SESSION_ACTION_SYNCED, payload: {
+            jobId: payload.jobId,
+            action: 'rejected'
+          }});
         },
       });
     } catch (error) {
@@ -276,18 +272,18 @@ export function JobProvider({ children }) {
       pendingSync: true,
     };
     
-    setSkippedJobs(prev => [skippedItem, ...prev]);
+    dispatch({ type: ACTIONS.ADD_SKIPPED_JOB, payload: skippedItem });
     
-    setSessionActions(prev => [...prev, { 
+    dispatch({ type: ACTIONS.ADD_SESSION_ACTION, payload: { 
       jobId: job.id, 
       action: 'skipped', 
       timestamp: new Date().toISOString(),
       job: job,
       pendingSync: true,
-    }]);
+    }});
     
     // Move to next job immediately
-    setCurrentIndex(prev => prev + 1);
+    dispatch({ type: ACTIONS.INCREMENT_INDEX });
     
     // Add to offline queue
     try {
@@ -299,17 +295,14 @@ export function JobProvider({ children }) {
           await jobsApi.skipJob(payload.jobId);
           
           // Mark as synced in both places
-          setSessionActions(prev => prev.map(a =>
-            a.jobId === payload.jobId && a.action === 'skipped'
-              ? { ...a, pendingSync: false }
-              : a
-          ));
+          dispatch({ type: ACTIONS.MARK_SESSION_ACTION_SYNCED, payload: {
+            jobId: payload.jobId,
+            action: 'skipped'
+          }});
           
-          setSkippedJobs(prev => prev.map(s =>
-            s.id === payload.jobId
-              ? { ...s, pendingSync: false }
-              : s
-          ));
+          dispatch({ type: ACTIONS.MARK_SKIPPED_JOB_SYNCED, payload: {
+            jobId: payload.jobId
+          }});
         },
       });
     } catch (error) {
@@ -318,15 +311,15 @@ export function JobProvider({ children }) {
   };
 
   const toggleSaveJob = async (job) => {
-    const isSaved = savedJobs.some(saved => saved.id === job.id);
+    const isSaved = state.savedJobs.some(saved => saved.id === job.id);
     const newSavedState = !isSaved;
     
     // Optimistically update UI
     if (isSaved) {
-      setSavedJobs(prev => prev.filter(saved => saved.id !== job.id));
+      dispatch({ type: ACTIONS.TOGGLE_SAVED_JOB, payload: job });
     } else {
       const savedItem = { ...job, pendingSync: true };
-      setSavedJobs(prev => [savedItem, ...prev]);
+      dispatch({ type: ACTIONS.TOGGLE_SAVED_JOB, payload: savedItem });
     }
     
     // Add to offline queue for background sync
@@ -340,11 +333,9 @@ export function JobProvider({ children }) {
           
           // Mark as synced
           if (payload.favorite) {
-            setSavedJobs(prev => prev.map(s =>
-              s.id === payload.jobId
-                ? { ...s, pendingSync: false }
-                : s
-            ));
+            dispatch({ type: ACTIONS.MARK_SAVED_JOB_SYNCED, payload: {
+              jobId: payload.jobId
+            }});
           }
         },
       });
@@ -354,34 +345,12 @@ export function JobProvider({ children }) {
   };
 
   const rollbackLastAction = async () => {
-    if (sessionActions.length === 0) return;
+    if (state.sessionActions.length === 0) return;
     
-    const lastAction = sessionActions[sessionActions.length - 1];
+    const lastAction = state.sessionActions[state.sessionActions.length - 1];
     
-    // Optimistic UI update - immediately update UI
-    // Remove from session actions
-    setSessionActions(prev => prev.slice(0, -1));
-    
-    // Bug Fix 2: Use functional update to get current index at execution time
-    // Add job back to the top of the swipe queue
-    setJobs(prev => {
-      // Get current index dynamically within setter
-      const currentJobIndex = prev.findIndex(j => j.id === prev[currentIndex]?.id);
-      const insertIndex = currentJobIndex >= 0 ? currentJobIndex : currentIndex;
-      const newJobs = [...prev];
-      newJobs.splice(insertIndex, 0, lastAction.job);
-      return newJobs;
-    });
-    
-    // Remove from applications if it was accepted
-    if (lastAction.action === 'accepted') {
-      setApplications(prev => prev.filter(app => app.jobId !== lastAction.jobId));
-    }
-    
-    // Remove from skippedJobs if it was skipped
-    if (lastAction.action === 'skipped') {
-      setSkippedJobs(prev => prev.filter(s => s.id !== lastAction.jobId));
-    }
+    // Use reducer's ROLLBACK_JOB action which handles all state updates atomically
+    dispatch({ type: ACTIONS.ROLLBACK_JOB, payload: { job: lastAction.job, lastAction } });
     
     // Add to offline queue for background sync
     try {
@@ -401,13 +370,10 @@ export function JobProvider({ children }) {
 
   const updateApplicationStage = async (applicationId, stage) => {
     // Optimistic UI update
-    setApplications(prev => 
-      prev.map(app => 
-        app.id === applicationId 
-          ? { ...app, stage, updatedAt: new Date().toISOString(), pendingSync: true }
-          : app
-      )
-    );
+    dispatch({ type: ACTIONS.UPDATE_APPLICATION, payload: {
+      id: applicationId,
+      updates: { stage, updatedAt: new Date().toISOString(), pendingSync: true }
+    }});
     
     // Add to offline queue for background sync
     try {
@@ -419,13 +385,10 @@ export function JobProvider({ children }) {
           const result = await applicationsApi.updateStage(payload.applicationId, payload.stage);
           
           // Mark as synced
-          setApplications(prev => 
-            prev.map(app => 
-              app.id === payload.applicationId 
-                ? { ...app, updatedAt: result.application.updatedAt, pendingSync: false }
-                : app
-            )
-          );
+          dispatch({ type: ACTIONS.UPDATE_APPLICATION, payload: {
+            id: payload.applicationId,
+            updates: { updatedAt: result.application.updatedAt, pendingSync: false }
+          }});
         },
       });
     } catch (error) {
@@ -445,7 +408,7 @@ export function JobProvider({ children }) {
       pendingSync: true,
     };
     
-    setReportedJobs(prev => [newReport, ...prev]);
+    dispatch({ type: ACTIONS.ADD_REPORTED_JOB, payload: newReport });
     console.log(`Job reported: ${reason}`);
     
     // Add to offline queue with retry capability
@@ -458,9 +421,9 @@ export function JobProvider({ children }) {
           await reportedApi.reportJob(payload.jobId, payload.reason);
           
           // Mark as synced on success
-          setReportedJobs(prev => prev.map(r => 
-            r.jobId === payload.jobId ? { ...r, pendingSync: false } : r
-          ));
+          dispatch({ type: ACTIONS.MARK_REPORTED_JOB_SYNCED, payload: {
+            jobId: payload.jobId
+          }});
         },
       });
     } catch (error) {
@@ -471,7 +434,7 @@ export function JobProvider({ children }) {
 
   const unreportJob = async (jobId) => {
     // Optimistic UI update - remove from reported jobs immediately
-    setReportedJobs(prev => prev.filter(r => r.jobId !== jobId));
+    dispatch({ type: ACTIONS.REMOVE_REPORTED_JOB, payload: jobId });
     
     // Add to offline queue
     try {
