@@ -6,10 +6,11 @@ import { useRouter } from 'next/navigation';
 
 /**
  * Login Page
- * Provides OAuth login options with GitHub and Google
+ * Provides OAuth login options with GitHub, Google, and Email
  */
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [showEmailLogin, setShowEmailLogin] = useState(false);
   const router = useRouter();
 
   const handleSignIn = async (provider) => {
@@ -29,6 +30,68 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  if (showEmailLogin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+          <button
+            onClick={() => setShowEmailLogin(false)}
+            className="mb-6 text-gray-600 hover:text-gray-900 flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back
+          </button>
+
+          <div className="text-center mb-8">
+            <div className="text-5xl mb-4">📧</div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Sign in with Email
+            </h1>
+            <p className="text-gray-600">
+              Enter your email to receive a sign-in link
+            </p>
+          </div>
+
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const email = e.target.email.value;
+            handleSignIn('email');
+          }}>
+            <div className="mb-6">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                name="email"
+                id="email"
+                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full px-6 py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+            >
+              {isLoading ? 'Sending...' : 'Send Sign-in Link'}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              We'll send you a magic link to sign in without a password
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
@@ -67,6 +130,26 @@ export default function LoginPage() {
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
             {isLoading ? 'Signing in...' : 'Continue with Google'}
+          </button>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Or</span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowEmailLogin(true)}
+            disabled={isLoading}
+            className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            Continue with Email
           </button>
         </div>
 
