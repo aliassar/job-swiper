@@ -8,7 +8,9 @@ import ApplicationTimeline from '@/components/ApplicationTimeline';
 
 const APPLICATION_STAGES = [
   'Syncing',
+  'CV Verification',
   'Being Applied',
+  'Message Verification',
   'Applied',
   'Phone Screen',
   'Interview',
@@ -34,9 +36,8 @@ export default function ApplicationDetailPage() {
     if (foundApp) {
       setApplication(foundApp);
       // Check if this app requires verification (this would come from backend in real app)
-      // For now, we check if stage is 'Being Applied' as an example
-      if (foundApp.stage === 'Being Applied') {
-        // In a real app, check foundApp.requiresVerification flag from backend
+      // For CV Verification stage, show document verification UI
+      if (foundApp.stage === 'CV Verification') {
         setVerificationState('pending');
       }
     }
@@ -111,7 +112,9 @@ export default function ApplicationDetailPage() {
   const getStageColor = (stage) => {
     const colors = {
       'Syncing': 'bg-orange-100 text-orange-700',
+      'CV Verification': 'bg-purple-100 text-purple-700',
       'Being Applied': 'bg-amber-100 text-amber-700',
+      'Message Verification': 'bg-indigo-100 text-indigo-700',
       'Applied': 'bg-blue-100 text-blue-700',
       'Phone Screen': 'bg-purple-100 text-purple-700',
       'Interview': 'bg-yellow-100 text-yellow-700',
@@ -352,6 +355,57 @@ export default function ApplicationDetailPage() {
                 </div>
               )}
             </div>
+
+            {/* Message Verification Section - for Message Verification stage */}
+            {application.stage === 'Message Verification' && (
+              <div className="mb-3 pb-3 border-b border-gray-200">
+                <h3 className="text-xs font-semibold text-gray-700 mb-2">Recommended Application Message</h3>
+                <p className="text-xs text-gray-600 mb-2">
+                  Review the message below that will be sent to the company to apply for this position:
+                </p>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs text-gray-800 leading-relaxed whitespace-pre-line">
+                    {application.recommendedMessage || `Dear Hiring Manager,
+
+I am writing to express my strong interest in the ${application.position} position at ${application.company}. With my background and skills, I believe I would be a valuable addition to your team.
+
+I am excited about the opportunity to contribute to ${application.company} and would welcome the chance to discuss how my experience aligns with your needs.
+
+Thank you for considering my application. I look forward to hearing from you.
+
+Best regards`}
+                  </p>
+                </div>
+                
+                {/* Message Verification Actions */}
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <p className="text-xs text-gray-600 mb-2">Do you approve this message?</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => {
+                        // TODO: Approve message and move to Applied stage
+                        console.log('Message approved');
+                        updateApplicationStage(application.id, 'Applied');
+                      }}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-green-500 text-white rounded-lg text-xs font-semibold hover:bg-green-600 transition-colors"
+                    >
+                      <CheckIcon className="h-4 w-4" />
+                      Approve & Send
+                    </button>
+                    <button
+                      onClick={() => {
+                        // TODO: Allow editing or rejection
+                        console.log('Message rejected');
+                      }}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-500 text-white rounded-lg text-xs font-semibold hover:bg-blue-600 transition-colors"
+                    >
+                      <XMarkIcon className="h-4 w-4" />
+                      Edit Message
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Skills - reduced spacing */}
             {application.skills && application.skills.length > 0 && (
