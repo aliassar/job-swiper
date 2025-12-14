@@ -24,20 +24,24 @@ export default function SettingsPage() {
   };
 
   const handleUploadResume = (e) => {
-    // TODO: Implement resume upload
     const file = e.target.files?.[0];
     if (file) {
-      console.log('Resume uploaded:', file.name);
-      updateSetting('baseResume', file.name);
+      // TODO: Implement actual file upload to backend
+      // For now, create a temporary URL for the file
+      const fileUrl = URL.createObjectURL(file);
+      console.log('Resume uploaded:', file.name, fileUrl);
+      updateSetting('baseResume', { name: file.name, url: fileUrl, file });
     }
   };
 
   const handleUploadCoverLetter = (e) => {
-    // TODO: Implement cover letter upload
     const file = e.target.files?.[0];
     if (file) {
-      console.log('Cover letter uploaded:', file.name);
-      updateSetting('baseCoverLetter', file.name);
+      // TODO: Implement actual file upload to backend
+      // For now, create a temporary URL for the file
+      const fileUrl = URL.createObjectURL(file);
+      console.log('Cover letter uploaded:', file.name, fileUrl);
+      updateSetting('baseCoverLetter', { name: file.name, url: fileUrl, file });
     }
   };
 
@@ -227,7 +231,7 @@ export default function SettingsPage() {
                 <label className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
                   <DocumentArrowUpIcon className="h-4 w-4 text-gray-600" />
                   <span className="text-xs text-gray-700">
-                    {settings.baseResume ? settings.baseResume : 'Upload Base Resume'}
+                    {settings.baseResume?.name || 'Upload Base Resume'}
                   </span>
                   <input
                     type="file"
@@ -243,7 +247,7 @@ export default function SettingsPage() {
                 <label className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
                   <DocumentArrowUpIcon className="h-4 w-4 text-gray-600" />
                   <span className="text-xs text-gray-700">
-                    {settings.baseCoverLetter ? settings.baseCoverLetter : 'Upload Base Cover Letter'}
+                    {settings.baseCoverLetter?.name || 'Upload Base Cover Letter'}
                   </span>
                   <input
                     type="file"

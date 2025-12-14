@@ -32,14 +32,16 @@ export default function ApplicationDetailPage() {
     const foundApp = applications.find(a => a.id === appId);
     if (foundApp) {
       setApplication(foundApp);
-      // Check if this app requires verification
-      if (foundApp.stage === 'Being Applied' && foundApp.requiresVerification) {
+      // Check if this app requires verification (this would come from backend in real app)
+      // For now, we check if stage is 'Being Applied' as an example
+      if (foundApp.stage === 'Being Applied') {
+        // In a real app, check foundApp.requiresVerification flag from backend
         setVerificationState('pending');
       }
     }
   }, [params.id, applications]);
 
-  // Rollback timer - 5 minutes
+  // Rollback timer - 5 minutes (check every 10 seconds for efficiency)
   useEffect(() => {
     if (lastDecisionTime) {
       const checkRollback = () => {
@@ -56,7 +58,7 @@ export default function ApplicationDetailPage() {
       };
 
       checkRollback();
-      const interval = setInterval(checkRollback, 1000);
+      const interval = setInterval(checkRollback, 10000); // Check every 10 seconds
       
       return () => clearInterval(interval);
     }
