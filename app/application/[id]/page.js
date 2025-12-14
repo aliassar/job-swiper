@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useJobs } from '@/context/JobContext';
-import { ArrowLeftIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ArrowDownTrayIcon, CheckIcon, XMarkIcon, DocumentArrowUpIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
 
 const APPLICATION_STAGES = [
@@ -23,14 +23,44 @@ export default function ApplicationDetailPage() {
   const router = useRouter();
   const { applications, updateApplicationStage } = useJobs();
   const [application, setApplication] = useState(null);
+  const [verificationState, setVerificationState] = useState(null); // 'pending', 'accepted', 'rejected'
+  const [lastDecisionTime, setLastDecisionTime] = useState(null);
+  const [canRollback, setCanRollback] = useState(false);
 
   useEffect(() => {
     const appId = params.id;
     const foundApp = applications.find(a => a.id === appId);
     if (foundApp) {
       setApplication(foundApp);
+      // Check if this app requires verification
+      if (foundApp.stage === 'Being Applied' && foundApp.requiresVerification) {
+        setVerificationState('pending');
+      }
     }
   }, [params.id, applications]);
+
+  // Rollback timer - 5 minutes
+  useEffect(() => {
+    if (lastDecisionTime) {
+      const checkRollback = () => {
+        const now = Date.now();
+        const elapsed = now - lastDecisionTime;
+        const fiveMinutes = 5 * 60 * 1000;
+        
+        if (elapsed < fiveMinutes) {
+          setCanRollback(true);
+        } else {
+          setCanRollback(false);
+          setLastDecisionTime(null);
+        }
+      };
+
+      checkRollback();
+      const interval = setInterval(checkRollback, 1000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [lastDecisionTime]);
 
   const handleStageChange = async (e) => {
     const newStage = e.target.value;
@@ -38,6 +68,35 @@ export default function ApplicationDetailPage() {
       await updateApplicationStage(application.id, newStage);
       // Update local state
       setApplication({ ...application, stage: newStage });
+    }
+  };
+
+  const handleVerificationAccept = () => {
+    setVerificationState('accepted');
+    setLastDecisionTime(Date.now());
+    // TODO: Call API to mark documents as verified and proceed with application
+    console.log('Documents verified and accepted');
+  };
+
+  const handleVerificationReject = () => {
+    setVerificationState('rejected');
+    setLastDecisionTime(Date.now());
+    // TODO: Call API to reject auto-generated documents
+    console.log('Documents rejected');
+  };
+
+  const handleRollback = () => {
+    setVerificationState('pending');
+    setLastDecisionTime(null);
+    setCanRollback(false);
+    console.log('Verification decision rolled back');
+  };
+
+  const handleCustomDocumentUpload = (type) => (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // TODO: Upload custom document
+      console.log(`Custom ${type} uploaded:`, file.name);
     }
   };
 
@@ -54,6 +113,16 @@ export default function ApplicationDetailPage() {
       'Withdrawn': 'bg-gray-100 text-gray-700',
     };
     return colors[stage] || 'bg-gray-100 text-gray-700';
+  };
+
+  const getRemainingTime = () => {
+    if (!lastDecisionTime) return '';
+    const now = Date.now();
+    const elapsed = now - lastDecisionTime;
+    const remaining = (5 * 60 * 1000) - elapsed;
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   if (!application) {
@@ -75,6 +144,8 @@ export default function ApplicationDetailPage() {
   }
 
   const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(application.company)}&size=120&background=0D8ABC&color=fff&bold=true`;
+  const showVerification = verificationState === 'pending';
+  const showRejectedUpload = verificationState === 'rejected';
 
   return (
     <div className="h-full overflow-y-auto bg-gray-50">
@@ -206,6 +277,75 @@ export default function ApplicationDetailPage() {
                   Cover Letter
                 </button>
               </div>
+              
+              {/* Verification buttons for pending verification */}
+              {showVerification && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <p className="text-xs text-gray-600 mb-2">Do you approve these documents?</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={handleVerificationAccept}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-green-500 text-white rounded-lg text-xs font-semibold hover:bg-green-600 transition-colors"
+                    >
+                      <CheckIcon className="h-4 w-4" />
+                      Yes, Approve
+                    </button>
+                    <button
+                      onClick={handleVerificationReject}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600 transition-colors"
+                    >
+                      <XMarkIcon className="h-4 w-4" />
+                      No, Reject
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Rollback button for recent decisions */}
+              {canRollback && verificationState !== 'pending' && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs text-gray-600">Changed your mind?</p>
+                    <span className="text-xs text-blue-600 font-mono">{getRemainingTime()}</span>
+                  </div>
+                  <button
+                    onClick={handleRollback}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors"
+                  >
+                    <ArrowUturnLeftIcon className="h-4 w-4" />
+                    Undo Decision
+                  </button>
+                </div>
+              )}
+
+              {/* Custom document upload for rejected verification */}
+              {showRejectedUpload && !canRollback && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <p className="text-xs text-gray-600 mb-2">Upload your own documents:</p>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+                      <DocumentArrowUpIcon className="h-4 w-4 text-gray-600" />
+                      <span className="text-xs text-gray-700">Upload Custom Resume</span>
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleCustomDocumentUpload('resume')}
+                        className="hidden"
+                      />
+                    </label>
+                    <label className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+                      <DocumentArrowUpIcon className="h-4 w-4 text-gray-600" />
+                      <span className="text-xs text-gray-700">Upload Custom Cover Letter</span>
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleCustomDocumentUpload('coverLetter')}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Skills - reduced spacing */}
