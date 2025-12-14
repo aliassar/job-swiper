@@ -5,7 +5,9 @@ import { CheckCircleIcon, ClockIcon } from '@heroicons/react/24/solid';
 
 const BASE_STAGES = [
   { name: 'Syncing', short: 'Sync' },
+  { name: 'CV Verification', short: 'CV Check' },
   { name: 'Being Applied', short: 'Apply' },
+  { name: 'Message Verification', short: 'Msg Check' },
   { name: 'Applied', short: 'Applied' },
   { name: 'Phone Screen', short: 'Phone' },
 ];
