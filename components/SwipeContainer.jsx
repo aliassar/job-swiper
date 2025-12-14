@@ -32,6 +32,15 @@ import { jobsApi } from '@/lib/api';
 import { useState } from 'react';
 import { useJobs } from '@/context/JobContext';
 
+/**
+ * NOTE: Auto-apply feature
+ * The UI for auto-apply toggle is implemented below. When enabled, the autoApplyMetadataRef
+ * is set to { automaticApply: true }. This metadata should be passed to the backend API
+ * when the accept action is performed. Currently, the state machine doesn't support passing
+ * metadata through the swipe action, so this will need to be implemented in the backend
+ * API handler at /api/jobs/[id]/accept to receive and process the automaticApply flag.
+ */
+
 // Dynamic exit distance based on screen width
 const getExitDistance = () => {
   if (typeof window !== 'undefined') {
@@ -74,6 +83,8 @@ export default function SwipeContainer() {
   // Auto-apply state
   const [autoApplyEnabled, setAutoApplyEnabled] = useState(false);
   const [showAutoApplyTooltip, setShowAutoApplyTooltip] = useState(false);
+  // Store auto-apply metadata for the next accept action
+  const autoApplyMetadataRef = useRef({ automaticApply: false });
   
   // Online status
   const [isOnline, setIsOnline] = useState(true);
@@ -150,7 +161,7 @@ export default function SwipeContainer() {
     
     if (draggedRight || flickedRight) {
       setExitDirection({ x: exitDistance, y: 0 });
-      swipe(currentJob.id, SwipeActionType.ACCEPT, { automaticApply: autoApplyEnabled });
+      swipe(currentJob.id, SwipeActionType.ACCEPT);
       return;
     }
     
@@ -177,9 +188,8 @@ export default function SwipeContainer() {
   const handleAccept = useCallback(() => {
     if (!currentJob || isLocked) return;
     setExitDirection({ x: exitDistance, y: 0 });
-    // Pass automaticApply flag when auto-apply is enabled
-    swipe(currentJob.id, SwipeActionType.ACCEPT, { automaticApply: autoApplyEnabled });
-  }, [currentJob, isLocked, exitDistance, swipe, autoApplyEnabled]);
+    swipe(currentJob.id, SwipeActionType.ACCEPT);
+  }, [currentJob, isLocked, exitDistance, swipe]);
   
   /**
    * Handle reject button click
@@ -247,7 +257,11 @@ export default function SwipeContainer() {
    * Toggle auto-apply mode
    */
   const handleToggleAutoApply = useCallback(() => {
-    setAutoApplyEnabled(prev => !prev);
+    setAutoApplyEnabled(prev => {
+      const newValue = !prev;
+      autoApplyMetadataRef.current = { automaticApply: newValue };
+      return newValue;
+    });
     setShowAutoApplyTooltip(true);
     // Hide tooltip after 2 seconds
     setTimeout(() => setShowAutoApplyTooltip(false), 2000);
