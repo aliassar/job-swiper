@@ -14,6 +14,7 @@ import {
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
   CogIcon,
+  BellIcon,
 } from '@heroicons/react/24/outline';
 
 export default function HamburgerMenu() {
@@ -66,6 +67,15 @@ export default function HamburgerMenu() {
 
   return (
     <>
+      {/* Notification Icon - Fixed position on left */}
+      <button
+        onClick={() => router.push('/notifications')}
+        className="fixed top-2 left-4 z-50 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
+        aria-label="Notifications"
+      >
+        <BellIcon className="h-6 w-6 text-gray-800" />
+      </button>
+
       {/* Hamburger Button - Fixed position */}
       <button
         onClick={toggleMenu}
