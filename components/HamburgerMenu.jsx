@@ -99,10 +99,10 @@ export default function HamburgerMenu() {
         </div>
       </button>
 
-      {/* Notification Icon - Positioned relative to hamburger menu, close by */}
+      {/* Notification Icon - Positioned near hamburger menu */}
       <button
         onClick={() => router.push('/notifications')}
-        className="fixed top-2 right-[68px] z-50 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95 relative"
+        className="fixed top-2 right-[68px] z-50 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
         aria-label="Notifications"
       >
         <BellIcon className="h-5 w-5 text-gray-800" />
