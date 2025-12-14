@@ -19,6 +19,7 @@ export default function UserSettingsPage() {
     zipCode: '',
     country: '',
     linkedIn: '',
+    github: '',
     portfolio: '',
     currentPassword: '',
     newPassword: '',
@@ -285,6 +286,22 @@ export default function UserSettingsPage() {
                   onChange={handleChange}
                   className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="https://linkedin.com/in/yourprofile"
+                />
+              </div>
+
+              {/* GitHub */}
+              <div>
+                <label htmlFor="github" className="block text-xs font-medium text-gray-700 mb-1">
+                  GitHub Profile
+                </label>
+                <input
+                  type="url"
+                  id="github"
+                  name="github"
+                  value={formData.github}
+                  onChange={handleChange}
+                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://github.com/yourusername"
                 />
               </div>
 
