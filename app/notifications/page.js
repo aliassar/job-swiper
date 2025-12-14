@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeftIcon, CheckCircleIcon, DocumentCheckIcon, EnvelopeIcon, ExclamationCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CheckCircleIcon, DocumentCheckIcon, EnvelopeIcon, ExclamationCircleIcon, ClockIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 export default function NotificationsPage() {
   const router = useRouter();
@@ -82,6 +82,21 @@ export default function NotificationsPage() {
     // Navigate to application detail page
     if (notification.applicationId) {
       router.push(`/application/${notification.applicationId}`);
+    }
+  };
+
+  const dismissNotification = async (e, notificationId) => {
+    e.stopPropagation(); // Prevent notification click
+    
+    try {
+      // TODO: Add API endpoint to dismiss single notification
+      // For now, remove from local state
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      
+      // In production, this would call:
+      // await fetch(`/api/notifications/${notificationId}`, { method: 'DELETE' });
+    } catch (error) {
+      console.error('Error dismissing notification:', error);
     }
   };
 
@@ -201,10 +216,19 @@ export default function NotificationsPage() {
               >
                 {/* Unread indicator */}
                 {!notification.read && (
-                  <div className="absolute top-3 right-3 w-2 h-2 bg-blue-600 rounded-full"></div>
+                  <div className="absolute top-3 right-10 w-2 h-2 bg-blue-600 rounded-full"></div>
                 )}
 
-                <div className="flex gap-3">
+                {/* Dismiss button */}
+                <button
+                  onClick={(e) => dismissNotification(e, notification.id)}
+                  className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-200/50 transition-colors group"
+                  aria-label="Dismiss notification"
+                >
+                  <XMarkIcon className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
+                </button>
+
+                <div className="flex gap-3 pr-6">
                   {/* Icon */}
                   <div className="flex-shrink-0 mt-0.5">
                     {getNotificationIcon(notification.type)}

@@ -22,8 +22,7 @@ export default function SettingsPage() {
   }
 
   const handleConnectEmail = () => {
-    // TODO: Implement email connection flow
-    console.log('Connect email clicked');
+    router.push('/connect-email');
   };
 
   const handleUploadResume = async (e) => {
