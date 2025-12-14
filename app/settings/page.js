@@ -27,10 +27,10 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (file) {
       // TODO: Implement actual file upload to backend
-      // For now, create a temporary URL for the file
+      // Store only serializable data (not the File object)
       const fileUrl = URL.createObjectURL(file);
       console.log('Resume uploaded:', file.name, fileUrl);
-      updateSetting('baseResume', { name: file.name, url: fileUrl, file });
+      updateSetting('baseResume', { name: file.name, url: fileUrl });
     }
   };
 
@@ -38,10 +38,10 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (file) {
       // TODO: Implement actual file upload to backend
-      // For now, create a temporary URL for the file
+      // Store only serializable data (not the File object)
       const fileUrl = URL.createObjectURL(file);
       console.log('Cover letter uploaded:', file.name, fileUrl);
-      updateSetting('baseCoverLetter', { name: file.name, url: fileUrl, file });
+      updateSetting('baseCoverLetter', { name: file.name, url: fileUrl });
     }
   };
 

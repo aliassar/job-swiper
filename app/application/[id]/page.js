@@ -41,7 +41,8 @@ export default function ApplicationDetailPage() {
     }
   }, [params.id, applications]);
 
-  // Rollback timer - 5 minutes (check every 10 seconds for efficiency)
+  // Rollback timer - 5 minutes
+  // Separate intervals for logic (10s) and display (1s) for better UX
   useEffect(() => {
     if (lastDecisionTime) {
       const checkRollback = () => {
@@ -49,18 +50,21 @@ export default function ApplicationDetailPage() {
         const elapsed = now - lastDecisionTime;
         const fiveMinutes = 5 * 60 * 1000;
         
-        if (elapsed < fiveMinutes) {
-          setCanRollback(true);
-        } else {
+        if (elapsed >= fiveMinutes) {
           setCanRollback(false);
           setLastDecisionTime(null);
+        } else {
+          setCanRollback(true);
         }
       };
 
       checkRollback();
-      const interval = setInterval(checkRollback, 10000); // Check every 10 seconds
+      // Use 1s interval for smooth countdown display
+      const interval = setInterval(checkRollback, 1000);
       
       return () => clearInterval(interval);
+    } else {
+      setCanRollback(false);
     }
   }, [lastDecisionTime]);
 

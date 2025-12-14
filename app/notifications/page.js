@@ -4,63 +4,63 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, CheckCircleIcon, DocumentCheckIcon, EnvelopeIcon, ExclamationCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
 
-// Mock notification data - in real app, this would come from context or API
-const MOCK_NOTIFICATIONS = [
-  {
-    id: '1',
-    type: 'verification_pending',
-    title: 'Verification Pending',
-    message: 'Resume and cover letter for Software Engineer at Google is waiting for your verification',
-    applicationId: 'app-123',
-    jobTitle: 'Software Engineer at Google',
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    read: false,
-  },
-  {
-    id: '2',
-    type: 'documents_ready',
-    title: 'Documents Ready',
-    message: 'Resume and cover letter for Frontend Developer at Meta has been finished',
-    applicationId: 'app-124',
-    jobTitle: 'Frontend Developer at Meta',
-    timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    read: false,
-  },
-  {
-    id: '3',
-    type: 'form_ready',
-    title: 'Form Ready for Verification',
-    message: 'The form text or email text is ready for your verification',
-    applicationId: 'app-125',
-    jobTitle: 'Backend Engineer at Amazon',
-    timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    read: true,
-  },
-  {
-    id: '4',
-    type: 'status_change',
-    title: 'Application Status Changed',
-    message: 'Your application for Senior Developer at Apple status changed to Interview',
-    applicationId: 'app-126',
-    jobTitle: 'Senior Developer at Apple',
-    timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    read: true,
-  },
-  {
-    id: '5',
-    type: 'follow_up',
-    title: 'Follow-up Reminder',
-    message: 'It\'s been 2 weeks since you applied to Full Stack Engineer at Netflix. Consider following up?',
-    applicationId: 'app-127',
-    jobTitle: 'Full Stack Engineer at Netflix',
-    timestamp: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-    read: true,
-  },
-];
-
 export default function NotificationsPage() {
   const router = useRouter();
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  
+  // Mock notification data - in real app, this would come from context or API
+  // Using component state instead of module-level constant for proper per-user simulation
+  const [notifications, setNotifications] = useState([
+    {
+      id: '1',
+      type: 'verification_pending',
+      title: 'Verification Pending',
+      message: 'Resume and cover letter for Software Engineer at Google is waiting for your verification',
+      applicationId: 'app-123',
+      jobTitle: 'Software Engineer at Google',
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      read: false,
+    },
+    {
+      id: '2',
+      type: 'documents_ready',
+      title: 'Documents Ready',
+      message: 'Resume and cover letter for Frontend Developer at Meta has been finished',
+      applicationId: 'app-124',
+      jobTitle: 'Frontend Developer at Meta',
+      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+      read: false,
+    },
+    {
+      id: '3',
+      type: 'form_ready',
+      title: 'Form Ready for Verification',
+      message: 'The form text or email text is ready for your verification',
+      applicationId: 'app-125',
+      jobTitle: 'Backend Engineer at Amazon',
+      timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      read: true,
+    },
+    {
+      id: '4',
+      type: 'status_change',
+      title: 'Application Status Changed',
+      message: 'Your application for Senior Developer at Apple status changed to Interview',
+      applicationId: 'app-126',
+      jobTitle: 'Senior Developer at Apple',
+      timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      read: true,
+    },
+    {
+      id: '5',
+      type: 'follow_up',
+      title: 'Follow-up Reminder',
+      message: 'It\'s been 2 weeks since you applied to Full Stack Engineer at Netflix. Consider following up?',
+      applicationId: 'app-127',
+      jobTitle: 'Full Stack Engineer at Netflix',
+      timestamp: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+      read: true,
+    },
+  ]);
 
   const getNotificationIcon = (type) => {
     switch (type) {

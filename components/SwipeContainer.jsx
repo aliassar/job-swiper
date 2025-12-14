@@ -84,6 +84,7 @@ export default function SwipeContainer() {
   const [autoApplyEnabled, setAutoApplyEnabled] = useState(false);
   const [showAutoApplyTooltip, setShowAutoApplyTooltip] = useState(false);
   // Store auto-apply metadata for the next accept action
+  // Note: This ref is updated in handleToggleAutoApply to match autoApplyEnabled state
   const autoApplyMetadataRef = useRef({ automaticApply: false });
   
   // Online status
