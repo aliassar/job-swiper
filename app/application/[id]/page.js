@@ -26,6 +26,7 @@ export default function ApplicationDetailPage() {
   const [verificationState, setVerificationState] = useState(null); // 'pending', 'accepted', 'rejected'
   const [lastDecisionTime, setLastDecisionTime] = useState(null);
   const [canRollback, setCanRollback] = useState(false);
+  const [, setTick] = useState(0); // Force re-render for countdown
 
   useEffect(() => {
     const appId = params.id;
@@ -55,6 +56,7 @@ export default function ApplicationDetailPage() {
           setLastDecisionTime(null);
         } else {
           setCanRollback(true);
+          setTick(t => t + 1); // Force re-render to update countdown display
         }
       };
 
