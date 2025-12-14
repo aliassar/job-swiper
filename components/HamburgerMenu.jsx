@@ -86,20 +86,6 @@ export default function HamburgerMenu() {
 
   return (
     <>
-      {/* Notification Icon - Left of hamburger menu with ~10px gap */}
-      <button
-        onClick={() => router.push('/notifications')}
-        className="fixed top-2 right-[72px] z-50 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95 relative"
-        aria-label="Notifications"
-      >
-        <BellIcon className="h-5 w-5 text-gray-800" />
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        )}
-      </button>
-
       {/* Hamburger Button - Fixed position */}
       <button
         onClick={toggleMenu}
@@ -111,6 +97,20 @@ export default function HamburgerMenu() {
           <span className={`h-0.5 bg-gray-800 rounded-full transition-all ${isOpen ? 'opacity-0' : ''}`} />
           <span className={`h-0.5 bg-gray-800 rounded-full transition-all ${isOpen ? '-rotate-45 -translate-y-2' : ''}`} />
         </div>
+      </button>
+
+      {/* Notification Icon - Positioned relative to hamburger menu, close by */}
+      <button
+        onClick={() => router.push('/notifications')}
+        className="fixed top-2 right-[68px] z-50 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95 relative"
+        aria-label="Notifications"
+      >
+        <BellIcon className="h-5 w-5 text-gray-800" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
       </button>
 
       {/* Backdrop */}

@@ -81,14 +81,15 @@ export default function ApplicationTimeline({ currentStage, timestamps = {}, int
 
   return (
     <div className="w-full">
-      {/* Timeline stages - refined for better visual hierarchy */}
-      <div className={`flex flex-wrap items-start justify-start ${gapSize} gap-y-4`}>
+      {/* Timeline stages - refined for better visual hierarchy, full width */}
+      <div className={`flex items-start justify-between ${gapSize} gap-y-4 w-full`}>
         {APPLICATION_STAGES.map((stage, index) => {
           const status = getStageStatus(stage, index);
           const isLast = index === APPLICATION_STAGES.length - 1;
 
           return (
-            <div key={stage.name} className="flex items-center gap-1">
+            <div key={stage.name} className="flex items-start gap-1">
+              {/* Stage column with circle and labels */}
               <div className="flex flex-col items-center">
                 {/* Stage indicator - enhanced with better shadows and sizing */}
                 <div className="relative flex-shrink-0 mb-1.5">
@@ -125,11 +126,11 @@ export default function ApplicationTimeline({ currentStage, timestamps = {}, int
                 )}
               </div>
 
-              {/* Connector line - aligned at circle center */}
+              {/* Connector line - aligned ONLY with circle center, not text */}
               {!isLast && (
-                <div className="flex items-start">
+                <div className={`flex-1 flex items-start ${lineOffset}`}>
                   <div
-                    className={`h-0.5 ${stageCount > 7 ? 'w-2' : 'w-3'} flex-shrink-0 transition-all ${getConnectorColor(status)} ${lineOffset}`}
+                    className={`h-0.5 w-full flex-shrink-0 transition-all ${getConnectorColor(status)}`}
                   />
                 </div>
               )}
