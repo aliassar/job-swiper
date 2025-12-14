@@ -29,6 +29,12 @@ export default function ApplicationDetailPage() {
   const [lastDecisionTime, setLastDecisionTime] = useState(null);
   const [canRollback, setCanRollback] = useState(false);
   const [, setTick] = useState(0); // Force re-render for countdown
+  
+  // Message verification states
+  const [isEditingMessage, setIsEditingMessage] = useState(false);
+  const [editedMessage, setEditedMessage] = useState('');
+  const [messageSendTime, setMessageSendTime] = useState(null);
+  const [canRollbackMessage, setCanRollbackMessage] = useState(false);
 
   useEffect(() => {
     const appId = params.id;
@@ -70,6 +76,36 @@ export default function ApplicationDetailPage() {
       setCanRollback(false);
     }
   }, [lastDecisionTime]);
+  
+  // Message send timer - 5 minutes delay before sending
+  useEffect(() => {
+    if (messageSendTime) {
+      const checkMessageSend = () => {
+        const now = Date.now();
+        const elapsed = now - messageSendTime;
+        const fiveMinutes = 5 * 60 * 1000;
+        
+        if (elapsed >= fiveMinutes) {
+          setCanRollbackMessage(false);
+          setMessageSendTime(null);
+          // Actually send the message and move to Applied stage
+          if (application && application.stage === 'Message Verification') {
+            updateApplicationStage(application.id, 'Applied');
+          }
+        } else {
+          setCanRollbackMessage(true);
+          setTick(t => t + 1); // Force re-render for countdown
+        }
+      };
+
+      checkMessageSend();
+      const interval = setInterval(checkMessageSend, 1000);
+      
+      return () => clearInterval(interval);
+    } else {
+      setCanRollbackMessage(false);
+    }
+  }, [messageSendTime, application, updateApplicationStage]);
 
   const handleStageChange = async (e) => {
     const newStage = e.target.value;
@@ -130,6 +166,16 @@ export default function ApplicationDetailPage() {
     if (!lastDecisionTime) return '';
     const now = Date.now();
     const elapsed = now - lastDecisionTime;
+    const remaining = (5 * 60 * 1000) - elapsed;
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+  
+  const getMessageRemainingTime = () => {
+    if (!messageSendTime) return '';
+    const now = Date.now();
+    const elapsed = now - messageSendTime;
     const remaining = (5 * 60 * 1000) - elapsed;
     const minutes = Math.floor(remaining / 60000);
     const seconds = Math.floor((remaining % 60000) / 1000);
@@ -360,12 +406,23 @@ export default function ApplicationDetailPage() {
             {application.stage === 'Message Verification' && (
               <div className="mb-3 pb-3 border-b border-gray-200">
                 <h3 className="text-xs font-semibold text-gray-700 mb-2">Recommended Application Message</h3>
-                <p className="text-xs text-gray-600 mb-2">
-                  Review the message below that will be sent to the company to apply for this position:
-                </p>
-                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                  <p className="text-xs text-gray-800 leading-relaxed whitespace-pre-line">
-                    {application.recommendedMessage || `Dear Hiring Manager,
+                
+                {!messageSendTime ? (
+                  <>
+                    <p className="text-xs text-gray-600 mb-2">
+                      Review the message below that will be sent to the company to apply for this position:
+                    </p>
+                    
+                    {isEditingMessage ? (
+                      <textarea
+                        value={editedMessage}
+                        onChange={(e) => setEditedMessage(e.target.value)}
+                        className="w-full bg-white rounded-lg p-3 border border-gray-300 text-xs text-gray-800 leading-relaxed min-h-[150px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    ) : (
+                      <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                        <p className="text-xs text-gray-800 leading-relaxed whitespace-pre-line">
+                          {editedMessage || application.recommendedMessage || `Dear Hiring Manager,
 
 I am writing to express my strong interest in the ${application.position} position at ${application.company}. With my background and skills, I believe I would be a valuable addition to your team.
 
@@ -374,36 +431,110 @@ I am excited about the opportunity to contribute to ${application.company} and w
 Thank you for considering my application. I look forward to hearing from you.
 
 Best regards`}
-                  </p>
-                </div>
-                
-                {/* Message Verification Actions */}
-                <div className="mt-3 pt-3 border-t border-gray-200">
-                  <p className="text-xs text-gray-600 mb-2">Do you approve this message?</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => {
-                        // TODO: Approve message and move to Applied stage
-                        console.log('Message approved');
-                        updateApplicationStage(application.id, 'Applied');
-                      }}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-green-500 text-white rounded-lg text-xs font-semibold hover:bg-green-600 transition-colors"
-                    >
-                      <CheckIcon className="h-4 w-4" />
-                      Approve & Send
-                    </button>
-                    <button
-                      onClick={() => {
-                        // TODO: Allow editing or rejection
-                        console.log('Message rejected');
-                      }}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-500 text-white rounded-lg text-xs font-semibold hover:bg-blue-600 transition-colors"
-                    >
-                      <XMarkIcon className="h-4 w-4" />
-                      Edit Message
-                    </button>
-                  </div>
-                </div>
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Message Verification Actions */}
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      {isEditingMessage ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => {
+                              setIsEditingMessage(false);
+                            }}
+                            className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-green-500 text-white rounded-lg text-xs font-semibold hover:bg-green-600 transition-colors"
+                          >
+                            <CheckIcon className="h-4 w-4" />
+                            Save
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsEditingMessage(false);
+                              setEditedMessage('');
+                            }}
+                            className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-500 text-white rounded-lg text-xs font-semibold hover:bg-gray-600 transition-colors"
+                          >
+                            <XMarkIcon className="h-4 w-4" />
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-xs text-gray-600 mb-2">Do you approve this message?</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => {
+                                // Approve and schedule send in 5 minutes
+                                setMessageSendTime(Date.now());
+                              }}
+                              className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-green-500 text-white rounded-lg text-xs font-semibold hover:bg-green-600 transition-colors"
+                            >
+                              <CheckIcon className="h-4 w-4" />
+                              Approve & Send
+                            </button>
+                            <button
+                              onClick={() => {
+                                setIsEditingMessage(true);
+                                if (!editedMessage) {
+                                  setEditedMessage(application.recommendedMessage || `Dear Hiring Manager,
+
+I am writing to express my strong interest in the ${application.position} position at ${application.company}. With my background and skills, I believe I would be a valuable addition to your team.
+
+I am excited about the opportunity to contribute to ${application.company} and would welcome the chance to discuss how my experience aligns with your needs.
+
+Thank you for considering my application. I look forward to hearing from you.
+
+Best regards`);
+                                }
+                              }}
+                              className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-500 text-white rounded-lg text-xs font-semibold hover:bg-blue-600 transition-colors"
+                            >
+                              <XMarkIcon className="h-4 w-4" />
+                              Edit Message
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-green-600 mb-2 font-semibold">
+                      ✓ Message approved! Will be sent in {getMessageRemainingTime()}
+                    </p>
+                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <p className="text-xs text-gray-800 leading-relaxed whitespace-pre-line">
+                        {editedMessage || application.recommendedMessage || `Dear Hiring Manager,
+
+I am writing to express my strong interest in the ${application.position} position at ${application.company}. With my background and skills, I believe I would be a valuable addition to your team.
+
+I am excited about the opportunity to contribute to ${application.company} and would welcome the chance to discuss how my experience aligns with your needs.
+
+Thank you for considering my application. I look forward to hearing from you.
+
+Best regards`}
+                      </p>
+                    </div>
+                    
+                    {/* Undo button */}
+                    {canRollbackMessage && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <p className="text-xs text-gray-600 mb-2">Changed your mind?</p>
+                        <button
+                          onClick={() => {
+                            setMessageSendTime(null);
+                            setCanRollbackMessage(false);
+                          }}
+                          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors"
+                        >
+                          <ArrowUturnLeftIcon className="h-4 w-4" />
+                          <span>Undo Message Send ({getMessageRemainingTime()})</span>
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
 

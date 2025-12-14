@@ -3,27 +3,41 @@
 import PropTypes from 'prop-types';
 import { CheckCircleIcon, ClockIcon } from '@heroicons/react/24/solid';
 
-const BASE_STAGES = [
-  { name: 'Syncing', short: 'Sync' },
-  { name: 'CV Verification', short: 'CV Check' },
-  { name: 'Being Applied', short: 'Apply' },
-  { name: 'Message Verification', short: 'Msg Check' },
-  { name: 'Applied', short: 'Applied' },
-  { name: 'Phone Screen', short: 'Phone' },
-];
-
 const TERMINAL_STAGES = ['Rejected', 'Accepted', 'Withdrawn'];
 
-export default function ApplicationTimeline({ currentStage, timestamps = {}, interviewCount = 1 }) {
+export default function ApplicationTimeline({ 
+  currentStage, 
+  timestamps = {}, 
+  interviewCount = 1,
+  hasCVVerification = true,
+  hasMessageVerification = true
+}) {
   // Build dynamic stages with multiple interviews
   const buildStages = () => {
-    const stages = [...BASE_STAGES];
+    const stages = [{ name: 'Syncing', short: 'Sync' }];
+    
+    // Conditionally add CV Verification stage
+    if (hasCVVerification) {
+      stages.push({ name: 'CV Verification', short: 'CV Check' });
+    }
+    
+    stages.push({ name: 'Being Applied', short: 'Apply' });
+    
+    // Conditionally add Message Verification stage
+    if (hasMessageVerification) {
+      stages.push({ name: 'Message Verification', short: 'Message Check' });
+    }
+    
+    stages.push(
+      { name: 'Applied', short: 'Applied' },
+      { name: 'Phone Screen', short: 'Phone' }
+    );
     
     // Add interview stages dynamically based on count
     for (let i = 1; i <= Math.max(interviewCount, 1); i++) {
       stages.push({
         name: i === 1 ? 'Interview' : `Interview ${i}`,
-        short: i === 1 ? 'Int' : `Int${i}`,
+        short: i === 1 ? 'Interview' : `Interview ${i}`,
       });
     }
     
@@ -169,4 +183,6 @@ ApplicationTimeline.propTypes = {
   currentStage: PropTypes.string.isRequired,
   timestamps: PropTypes.object,
   interviewCount: PropTypes.number,
+  hasCVVerification: PropTypes.bool,
+  hasMessageVerification: PropTypes.bool,
 };
