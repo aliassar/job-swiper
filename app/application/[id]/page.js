@@ -136,6 +136,22 @@ export default function ApplicationDetailPage() {
     setCanRollback(false);
     console.log('Verification decision rolled back');
   };
+  
+  const handleSkipCVVerification = () => {
+    // Skip CV verification and move to next stage
+    if (application) {
+      updateApplicationStage(application.id, 'Being Applied');
+    }
+    console.log('CV Verification skipped');
+  };
+  
+  const handleSkipMessageVerification = () => {
+    // Skip message verification and move to Applied stage
+    if (application) {
+      updateApplicationStage(application.id, 'Applied');
+    }
+    console.log('Message Verification skipped');
+  };
 
   const handleCustomDocumentUpload = (type) => (e) => {
     const file = e.target.files?.[0];
@@ -355,6 +371,12 @@ export default function ApplicationDetailPage() {
                       No, Reject
                     </button>
                   </div>
+                  <button
+                    onClick={handleSkipCVVerification}
+                    className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    Skip Verification
+                  </button>
                 </div>
               )}
 
@@ -494,6 +516,12 @@ Best regards`);
                               Edit Message
                             </button>
                           </div>
+                          <button
+                            onClick={handleSkipMessageVerification}
+                            className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors"
+                          >
+                            Skip Verification
+                          </button>
                         </>
                       )}
                     </div>
