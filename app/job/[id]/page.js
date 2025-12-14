@@ -11,9 +11,16 @@ export default function JobDetailPage() {
   const { savedJobs, skippedJobs, reportedJobs, applications, acceptJob, rejectJob } = useJobs();
   const [job, setJob] = useState(null);
   const [source, setSource] = useState(null);
+  const [applicationStatus, setApplicationStatus] = useState(null); // 'accepted' or 'rejected' or null
 
   useEffect(() => {
     const jobId = parseInt(params.id);
+    
+    // Check if job has been accepted (exists in applications)
+    const app = applications.find(a => a.jobId === jobId);
+    if (app) {
+      setApplicationStatus('accepted');
+    }
     
     let foundJob = savedJobs.find(j => j.id === jobId);
     if (foundJob) {
@@ -36,7 +43,6 @@ export default function JobDetailPage() {
       return;
     }
     
-    const app = applications.find(a => a.jobId === jobId);
     if (app) {
       setJob({
         id: app.jobId,
@@ -53,7 +59,20 @@ export default function JobDetailPage() {
   const handleAccept = () => {
     if (job) {
       acceptJob(job);
-      router.push('/applications');
+      // If this was a saved job, navigate to application page
+      if (source === 'saved') {
+        // Find the newly created application
+        setTimeout(() => {
+          const app = applications.find(a => a.jobId === job.id);
+          if (app) {
+            router.push(`/application/${app.id}`);
+          } else {
+            router.push('/applications');
+          }
+        }, 100);
+      } else {
+        router.push('/applications');
+      }
     }
   };
 
@@ -95,7 +114,15 @@ export default function JobDetailPage() {
 
   const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=120&background=0D8ABC&color=fff&bold=true`;
   const isApplication = source === 'application';
-  const canActOnJob = source === 'saved' || source === 'skipped' || source === 'reported';
+  
+  // For saved jobs: show actions if not decided, or if rejected (can re-accept)
+  // If accepted (applicationStatus === 'accepted'), navigate to application instead
+  const canActOnJob = (source === 'saved' && applicationStatus !== 'accepted') || 
+                      source === 'skipped' || 
+                      source === 'reported';
+  
+  const isSavedAndAccepted = source === 'saved' && applicationStatus === 'accepted';
+  const isSavedAndRejected = source === 'saved' && applicationStatus === 'rejected';
 
   return (
     <div className="min-h-full bg-gray-50 pb-28">
@@ -167,6 +194,33 @@ export default function JobDetailPage() {
               <div className="mt-8 pt-6 border-t border-gray-200">
                 <div className="bg-blue-50 text-blue-700 px-4 py-3 rounded-lg text-center">
                   This job is already in your applications
+                </div>
+              </div>
+            )}
+            
+            {isSavedAndAccepted && (
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <div className="bg-green-50 text-green-700 px-4 py-3 rounded-lg text-center mb-4">
+                  ✓ You have already applied to this job
+                </div>
+                <button
+                  onClick={() => {
+                    const app = applications.find(a => a.jobId === job.id);
+                    if (app) {
+                      router.push(`/application/${app.id}`);
+                    }
+                  }}
+                  className="w-full px-6 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors"
+                >
+                  View Application
+                </button>
+              </div>
+            )}
+            
+            {isSavedAndRejected && (
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <div className="bg-orange-50 text-orange-700 px-4 py-3 rounded-lg text-center">
+                  You previously rejected this job, but you can still accept it
                 </div>
               </div>
             )}
