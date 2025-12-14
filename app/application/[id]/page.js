@@ -44,6 +44,9 @@ export default function ApplicationDetailPage() {
   const [uploadingResume, setUploadingResume] = useState(false);
   const [uploadingCoverLetter, setUploadingCoverLetter] = useState(false);
   
+  // Auto-update status toggle (on by default)
+  const [autoUpdateStatus, setAutoUpdateStatus] = useState(true);
+  
   // Determine if verification stages should be shown based on automation settings
   const hasCVVerification = settings?.automationStages?.writeResumeAndCoverLetter || false;
   const hasMessageVerification = settings?.automationStages?.applyViaEmailsAndForms || false;
@@ -372,6 +375,35 @@ export default function ApplicationDetailPage() {
                   Status locked until sync completes
                 </p>
               )}
+              
+              {/* Auto-update status toggle */}
+              <div className="mt-3 flex items-center justify-between">
+                <div className="flex-1">
+                  <label htmlFor="auto-update-toggle" className="text-xs font-medium text-gray-700">
+                    Update this job status automatically
+                  </label>
+                  <p className="text-[10px] text-gray-500 mt-0.5">
+                    Automatically track status changes from emails and notifications
+                  </p>
+                </div>
+                <button
+                  id="auto-update-toggle"
+                  type="button"
+                  role="switch"
+                  aria-checked={autoUpdateStatus}
+                  onClick={() => setAutoUpdateStatus(!autoUpdateStatus)}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    autoUpdateStatus ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      autoUpdateStatus ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
 
             {/* Application Documents - reduced spacing */}
