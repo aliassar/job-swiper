@@ -119,11 +119,13 @@ export default function ApplicationTimeline({ currentStage, timestamps = {}, int
                 )}
               </div>
 
-              {/* Connector line - enhanced with gradient */}
+              {/* Connector line - aligned at circle height */}
               {!isLast && (
-                <div
-                  className={`h-0.5 ${stageCount > 7 ? 'w-2' : 'w-3'} flex-shrink-0 transition-all ${getConnectorColor(status)}`}
-                />
+                <div className="flex items-start" style={{ height: iconSize }}>
+                  <div
+                    className={`h-0.5 ${stageCount > 7 ? 'w-2' : 'w-3'} flex-shrink-0 transition-all ${getConnectorColor(status)} mt-[14px]`}
+                  />
+                </div>
               )}
             </div>
           );

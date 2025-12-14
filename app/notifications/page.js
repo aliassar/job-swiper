@@ -1,66 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, CheckCircleIcon, DocumentCheckIcon, EnvelopeIcon, ExclamationCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
 
 export default function NotificationsPage() {
   const router = useRouter();
-  
-  // Mock notification data - in real app, this would come from context or API
-  // Using component state instead of module-level constant for proper per-user simulation
-  const [notifications, setNotifications] = useState([
-    {
-      id: '1',
-      type: 'verification_pending',
-      title: 'Verification Pending',
-      message: 'Resume and cover letter for Software Engineer at Google is waiting for your verification',
-      applicationId: 'app-123',
-      jobTitle: 'Software Engineer at Google',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      read: false,
-    },
-    {
-      id: '2',
-      type: 'documents_ready',
-      title: 'Documents Ready',
-      message: 'Resume and cover letter for Frontend Developer at Meta has been finished',
-      applicationId: 'app-124',
-      jobTitle: 'Frontend Developer at Meta',
-      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-      read: false,
-    },
-    {
-      id: '3',
-      type: 'form_ready',
-      title: 'Form Ready for Verification',
-      message: 'The form text or email text is ready for your verification',
-      applicationId: 'app-125',
-      jobTitle: 'Backend Engineer at Amazon',
-      timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      read: true,
-    },
-    {
-      id: '4',
-      type: 'status_change',
-      title: 'Application Status Changed',
-      message: 'Your application for Senior Developer at Apple status changed to Interview',
-      applicationId: 'app-126',
-      jobTitle: 'Senior Developer at Apple',
-      timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      read: true,
-    },
-    {
-      id: '5',
-      type: 'follow_up',
-      title: 'Follow-up Reminder',
-      message: 'It\'s been 2 weeks since you applied to Full Stack Engineer at Netflix. Consider following up?',
-      applicationId: 'app-127',
-      jobTitle: 'Full Stack Engineer at Netflix',
-      timestamp: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-      read: true,
-    },
-  ]);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch notifications from API
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/notifications');
+      const data = await response.json();
+      setNotifications(data.notifications || []);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getNotificationIcon = (type) => {
     switch (type) {
@@ -96,11 +61,23 @@ export default function NotificationsPage() {
     }
   };
 
-  const handleNotificationClick = (notification) => {
-    // Mark as read
-    setNotifications(prev =>
-      prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
-    );
+  const handleNotificationClick = async (notification) => {
+    // Mark as read via API
+    if (!notification.read) {
+      try {
+        await fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notificationIds: [notification.id], read: true }),
+        });
+        
+        setNotifications(prev =>
+          prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+        );
+      } catch (error) {
+        console.error('Error marking notification as read:', error);
+      }
+    }
     
     // Navigate to application detail page
     if (notification.applicationId) {
@@ -108,12 +85,28 @@ export default function NotificationsPage() {
     }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const markAllAsRead = async () => {
+    try {
+      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationIds: unreadIds, read: true }),
+      });
+      
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    }
   };
 
-  const clearAll = () => {
-    setNotifications([]);
+  const clearAll = async () => {
+    try {
+      await fetch('/api/notifications', { method: 'DELETE' });
+      setNotifications([]);
+    } catch (error) {
+      console.error('Error clearing notifications:', error);
+    }
   };
 
   const formatTimeAgo = (timestamp) => {
@@ -130,6 +123,14 @@ export default function NotificationsPage() {
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full overflow-y-auto bg-gray-50 pb-20">

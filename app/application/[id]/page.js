@@ -310,16 +310,13 @@ export default function ApplicationDetailPage() {
               {/* Rollback button for recent decisions */}
               {canRollback && verificationState !== 'pending' && (
                 <div className="mt-3 pt-3 border-t border-gray-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-gray-600">Changed your mind?</p>
-                    <span className="text-xs text-blue-600 font-mono">{getRemainingTime()}</span>
-                  </div>
+                  <p className="text-xs text-gray-600 mb-2">Changed your mind?</p>
                   <button
                     onClick={handleRollback}
-                    className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors"
                   >
                     <ArrowUturnLeftIcon className="h-4 w-4" />
-                    Undo Decision
+                    <span>Undo Decision ({getRemainingTime()})</span>
                   </button>
                 </div>
               )}

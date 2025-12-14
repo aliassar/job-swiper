@@ -476,24 +476,24 @@ export default function SwipeContainer() {
           </button>
         )}
         
-        {/* Auto-apply toggle button */}
+        {/* Auto-apply toggle button - minimal design */}
         <div className="fixed bottom-24 left-6 z-50">
           <button
             onClick={handleToggleAutoApply}
-            className={`rounded-full p-3 shadow-xl hover:scale-110 transition-all active:scale-95 ${
+            className={`rounded-full p-2 shadow-lg hover:scale-110 transition-all active:scale-95 ${
               autoApplyEnabled 
                 ? 'bg-blue-500 text-white' 
-                : 'bg-gray-800 text-white'
+                : 'bg-white text-gray-700 border border-gray-300'
             }`}
             aria-label="Toggle auto-apply"
           >
-            <BoltIcon className="h-6 w-6" />
+            <BoltIcon className="h-4 w-4" />
           </button>
           
-          {/* Tooltip */}
+          {/* Tooltip - positioned above button */}
           {showAutoApplyTooltip && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap">
-              {autoApplyEnabled ? 'Automatic apply is on' : 'Automatic apply is off'}
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap shadow-lg">
+              {autoApplyEnabled ? 'Auto-apply is on' : 'Auto-apply is off'}
               <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
             </div>
           )}

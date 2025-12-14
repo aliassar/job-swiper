@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { ArrowLeftIcon, UserCircleIcon, DocumentArrowUpIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
@@ -9,6 +10,8 @@ export default function SettingsPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const { settings, isLoading, updateSetting, updateAutomationStage } = useSettings();
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [uploadingCoverLetter, setUploadingCoverLetter] = useState(false);
 
   if (isLoading) {
     return (
@@ -23,25 +26,65 @@ export default function SettingsPage() {
     console.log('Connect email clicked');
   };
 
-  const handleUploadResume = (e) => {
+  const handleUploadResume = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      // TODO: Implement actual file upload to backend
-      // Store only serializable data (not the File object)
-      const fileUrl = URL.createObjectURL(file);
-      console.log('Resume uploaded:', file.name, fileUrl);
-      updateSetting('baseResume', { name: file.name, url: fileUrl });
+      setUploadingResume(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', 'resume');
+        
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          updateSetting('baseResume', { name: data.name, url: data.url });
+        } else {
+          console.error('Upload failed:', data.error);
+          alert('Upload failed. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error uploading resume:', error);
+        alert('Upload failed. Please try again.');
+      } finally {
+        setUploadingResume(false);
+      }
     }
   };
 
-  const handleUploadCoverLetter = (e) => {
+  const handleUploadCoverLetter = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      // TODO: Implement actual file upload to backend
-      // Store only serializable data (not the File object)
-      const fileUrl = URL.createObjectURL(file);
-      console.log('Cover letter uploaded:', file.name, fileUrl);
-      updateSetting('baseCoverLetter', { name: file.name, url: fileUrl });
+      setUploadingCoverLetter(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', 'coverLetter');
+        
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          updateSetting('baseCoverLetter', { name: data.name, url: data.url });
+        } else {
+          console.error('Upload failed:', data.error);
+          alert('Upload failed. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error uploading cover letter:', error);
+        alert('Upload failed. Please try again.');
+      } finally {
+        setUploadingCoverLetter(false);
+      }
     }
   };
 
@@ -228,15 +271,20 @@ export default function SettingsPage() {
             <div className="space-y-2">
               {/* Resume upload */}
               <div>
-                <label className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-                  <DocumentArrowUpIcon className="h-4 w-4 text-gray-600" />
+                <label className={`flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors ${uploadingResume ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}>
+                  {uploadingResume ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent" />
+                  ) : (
+                    <DocumentArrowUpIcon className="h-4 w-4 text-gray-600" />
+                  )}
                   <span className="text-xs text-gray-700">
-                    {settings.baseResume?.name || 'Upload Base Resume'}
+                    {uploadingResume ? 'Uploading...' : (settings.baseResume?.name || 'Upload Base Resume')}
                   </span>
                   <input
                     type="file"
                     accept=".pdf,.doc,.docx"
                     onChange={handleUploadResume}
+                    disabled={uploadingResume}
                     className="hidden"
                   />
                 </label>
@@ -244,15 +292,20 @@ export default function SettingsPage() {
               
               {/* Cover letter upload */}
               <div>
-                <label className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-                  <DocumentArrowUpIcon className="h-4 w-4 text-gray-600" />
+                <label className={`flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors ${uploadingCoverLetter ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}>
+                  {uploadingCoverLetter ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent" />
+                  ) : (
+                    <DocumentArrowUpIcon className="h-4 w-4 text-gray-600" />
+                  )}
                   <span className="text-xs text-gray-700">
-                    {settings.baseCoverLetter?.name || 'Upload Base Cover Letter'}
+                    {uploadingCoverLetter ? 'Uploading...' : (settings.baseCoverLetter?.name || 'Upload Base Cover Letter')}
                   </span>
                   <input
                     type="file"
                     accept=".pdf,.doc,.docx"
                     onChange={handleUploadCoverLetter}
+                    disabled={uploadingCoverLetter}
                     className="hidden"
                   />
                 </label>
