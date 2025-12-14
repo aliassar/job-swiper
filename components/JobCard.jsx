@@ -76,6 +76,14 @@ export default function JobCard({ job, style, onSwipe, onReportClick }) {
             <p className="text-sm text-gray-500 mb-3">
               {getRelativeTime(job.postedDate)}
             </p>
+            {job.salary && (
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg">
+                <span className="text-lg">💰</span>
+                <span className="text-sm font-semibold text-green-700">
+                  {job.salary}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="mb-4">
@@ -143,6 +151,7 @@ JobCard.propTypes = {
     description: PropTypes.string.isRequired,
     postedDate: PropTypes.string.isRequired,
     logo: PropTypes.string,
+    salary: PropTypes.string,
   }),
   style: PropTypes.object,
   onSwipe: PropTypes.func,

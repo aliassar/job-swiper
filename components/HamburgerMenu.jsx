@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
@@ -14,6 +14,7 @@ import {
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
   CogIcon,
+  BellIcon,
 } from '@heroicons/react/24/outline';
 
 export default function HamburgerMenu() {
@@ -21,6 +22,25 @@ export default function HamburgerMenu() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session, status } = useSession();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch unread count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await fetch('/api/notifications');
+        const data = await response.json();
+        setUnreadCount(data.unreadCount || 0);
+      } catch (error) {
+        console.error('Error fetching unread count:', error);
+      }
+    };
+
+    fetchUnreadCount();
+    // Poll every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const menuItems = [
     {
@@ -77,6 +97,20 @@ export default function HamburgerMenu() {
           <span className={`h-0.5 bg-gray-800 rounded-full transition-all ${isOpen ? 'opacity-0' : ''}`} />
           <span className={`h-0.5 bg-gray-800 rounded-full transition-all ${isOpen ? '-rotate-45 -translate-y-2' : ''}`} />
         </div>
+      </button>
+
+      {/* Notification Icon - Same size as hamburger with more distance */}
+      <button
+        onClick={() => router.push('/notifications')}
+        className="fixed top-2 right-[72px] z-50 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
+        aria-label="Notifications"
+      >
+        <BellIcon className="h-6 w-6 text-gray-800" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
       </button>
 
       {/* Backdrop */}

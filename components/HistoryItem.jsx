@@ -39,6 +39,16 @@ export default function HistoryItem({ item, onRollback }) {
               </h3>
               <p className="text-sm text-gray-600 truncate">{item.company}</p>
               <p className="text-xs text-gray-500 mt-1">{item.location}</p>
+              
+              {/* Salary badge */}
+              {item.salary && (
+                <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 bg-green-50 border border-green-200 rounded-full">
+                  <span className="text-xs">💰</span>
+                  <span className="text-xs font-semibold text-green-700">
+                    {item.salary}
+                  </span>
+                </div>
+              )}
             </div>
             
             <div className={`px-3 py-1 rounded-full text-xs font-medium flex-shrink-0 ${

@@ -12,11 +12,13 @@
 'use client';
 
 import { useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, useMotionValue, useTransform, AnimatePresence, useMotionValueEvent } from 'framer-motion';
 import JobCard from './JobCard';
 import FloatingActions from './FloatingActions';
 import ReportModal from './ReportModal';
 import { ArrowUturnLeftIcon, WifiIcon } from '@heroicons/react/24/outline';
+import { BoltIcon } from '@heroicons/react/24/solid';
 import { 
   SWIPE_THRESHOLD, 
   VELOCITY_THRESHOLD, 
@@ -31,6 +33,15 @@ import { jobsApi } from '@/lib/api';
 import { useState } from 'react';
 import { useJobs } from '@/context/JobContext';
 
+/**
+ * NOTE: Auto-apply feature
+ * The UI for auto-apply toggle is implemented below. When enabled, the autoApplyMetadataRef
+ * is set to { automaticApply: true }. This metadata should be passed to the backend API
+ * when the accept action is performed. Currently, the state machine doesn't support passing
+ * metadata through the swipe action, so this will need to be implemented in the backend
+ * API handler at /api/jobs/[id]/accept to receive and process the automaticApply flag.
+ */
+
 // Dynamic exit distance based on screen width
 const getExitDistance = () => {
   if (typeof window !== 'undefined') {
@@ -40,6 +51,7 @@ const getExitDistance = () => {
 };
 
 export default function SwipeContainer() {
+  const router = useRouter();
   const {
     currentJob,
     nextJob,
@@ -58,7 +70,7 @@ export default function SwipeContainer() {
     unlock,
   } = useSwipeStateMachine();
   
-  const { toggleSaveJob, reportJob, savedJobs } = useJobs();
+  const { toggleSaveJob, reportJob, savedJobs, acceptJob: createApplication } = useJobs();
   
   // Animation state (local to UI only)
   const x = useMotionValue(0);
@@ -69,6 +81,21 @@ export default function SwipeContainer() {
   // Report modal state
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [jobToReport, setJobToReport] = useState(null);
+  
+  // Auto-apply state
+  const [autoApplyEnabled, setAutoApplyEnabled] = useState(false);
+  const [showAutoApplyTooltip, setShowAutoApplyTooltip] = useState(false);
+  // Store auto-apply metadata for the next accept action
+  // Note: This ref is updated in handleToggleAutoApply to match autoApplyEnabled state
+  const autoApplyMetadataRef = useRef({ automaticApply: false });
+  
+  // Filter state
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    location: '',
+    minSalary: '',
+    maxSalary: '',
+  });
   
   // Online status
   const [isOnline, setIsOnline] = useState(true);
@@ -131,7 +158,7 @@ export default function SwipeContainer() {
    * Handle drag end - determines swipe action
    * This is the ONLY place where swipes are triggered
    */
-  const handleDragEnd = useCallback((_event, info) => {
+  const handleDragEnd = useCallback(async (_event, info) => {
     if (!currentJob || isLocked) return;
     
     // Determine swipe type from velocity or position
@@ -146,6 +173,15 @@ export default function SwipeContainer() {
     if (draggedRight || flickedRight) {
       setExitDirection({ x: exitDistance, y: 0 });
       swipe(currentJob.id, SwipeActionType.ACCEPT);
+      
+      // Create application and navigate to it (even if offline)
+      const applicationId = await createApplication(currentJob);
+      if (applicationId) {
+        // Small delay to allow swipe animation to start
+        setTimeout(() => {
+          router.push(`/application/${applicationId}`);
+        }, 300);
+      }
       return;
     }
     
@@ -164,16 +200,25 @@ export default function SwipeContainer() {
     // Reset if threshold not met
     setExitDirection({ x: 0, y: 0 });
     setSwipeDirection('');
-  }, [currentJob, isLocked, exitDistance, swipe]);
+  }, [currentJob, isLocked, exitDistance, swipe, createApplication, router]);
   
   /**
    * Handle accept button click
    */
-  const handleAccept = useCallback(() => {
+  const handleAccept = useCallback(async () => {
     if (!currentJob || isLocked) return;
     setExitDirection({ x: exitDistance, y: 0 });
     swipe(currentJob.id, SwipeActionType.ACCEPT);
-  }, [currentJob, isLocked, exitDistance, swipe]);
+    
+    // Create application and navigate to it (even if offline)
+    const applicationId = await createApplication(currentJob);
+    if (applicationId) {
+      // Small delay to allow swipe animation to start
+      setTimeout(() => {
+        router.push(`/application/${applicationId}`);
+      }, 300);
+    }
+  }, [currentJob, isLocked, exitDistance, swipe, createApplication, router]);
   
   /**
    * Handle reject button click
@@ -238,8 +283,56 @@ export default function SwipeContainer() {
   }, [jobToReport, reportJob]);
   
   /**
-   * Handle saved/save toggle
+   * Toggle auto-apply mode
    */
+  const handleToggleAutoApply = useCallback(() => {
+    setAutoApplyEnabled(prev => {
+      const newValue = !prev;
+      autoApplyMetadataRef.current = { automaticApply: newValue };
+      // Only show tooltip when turning ON
+      if (newValue) {
+        setShowAutoApplyTooltip(true);
+      }
+      return newValue;
+    });
+  }, []);
+  
+  /**
+   * Toggle filters panel
+   */
+  const handleToggleFilters = useCallback(() => {
+    setShowFilters(prev => !prev);
+  }, []);
+  
+  /**
+   * Apply filters
+   */
+  const handleApplyFilters = useCallback(() => {
+    // TODO: Implement filter logic - send to backend or filter locally
+    console.log('Applying filters:', filters);
+    setShowFilters(false);
+    // In real implementation, this would trigger a job refetch with filter params
+  }, [filters]);
+  
+  /**
+   * Clear filters
+   */
+  const handleClearFilters = useCallback(() => {
+    setFilters({
+      location: '',
+      minSalary: '',
+      maxSalary: '',
+    });
+  }, []);
+  
+  // Keep tooltip visible when auto-apply is on
+  useEffect(() => {
+    if (autoApplyEnabled) {
+      setShowAutoApplyTooltip(true);
+    } else {
+      setShowAutoApplyTooltip(false);
+    }
+  }, [autoApplyEnabled]);
   const handleToggleSaved = useCallback(() => {
     if (!currentJob || isLocked) return;
     toggleSaveJob(currentJob);
@@ -438,6 +531,127 @@ export default function SwipeContainer() {
             <ArrowUturnLeftIcon className="h-6 w-6" />
             <span className="text-sm font-medium pr-1">{history.length}</span>
           </button>
+        )}
+        
+        {/* Auto-apply toggle button - minimal design */}
+        <div className="fixed bottom-24 left-6 z-50 flex flex-col gap-2">
+          {/* Filter button - above auto-apply */}
+          <button
+            onClick={handleToggleFilters}
+            className={`rounded-full p-2 shadow-lg hover:scale-110 transition-all active:scale-95 ${
+              filters.location || filters.minSalary || filters.maxSalary
+                ? 'bg-blue-500 text-white' 
+                : 'bg-white text-gray-700 border border-gray-300'
+            }`}
+            aria-label="Toggle filters"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+          </button>
+          
+          {/* Auto-apply button */}
+          <button
+            onClick={handleToggleAutoApply}
+            className={`rounded-full p-2 shadow-lg hover:scale-110 transition-all active:scale-95 ${
+              autoApplyEnabled 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-white text-gray-700 border border-gray-300'
+            }`}
+            aria-label="Toggle auto-apply"
+          >
+            <BoltIcon className="h-4 w-4" />
+          </button>
+          
+          {/* Tooltip - only shown when auto-apply is ON, positioned to not block content */}
+          {autoApplyEnabled && showAutoApplyTooltip && (
+            <div className="absolute bottom-0 left-full ml-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap shadow-lg">
+              Auto-apply is on
+              <div className="absolute top-1/2 right-full -translate-y-1/2 mr-[-1px] border-4 border-transparent border-r-gray-900"></div>
+            </div>
+          )}
+        </div>
+        
+        {/* Filter modal */}
+        {showFilters && (
+          <div className="fixed inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center p-4" onClick={() => setShowFilters(false)}>
+            <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900">Filter Jobs</h3>
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label="Close filters"
+                >
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Location filter */}
+                <div>
+                  <label htmlFor="filter-location" className="block text-sm font-medium text-gray-700 mb-1">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    id="filter-location"
+                    value={filters.location}
+                    onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
+                    placeholder="e.g., San Francisco, Remote"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  />
+                </div>
+                
+                {/* Salary range filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Salary Range (USD)
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <input
+                        type="number"
+                        value={filters.minSalary}
+                        onChange={(e) => setFilters(prev => ({ ...prev, minSalary: e.target.value }))}
+                        placeholder="Min"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Minimum</p>
+                    </div>
+                    <div>
+                      <input
+                        type="number"
+                        value={filters.maxSalary}
+                        onChange={(e) => setFilters(prev => ({ ...prev, maxSalary: e.target.value }))}
+                        placeholder="Max"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Maximum</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Actions */}
+              <div className="flex items-center gap-3 mt-6">
+                <button
+                  onClick={handleClearFilters}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={handleApplyFilters}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </div>
         )}
         
         {/* Report Modal */}
