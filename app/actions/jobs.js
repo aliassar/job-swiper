@@ -59,7 +59,7 @@ export async function acceptJob(jobId) {
     storage.userJobStatus.set(jobId, {
       status: 'accepted',
       acceptedAt: application.appliedAt,
-      favorite: storage.userJobStatus.get(jobId)?.favorite || false,
+      saved: storage.userJobStatus.get(jobId)?.saved || false,
     });
 
     // Revalidate relevant paths
@@ -85,7 +85,7 @@ export async function rejectJob(jobId) {
     storage.userJobStatus.set(jobId, {
       status: 'rejected',
       rejectedAt: new Date().toISOString(),
-      favorite: storage.userJobStatus.get(jobId)?.favorite || false,
+      saved: storage.userJobStatus.get(jobId)?.saved || false,
     });
 
     revalidatePath('/');
@@ -109,7 +109,7 @@ export async function skipJob(jobId) {
     storage.userJobStatus.set(jobId, {
       status: 'skipped',
       skippedAt: new Date().toISOString(),
-      favorite: storage.userJobStatus.get(jobId)?.favorite || false,
+      saved: storage.userJobStatus.get(jobId)?.saved || false,
     });
 
     revalidatePath('/');
@@ -125,23 +125,23 @@ export async function skipJob(jobId) {
 /**
  * Toggle save status of a job
  * @param {string} jobId - The ID of the job
- * @param {boolean} favorite - Whether to save or unsave
+ * @param {boolean} saved - Whether to save or unsave
  * @returns {Object} Success status
  */
-export async function toggleSaveJob(jobId, favorite) {
+export async function toggleSaveJob(jobId, saved) {
   try {
     const storage = getJobsStorage();
     const existingStatus = storage.userJobStatus.get(jobId) || { status: 'pending' };
     
     storage.userJobStatus.set(jobId, {
       ...existingStatus,
-      favorite,
-      favoritedAt: favorite ? new Date().toISOString() : undefined,
+      saved,
+      saveddAt: saved ? new Date().toISOString() : undefined,
     });
 
     revalidatePath('/saved');
     
-    return { success: true, favorite };
+    return { success: true, saved };
   } catch (error) {
     console.error('Error in toggleSaveJob action:', error);
     return { success: false, error: error.message };

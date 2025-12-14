@@ -27,7 +27,7 @@ A mobile-first job swiping application built with Next.js, where users can swipe
 ### 🍔 Navigation
 - **Hamburger Menu**: Slide-out navigation drawer accessible from top-left
   - Swipe Jobs - Main swipe interface
-  - Favorites - Saved job postings
+  - Saveds - Saved job postings
   - Application Status - Track accepted jobs
   - Skipped Jobs - Review jobs you skipped
 
@@ -39,20 +39,20 @@ Each full-screen job card displays:
 - Skills required (as tags)
 - Job posting date (relative time)
 - Job description preview
-- Favorite toggle (heart icon in header)
+- Saved toggle (heart icon in header)
 
 ### ⚡ Floating Actions
 - **Bottom Action Bar** with 4 buttons:
   - ❌ Reject - Pass on this job
   - ⏭️ Skip - Save for later review
-  - ❤️ Favorite - Mark as favorite
+  - ❤️ Saved - Mark as saved
   - ✅ Accept - Apply to this job
 
-### ❤️ Favorites System
-- Mark jobs as favorites from any card or action bar
-- Dedicated favorites page to view all saved jobs
-- Quick unfavorite from the favorites view
-- Favorites persist across sessions
+### ❤️ Saveds System
+- Mark jobs as saveds from any card or action bar
+- Dedicated saveds page to view all saved jobs
+- Quick unsaved from the saveds view
+- Saveds persist across sessions
 
 ### 🔄 Session Rollback
 - **Smart Undo System** - undo actions from current session only
@@ -141,8 +141,8 @@ job-swiper/
 │   │   ├── applications/
 │   │   │   ├── route.js                # Get all applications
 │   │   │   └── [id]/stage/route.js     # Update application stage
-│   │   ├── favorites/
-│   │   │   └── route.js                # Get favorites
+│   │   ├── saveds/
+│   │   │   └── route.js                # Get saveds
 │   │   ├── jobs/
 │   │   │   ├── route.js                # Get pending jobs
 │   │   │   ├── skipped/route.js        # Get skipped jobs
@@ -150,14 +150,14 @@ job-swiper/
 │   │   │       ├── accept/route.js     # Accept job
 │   │   │       ├── reject/route.js     # Reject job
 │   │   │       ├── skip/route.js       # Skip job
-│   │   │       ├── favorite/route.js   # Toggle favorite
+│   │   │       ├── saved/route.js   # Toggle saved
 │   │   │       └── rollback/route.js   # Rollback decision
 │   │   └── history/
 │   │       └── route.js                # Get action history
 │   ├── applications/
 │   │   └── page.js                     # Application status page
-│   ├── favorites/
-│   │   └── page.js                     # Favorites page
+│   ├── saveds/
+│   │   └── page.js                     # Saveds page
 │   ├── skipped/
 │   │   └── page.js                     # Skipped jobs page
 │   ├── globals.css                     # Global styles
@@ -166,7 +166,7 @@ job-swiper/
 ├── components/
 │   ├── FloatingActions.jsx             # Bottom action buttons
 │   ├── HamburgerMenu.jsx               # Slide-out navigation menu
-│   ├── FavoritesList.jsx               # Favorites list component
+│   ├── SavedJobsList.jsx               # Saveds list component
 │   ├── JobCard.jsx                     # Full-screen job card
 │   └── SwipeContainer.jsx              # Main swipe container with rollback
 ├── context/
@@ -192,9 +192,9 @@ job-swiper/
    - Swipe right or tap ✅ to accept
    - Swipe left or tap ❌ to reject
    - Tap ⏭️ to skip for later review
-   - Tap ❤️ to mark as favorite
+   - Tap ❤️ to mark as saved
 3. **Navigate**: Tap the hamburger menu (top-left) to access different sections
-4. **View Favorites**: See all jobs you've marked as favorites
+4. **View Saveds**: See all jobs you've marked as saveds
 5. **Track Applications**: Monitor your accepted jobs and update their status
 6. **Review Skipped**: Browse jobs you skipped and add them back to your queue
 7. **Undo Actions**: Use the floating rollback button (bottom-right) to undo recent actions
@@ -227,7 +227,7 @@ job-swiper/
 - `POST /api/jobs/:id/accept` - Accept a job (creates application)
 - `POST /api/jobs/:id/reject` - Reject a job
 - `POST /api/jobs/:id/skip` - Skip a job for later
-- `POST /api/jobs/:id/favorite` - Toggle favorite status
+- `POST /api/jobs/:id/saved` - Toggle saved status
 - `POST /api/jobs/:id/rollback` - Rollback decision (move back to pending)
 - `GET /api/jobs/skipped` - Get skipped jobs
 
@@ -235,9 +235,6 @@ job-swiper/
 - `GET /api/applications` - Get all applications with stage info
 - `PUT /api/applications/:id/stage` - Update application stage
 
-### Favorites & History
-- `GET /api/favorites` - Get favorited jobs
-- `GET /api/history` - Get full action history
 
 ## Migrating to Production
 
