@@ -261,21 +261,22 @@ export default function SwipeContainer() {
     setAutoApplyEnabled(prev => {
       const newValue = !prev;
       autoApplyMetadataRef.current = { automaticApply: newValue };
+      // Only show tooltip when turning ON
+      if (newValue) {
+        setShowAutoApplyTooltip(true);
+      }
       return newValue;
     });
-    setShowAutoApplyTooltip(true);
   }, []);
   
-  // Auto-hide tooltip after 2 seconds
+  // Keep tooltip visible when auto-apply is on
   useEffect(() => {
-    let timeoutId;
-    if (showAutoApplyTooltip) {
-      timeoutId = setTimeout(() => setShowAutoApplyTooltip(false), 2000);
+    if (autoApplyEnabled) {
+      setShowAutoApplyTooltip(true);
+    } else {
+      setShowAutoApplyTooltip(false);
     }
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [showAutoApplyTooltip]);
+  }, [autoApplyEnabled]);
   const handleToggleSaved = useCallback(() => {
     if (!currentJob || isLocked) return;
     toggleSaveJob(currentJob);
@@ -490,11 +491,11 @@ export default function SwipeContainer() {
             <BoltIcon className="h-4 w-4" />
           </button>
           
-          {/* Tooltip - positioned above button */}
-          {showAutoApplyTooltip && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap shadow-lg">
-              {autoApplyEnabled ? 'Auto-apply is on' : 'Auto-apply is off'}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+          {/* Tooltip - only shown when auto-apply is ON, positioned to not block content */}
+          {autoApplyEnabled && showAutoApplyTooltip && (
+            <div className="absolute bottom-full left-0 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap shadow-lg">
+              Auto-apply is on
+              <div className="absolute top-full left-4 -mt-1 border-4 border-transparent border-t-gray-900"></div>
             </div>
           )}
         </div>
