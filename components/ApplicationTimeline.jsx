@@ -92,7 +92,7 @@ export default function ApplicationTimeline({ currentStage, timestamps = {}, int
                     {status === 'completed' ? (
                       <CheckCircleIcon className="h-4 w-4 text-white drop-shadow-sm" />
                     ) : status === 'current' ? (
-                      <ClockIcon className="h-4 w-4 text-white drop-shadow-sm animate-pulse" />
+                      <ClockIcon className="h-4 w-4 text-white drop-shadow-sm" />
                     ) : (
                       <div className="w-2.5 h-2.5 rounded-full bg-gray-400" />
                     )}

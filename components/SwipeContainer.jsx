@@ -263,9 +263,18 @@ export default function SwipeContainer() {
       return newValue;
     });
     setShowAutoApplyTooltip(true);
-    // Hide tooltip after 2 seconds
-    setTimeout(() => setShowAutoApplyTooltip(false), 2000);
   }, []);
+  
+  // Auto-hide tooltip after 2 seconds
+  useEffect(() => {
+    let timeoutId;
+    if (showAutoApplyTooltip) {
+      timeoutId = setTimeout(() => setShowAutoApplyTooltip(false), 2000);
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [showAutoApplyTooltip]);
   const handleToggleSaved = useCallback(() => {
     if (!currentJob || isLocked) return;
     toggleSaveJob(currentJob);
