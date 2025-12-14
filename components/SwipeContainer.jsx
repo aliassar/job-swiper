@@ -17,6 +17,7 @@ import JobCard from './JobCard';
 import FloatingActions from './FloatingActions';
 import ReportModal from './ReportModal';
 import { ArrowUturnLeftIcon, WifiIcon } from '@heroicons/react/24/outline';
+import { BoltIcon } from '@heroicons/react/24/solid';
 import { 
   SWIPE_THRESHOLD, 
   VELOCITY_THRESHOLD, 
@@ -69,6 +70,10 @@ export default function SwipeContainer() {
   // Report modal state
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [jobToReport, setJobToReport] = useState(null);
+  
+  // Auto-apply state
+  const [autoApplyEnabled, setAutoApplyEnabled] = useState(false);
+  const [showAutoApplyTooltip, setShowAutoApplyTooltip] = useState(false);
   
   // Online status
   const [isOnline, setIsOnline] = useState(true);
@@ -145,7 +150,7 @@ export default function SwipeContainer() {
     
     if (draggedRight || flickedRight) {
       setExitDirection({ x: exitDistance, y: 0 });
-      swipe(currentJob.id, SwipeActionType.ACCEPT);
+      swipe(currentJob.id, SwipeActionType.ACCEPT, { automaticApply: autoApplyEnabled });
       return;
     }
     
@@ -172,8 +177,9 @@ export default function SwipeContainer() {
   const handleAccept = useCallback(() => {
     if (!currentJob || isLocked) return;
     setExitDirection({ x: exitDistance, y: 0 });
-    swipe(currentJob.id, SwipeActionType.ACCEPT);
-  }, [currentJob, isLocked, exitDistance, swipe]);
+    // Pass automaticApply flag when auto-apply is enabled
+    swipe(currentJob.id, SwipeActionType.ACCEPT, { automaticApply: autoApplyEnabled });
+  }, [currentJob, isLocked, exitDistance, swipe, autoApplyEnabled]);
   
   /**
    * Handle reject button click
@@ -238,8 +244,14 @@ export default function SwipeContainer() {
   }, [jobToReport, reportJob]);
   
   /**
-   * Handle saved/save toggle
+   * Toggle auto-apply mode
    */
+  const handleToggleAutoApply = useCallback(() => {
+    setAutoApplyEnabled(prev => !prev);
+    setShowAutoApplyTooltip(true);
+    // Hide tooltip after 2 seconds
+    setTimeout(() => setShowAutoApplyTooltip(false), 2000);
+  }, []);
   const handleToggleSaved = useCallback(() => {
     if (!currentJob || isLocked) return;
     toggleSaveJob(currentJob);
@@ -439,6 +451,29 @@ export default function SwipeContainer() {
             <span className="text-sm font-medium pr-1">{history.length}</span>
           </button>
         )}
+        
+        {/* Auto-apply toggle button */}
+        <div className="fixed bottom-24 left-6 z-50">
+          <button
+            onClick={handleToggleAutoApply}
+            className={`rounded-full p-3 shadow-xl hover:scale-110 transition-all active:scale-95 ${
+              autoApplyEnabled 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-800 text-white'
+            }`}
+            aria-label="Toggle auto-apply"
+          >
+            <BoltIcon className="h-6 w-6" />
+          </button>
+          
+          {/* Tooltip */}
+          {showAutoApplyTooltip && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap">
+              {autoApplyEnabled ? 'Automatic apply is on' : 'Automatic apply is off'}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+            </div>
+          )}
+        </div>
         
         {/* Report Modal */}
         <ReportModal
