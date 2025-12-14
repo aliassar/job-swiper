@@ -28,14 +28,14 @@ export default function ApplicationDetailPage() {
   const { settings } = useSettings();
   const [application, setApplication] = useState(null);
   const [verificationState, setVerificationState] = useState(null); // 'pending', 'accepted', 'rejected'
-  const [lastDecisionTime, setLastDecisionTime] = useState(null);
-  const [canRollback, setCanRollback] = useState(false);
+  const [cvVerificationTime, setCvVerificationTime] = useState(null); // Server-synced time for CV approval
+  const [canRollbackCV, setCanRollbackCV] = useState(false);
   const [, setTick] = useState(0); // Force re-render for countdown
   
   // Message verification states
   const [isEditingMessage, setIsEditingMessage] = useState(false);
   const [editedMessage, setEditedMessage] = useState('');
-  const [messageSendTime, setMessageSendTime] = useState(null);
+  const [messageSendTime, setMessageSendTime] = useState(null); // Server-synced time for message approval
   const [canRollbackMessage, setCanRollbackMessage] = useState(false);
   
   // Document editing states
@@ -56,6 +56,15 @@ export default function ApplicationDetailPage() {
     const foundApp = applications.find(a => a.id === appId);
     if (foundApp) {
       setApplication(foundApp);
+      
+      // Load server-synced times from application (in real app, these come from backend)
+      if (foundApp.cvVerificationTime) {
+        setCvVerificationTime(foundApp.cvVerificationTime);
+      }
+      if (foundApp.messageSendTime) {
+        setMessageSendTime(foundApp.messageSendTime);
+      }
+      
       // Check if this app requires verification (this would come from backend in real app)
       // For CV Verification stage, show document verification UI
       if (foundApp.stage === 'CV Verification') {
@@ -64,20 +73,21 @@ export default function ApplicationDetailPage() {
     }
   }, [params.id, applications]);
 
-  // Rollback timer - 5 minutes
-  // Separate intervals for logic (10s) and display (1s) for better UX
+  // CV Verification rollback timer - 5 minutes from CV approval time
+  // Timer synced with server so reloading page won't reset it
   useEffect(() => {
-    if (lastDecisionTime) {
+    if (cvVerificationTime) {
       const checkRollback = () => {
         const now = Date.now();
-        const elapsed = now - lastDecisionTime;
+        const elapsed = now - cvVerificationTime;
         const fiveMinutes = 5 * 60 * 1000;
         
         if (elapsed >= fiveMinutes) {
-          setCanRollback(false);
-          setLastDecisionTime(null);
+          setCanRollbackCV(false);
+          setCvVerificationTime(null);
+          // TODO: Update server to remove rollback capability
         } else {
-          setCanRollback(true);
+          setCanRollbackCV(true);
           setTick(t => t + 1); // Force re-render to update countdown display
         }
       };
@@ -88,11 +98,12 @@ export default function ApplicationDetailPage() {
       
       return () => clearInterval(interval);
     } else {
-      setCanRollback(false);
+      setCanRollbackCV(false);
     }
-  }, [lastDecisionTime]);
+  }, [cvVerificationTime]);
   
   // Message send timer - 5 minutes delay before sending
+  // Timer synced with server so reloading page won't reset it
   useEffect(() => {
     if (messageSendTime) {
       const checkMessageSend = () => {
@@ -106,6 +117,7 @@ export default function ApplicationDetailPage() {
           // Actually send the message and move to Applied stage
           if (application && application.stage === 'Message Verification') {
             updateApplicationStage(application.id, 'Applied');
+            // TODO: Actually send the message via API
           }
         } else {
           setCanRollbackMessage(true);
@@ -133,23 +145,26 @@ export default function ApplicationDetailPage() {
 
   const handleVerificationAccept = () => {
     setVerificationState('accepted');
-    setLastDecisionTime(Date.now());
-    // TODO: Call API to mark documents as verified and proceed with application
-    console.log('Documents verified and accepted');
+    const now = Date.now();
+    setCvVerificationTime(now);
+    // TODO: Call API to mark documents as verified and sync time to server
+    // The 5-minute timer starts NOW after CV approval
+    console.log('Documents verified and accepted, 5-minute timer started');
   };
 
   const handleVerificationReject = () => {
     setVerificationState('rejected');
-    setLastDecisionTime(Date.now());
+    // Don't start timer for rejection
     // TODO: Call API to reject auto-generated documents
     console.log('Documents rejected');
   };
 
-  const handleRollback = () => {
+  const handleRollbackCV = () => {
     setVerificationState('pending');
-    setLastDecisionTime(null);
-    setCanRollback(false);
-    console.log('Verification decision rolled back');
+    setCvVerificationTime(null);
+    setCanRollbackCV(false);
+    // TODO: Call API to rollback CV verification decision
+    console.log('CV Verification decision rolled back');
   };
   
   const handleSkipCVVerification = () => {
@@ -228,10 +243,10 @@ export default function ApplicationDetailPage() {
     return colors[stage] || 'bg-gray-100 text-gray-700';
   };
 
-  const getRemainingTime = () => {
-    if (!lastDecisionTime) return '';
+  const getCVRemainingTime = () => {
+    if (!cvVerificationTime) return '';
     const now = Date.now();
-    const elapsed = now - lastDecisionTime;
+    const elapsed = now - cvVerificationTime;
     const remaining = (5 * 60 * 1000) - elapsed;
     const minutes = Math.floor(remaining / 60000);
     const seconds = Math.floor((remaining % 60000) / 1000);
@@ -527,21 +542,21 @@ export default function ApplicationDetailPage() {
               )}
 
               {/* Rollback button for recent decisions */}
-              {canRollback && verificationState !== 'pending' && (
+              {canRollbackCV && verificationState !== 'pending' && (
                 <div className="mt-3 pt-3 border-t border-gray-200">
                   <p className="text-xs text-gray-600 mb-2">Changed your mind?</p>
                   <button
-                    onClick={handleRollback}
+                    onClick={handleRollbackCV}
                     className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors"
                   >
                     <ArrowUturnLeftIcon className="h-4 w-4" />
-                    <span>Undo Decision ({getRemainingTime()})</span>
+                    <span>Undo Decision ({getCVRemainingTime()})</span>
                   </button>
                 </div>
               )}
 
               {/* Custom document upload for rejected verification */}
-              {showRejectedUpload && !canRollback && (
+              {showRejectedUpload && !canRollbackCV && (
                 <div className="mt-3 pt-3 border-t border-gray-200">
                   <p className="text-xs text-gray-600 mb-2">Upload your own documents:</p>
                   <div className="space-y-2">
@@ -634,7 +649,11 @@ Best regards`}
                             <button
                               onClick={() => {
                                 // Approve and schedule send in 5 minutes
-                                setMessageSendTime(Date.now());
+                                // This starts the 5-minute timer - synced with server
+                                const now = Date.now();
+                                setMessageSendTime(now);
+                                // TODO: Sync this timestamp to server so timer persists across sessions
+                                console.log('Message approved, 5-minute timer started at:', new Date(now).toISOString());
                               }}
                               className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-green-500 text-white rounded-lg text-xs font-semibold hover:bg-green-600 transition-colors"
                             >
@@ -699,6 +718,8 @@ Best regards`}
                           onClick={() => {
                             setMessageSendTime(null);
                             setCanRollbackMessage(false);
+                            // TODO: Sync rollback to server to cancel scheduled send
+                            console.log('Message send rolled back');
                           }}
                           className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors"
                         >

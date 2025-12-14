@@ -263,7 +263,7 @@ export default function SettingsPage() {
             </div>
             
             {/* Filter out fake jobs */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex-1">
                 <label htmlFor="filter-fake-jobs" className="block text-sm font-medium text-gray-700">
                   Filter out fake jobs
@@ -286,6 +286,55 @@ export default function SettingsPage() {
                   }`}
                 />
               </button>
+            </div>
+            
+            {/* Follow-up reminder */}
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex-1">
+                  <label htmlFor="followup-reminder" className="block text-sm font-medium text-gray-700">
+                    Follow-up reminders
+                  </label>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Get reminded to follow up on applications
+                  </p>
+                </div>
+                <button
+                  id="followup-reminder"
+                  type="button"
+                  onClick={() => updateSetting('followUpReminderEnabled', !settings.followUpReminderEnabled)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.followUpReminderEnabled ? 'bg-blue-500' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.followUpReminderEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+              
+              {/* Days selector */}
+              {settings.followUpReminderEnabled && (
+                <div className="ml-4">
+                  <label htmlFor="reminder-days" className="block text-xs font-medium text-gray-700 mb-1">
+                    Remind me after
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      id="reminder-days"
+                      min="1"
+                      max="90"
+                      value={settings.followUpReminderDays}
+                      onChange={(e) => updateSetting('followUpReminderDays', parseInt(e.target.value) || 14)}
+                      className="w-20 px-2 py-1 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span className="text-xs text-gray-600">days</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

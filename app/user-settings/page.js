@@ -13,6 +13,13 @@ export default function UserSettingsPage() {
     name: session?.user?.name || '',
     email: session?.user?.email || '',
     phone: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: '',
+    linkedIn: '',
+    portfolio: '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
@@ -152,7 +159,7 @@ export default function UserSettingsPage() {
               {/* Phone */}
               <div>
                 <label htmlFor="phone" className="block text-xs font-medium text-gray-700 mb-1">
-                  Phone Number
+                  Phone Number <span className="text-gray-400">(Optional)</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -168,6 +175,133 @@ export default function UserSettingsPage() {
                     placeholder="Enter your phone number"
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Address Information */}
+          <div className="bg-white rounded-xl shadow-lg p-4 mb-4">
+            <h3 className="text-sm font-bold text-gray-900 mb-1">Address Information</h3>
+            <p className="text-xs text-gray-500 mb-3">Used for job applications (Optional)</p>
+            
+            <div className="space-y-3">
+              {/* Street Address */}
+              <div>
+                <label htmlFor="address" className="block text-xs font-medium text-gray-700 mb-1">
+                  Street Address
+                </label>
+                <input
+                  type="text"
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="123 Main Street"
+                />
+              </div>
+
+              {/* City, State, Zip */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="city" className="block text-xs font-medium text-gray-700 mb-1">
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    id="city"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="San Francisco"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="state" className="block text-xs font-medium text-gray-700 mb-1">
+                    State/Province
+                  </label>
+                  <input
+                    type="text"
+                    id="state"
+                    name="state"
+                    value={formData.state}
+                    onChange={handleChange}
+                    className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="CA"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="zipCode" className="block text-xs font-medium text-gray-700 mb-1">
+                    ZIP/Postal Code
+                  </label>
+                  <input
+                    type="text"
+                    id="zipCode"
+                    name="zipCode"
+                    value={formData.zipCode}
+                    onChange={handleChange}
+                    className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="94101"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="country" className="block text-xs font-medium text-gray-700 mb-1">
+                    Country
+                  </label>
+                  <input
+                    type="text"
+                    id="country"
+                    name="country"
+                    value={formData.country}
+                    onChange={handleChange}
+                    className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="United States"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Professional Links */}
+          <div className="bg-white rounded-xl shadow-lg p-4 mb-4">
+            <h3 className="text-sm font-bold text-gray-900 mb-1">Professional Links</h3>
+            <p className="text-xs text-gray-500 mb-3">Used for job applications (Optional)</p>
+            
+            <div className="space-y-3">
+              {/* LinkedIn */}
+              <div>
+                <label htmlFor="linkedIn" className="block text-xs font-medium text-gray-700 mb-1">
+                  LinkedIn Profile
+                </label>
+                <input
+                  type="url"
+                  id="linkedIn"
+                  name="linkedIn"
+                  value={formData.linkedIn}
+                  onChange={handleChange}
+                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://linkedin.com/in/yourprofile"
+                />
+              </div>
+
+              {/* Portfolio */}
+              <div>
+                <label htmlFor="portfolio" className="block text-xs font-medium text-gray-700 mb-1">
+                  Portfolio/Website
+                </label>
+                <input
+                  type="url"
+                  id="portfolio"
+                  name="portfolio"
+                  value={formData.portfolio}
+                  onChange={handleChange}
+                  className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://yourportfolio.com"
+                />
               </div>
             </div>
           </div>
