@@ -160,9 +160,18 @@ export default function JobDetailPage() {
             </h2>
 
             {job.postedDate && (
-              <p className="text-sm text-gray-500 mb-6">
+              <p className="text-sm text-gray-500 mb-3">
                 {getRelativeTime(job.postedDate)}
               </p>
+            )}
+            
+            {job.salary && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg mb-6">
+                <span className="text-xl">💰</span>
+                <span className="text-sm font-semibold text-green-700">
+                  {job.salary}
+                </span>
+              </div>
             )}
 
             <div className="mb-6">
