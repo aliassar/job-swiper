@@ -12,6 +12,7 @@
 'use client';
 
 import { useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, useMotionValue, useTransform, AnimatePresence, useMotionValueEvent } from 'framer-motion';
 import JobCard from './JobCard';
 import FloatingActions from './FloatingActions';
@@ -50,6 +51,7 @@ const getExitDistance = () => {
 };
 
 export default function SwipeContainer() {
+  const router = useRouter();
   const {
     currentJob,
     nextJob,
@@ -68,7 +70,7 @@ export default function SwipeContainer() {
     unlock,
   } = useSwipeStateMachine();
   
-  const { toggleSaveJob, reportJob, savedJobs } = useJobs();
+  const { toggleSaveJob, reportJob, savedJobs, acceptJob: createApplication } = useJobs();
   
   // Animation state (local to UI only)
   const x = useMotionValue(0);
@@ -148,7 +150,7 @@ export default function SwipeContainer() {
    * Handle drag end - determines swipe action
    * This is the ONLY place where swipes are triggered
    */
-  const handleDragEnd = useCallback((_event, info) => {
+  const handleDragEnd = useCallback(async (_event, info) => {
     if (!currentJob || isLocked) return;
     
     // Determine swipe type from velocity or position
@@ -163,6 +165,15 @@ export default function SwipeContainer() {
     if (draggedRight || flickedRight) {
       setExitDirection({ x: exitDistance, y: 0 });
       swipe(currentJob.id, SwipeActionType.ACCEPT);
+      
+      // Create application and navigate to it (even if offline)
+      const applicationId = await createApplication(currentJob);
+      if (applicationId) {
+        // Small delay to allow swipe animation to start
+        setTimeout(() => {
+          router.push(`/application/${applicationId}`);
+        }, 300);
+      }
       return;
     }
     
@@ -181,16 +192,25 @@ export default function SwipeContainer() {
     // Reset if threshold not met
     setExitDirection({ x: 0, y: 0 });
     setSwipeDirection('');
-  }, [currentJob, isLocked, exitDistance, swipe]);
+  }, [currentJob, isLocked, exitDistance, swipe, createApplication, router]);
   
   /**
    * Handle accept button click
    */
-  const handleAccept = useCallback(() => {
+  const handleAccept = useCallback(async () => {
     if (!currentJob || isLocked) return;
     setExitDirection({ x: exitDistance, y: 0 });
     swipe(currentJob.id, SwipeActionType.ACCEPT);
-  }, [currentJob, isLocked, exitDistance, swipe]);
+    
+    // Create application and navigate to it (even if offline)
+    const applicationId = await createApplication(currentJob);
+    if (applicationId) {
+      // Small delay to allow swipe animation to start
+      setTimeout(() => {
+        router.push(`/application/${applicationId}`);
+      }, 300);
+    }
+  }, [currentJob, isLocked, exitDistance, swipe, createApplication, router]);
   
   /**
    * Handle reject button click

@@ -380,14 +380,18 @@ export default function ApplicationDetailPage() {
                 } ${getStageColor(application.stage)}`}
               >
                 {APPLICATION_STAGES.map((stage) => (
-                  <option key={stage} value={stage}>
+                  <option 
+                    key={stage} 
+                    value={stage}
+                    disabled={stage === 'Syncing'}
+                  >
                     {stage}
                   </option>
                 ))}
               </select>
               {application.stage === 'Syncing' && (
                 <p className="mt-1 text-[10px] text-gray-500">
-                  Status locked until sync completes
+                  Status locked until sync completes. Server will auto-progress to next stage.
                 </p>
               )}
               
