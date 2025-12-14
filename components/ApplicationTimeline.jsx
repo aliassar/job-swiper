@@ -72,6 +72,12 @@ export default function ApplicationTimeline({ currentStage, timestamps = {}, int
   const iconSize = stageCount > 7 ? 'w-7 h-7' : stageCount > 5 ? 'w-8 h-8' : 'w-9 h-9';
   const textSize = stageCount > 7 ? 'text-[9px]' : stageCount > 5 ? 'text-[10px]' : 'text-xs';
   const gapSize = stageCount > 7 ? 'gap-x-0.5' : 'gap-x-1';
+  
+  // Calculate the vertical offset needed to center the line with the circle
+  // For w-7 h-7 (28px), center is at 14px, so mt-[14px]
+  // For w-8 h-8 (32px), center is at 16px, so mt-[16px]  
+  // For w-9 h-9 (36px), center is at 18px, so mt-[18px]
+  const lineOffset = stageCount > 7 ? 'mt-[14px]' : stageCount > 5 ? 'mt-[16px]' : 'mt-[18px]';
 
   return (
     <div className="w-full">
@@ -119,11 +125,11 @@ export default function ApplicationTimeline({ currentStage, timestamps = {}, int
                 )}
               </div>
 
-              {/* Connector line - aligned at circle height */}
+              {/* Connector line - aligned at circle center */}
               {!isLast && (
-                <div className="flex items-start" style={{ height: iconSize }}>
+                <div className="flex items-start">
                   <div
-                    className={`h-0.5 ${stageCount > 7 ? 'w-2' : 'w-3'} flex-shrink-0 transition-all ${getConnectorColor(status)} mt-[14px]`}
+                    className={`h-0.5 ${stageCount > 7 ? 'w-2' : 'w-3'} flex-shrink-0 transition-all ${getConnectorColor(status)} ${lineOffset}`}
                   />
                 </div>
               )}
