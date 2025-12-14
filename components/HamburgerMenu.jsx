@@ -99,13 +99,13 @@ export default function HamburgerMenu() {
         </div>
       </button>
 
-      {/* Notification Icon - Positioned near hamburger menu */}
+      {/* Notification Icon - Same size as hamburger with more distance */}
       <button
         onClick={() => router.push('/notifications')}
-        className="fixed top-2 right-[68px] z-50 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
+        className="fixed top-2 right-[72px] z-50 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
         aria-label="Notifications"
       >
-        <BellIcon className="h-5 w-5 text-gray-800" />
+        <BellIcon className="h-6 w-6 text-gray-800" />
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
             {unreadCount > 9 ? '9+' : unreadCount}
