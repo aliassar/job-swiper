@@ -237,7 +237,7 @@ export default function SettingsPage() {
           {/* Notification Settings */}
           <div className="mb-4 pb-4 border-b border-gray-200">
             <h3 className="text-sm font-bold text-gray-900 mb-3">Notifications</h3>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex-1">
                 <label htmlFor="email-notifications" className="block text-sm font-medium text-gray-700">
                   Email notifications
@@ -257,6 +257,32 @@ export default function SettingsPage() {
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                     settings.emailNotificationsEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+            
+            {/* Filter out fake jobs */}
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <label htmlFor="filter-fake-jobs" className="block text-sm font-medium text-gray-700">
+                  Filter out fake jobs
+                </label>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Hide jobs reported as fake or suspicious
+                </p>
+              </div>
+              <button
+                id="filter-fake-jobs"
+                type="button"
+                onClick={() => updateSetting('filterOutFakeJobs', !settings.filterOutFakeJobs)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  settings.filterOutFakeJobs ? 'bg-blue-500' : 'bg-gray-200'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    settings.filterOutFakeJobs ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
               </button>
