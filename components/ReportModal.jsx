@@ -9,9 +9,9 @@ export default function ReportModal({ isOpen, onClose, onReport, job }) {
   if (!job) return null;
 
   const reasons = [
-    { id: 'fake', label: 'Fake Job', description: 'This job posting appears to be fraudulent' },
-    { id: 'not_mine', label: 'Not My Field', description: 'This job doesn\'t match my interests' },
-    { id: 'other', label: 'Other', description: 'Other reason for reporting' }
+    { id: 'fake', label: 'Fake', description: 'This job posting appears to be fake' },
+    { id: 'not_interested', label: 'Not Interested', description: 'I\'m not interested in this type of job' },
+    { id: 'block_company', label: 'Don\'t Recommend From This Company', description: 'Don\'t show jobs from this company' }
   ];
 
   const handleReport = (reason) => {
