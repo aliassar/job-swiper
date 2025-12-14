@@ -3,17 +3,18 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useJobs } from '@/context/JobContext';
+import { useSettings } from '@/lib/hooks/useSettings';
 import { ArrowLeftIcon, ArrowDownTrayIcon, CheckIcon, XMarkIcon, DocumentArrowUpIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
 
 const APPLICATION_STAGES = [
   'Syncing',
   'CV Verification',
-  'Being Applied',
   'Message Verification',
+  'Being Applied',
   'Applied',
-  'Phone Screen',
-  'Interview',
+  'Interview 1',
+  'Next Interviews',
   'Offer',
   'Rejected',
   'Accepted',
@@ -24,6 +25,7 @@ export default function ApplicationDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { applications, updateApplicationStage } = useJobs();
+  const { settings } = useSettings();
   const [application, setApplication] = useState(null);
   const [verificationState, setVerificationState] = useState(null); // 'pending', 'accepted', 'rejected'
   const [lastDecisionTime, setLastDecisionTime] = useState(null);
@@ -41,6 +43,10 @@ export default function ApplicationDetailPage() {
   const [isEditingCoverLetter, setIsEditingCoverLetter] = useState(false);
   const [uploadingResume, setUploadingResume] = useState(false);
   const [uploadingCoverLetter, setUploadingCoverLetter] = useState(false);
+  
+  // Determine if verification stages should be shown based on automation settings
+  const hasCVVerification = settings?.automationStages?.writeResumeAndCoverLetter || false;
+  const hasMessageVerification = settings?.automationStages?.applyViaEmailsAndForms || false;
 
   useEffect(() => {
     const appId = params.id;
@@ -326,6 +332,8 @@ export default function ApplicationDetailPage() {
                   [application.stage]: application.updatedAt || application.appliedAt,
                 }}
                 interviewCount={application.interviewCount || 1}
+                hasCVVerification={hasCVVerification}
+                hasMessageVerification={hasMessageVerification}
               />
             </div>
 

@@ -224,6 +224,9 @@ export function JobProvider({ children }) {
     } catch (error) {
       console.error('Error queuing accept:', error);
     }
+    
+    // Return the temporary application ID for navigation
+    return tempApplication.id;
   };
 
   const rejectJob = async (job) => {

@@ -16,29 +16,28 @@ export default function ApplicationTimeline({
   const buildStages = () => {
     const stages = [{ name: 'Syncing', short: 'Sync' }];
     
-    // Conditionally add CV Verification stage
+    // Conditionally add CV Verification stage (only if automation is enabled)
     if (hasCVVerification) {
       stages.push({ name: 'CV Verification', short: 'CV Check' });
     }
     
-    stages.push({ name: 'Being Applied', short: 'Apply' });
-    
-    // Conditionally add Message Verification stage
+    // Conditionally add Message Verification stage (only if automation is enabled)
     if (hasMessageVerification) {
       stages.push({ name: 'Message Verification', short: 'Message Check' });
     }
     
     stages.push(
-      { name: 'Applied', short: 'Applied' },
-      { name: 'Phone Screen', short: 'Phone' }
+      { name: 'Being Applied', short: 'Being Applied' },
+      { name: 'Applied', short: 'Applied' }
     );
     
     // Add interview stages dynamically based on count
-    for (let i = 1; i <= Math.max(interviewCount, 1); i++) {
-      stages.push({
-        name: i === 1 ? 'Interview' : `Interview ${i}`,
-        short: i === 1 ? 'Interview' : `Interview ${i}`,
-      });
+    if (interviewCount >= 1) {
+      stages.push({ name: 'Interview 1', short: 'Interview 1' });
+    }
+    
+    if (interviewCount > 1) {
+      stages.push({ name: 'Next Interviews', short: 'Next Interviews' });
     }
     
     // Add Offer stage
