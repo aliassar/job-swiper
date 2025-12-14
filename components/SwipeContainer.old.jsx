@@ -376,8 +376,8 @@ export default function SwipeContainer() {
           onReject={handleReject}
           onAccept={handleAccept}
           onSkip={handleSkip}
-          onFavorite={handleSaveJob}
-          isFavorite={isSaved}
+          onFSaved={handleSaveJob}
+          isFSaved={isSaved}
           disabled={!currentJob || isActionInProgress}
         />
 

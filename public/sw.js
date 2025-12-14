@@ -1,5 +1,5 @@
-// Service Worker for Job Swiper PWA
-const CACHE_NAME = 'job-swiper-v2'; // Incremented for route migration (favorites -> saved)
+
+const CACHE_NAME = 'job-swiper';
 const STATIC_CACHE_URLS = [
   '/',
   '/applications',
@@ -7,9 +7,6 @@ const STATIC_CACHE_URLS = [
   '/skipped',
   '/reported',
 ];
-
-// Legacy routes to clean up
-const LEGACY_ROUTES = ['/favorites'];
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
