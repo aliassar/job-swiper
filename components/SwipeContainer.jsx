@@ -608,26 +608,30 @@ export default function SwipeContainer() {
                 {/* Salary range filter */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Salary Range
+                    Salary Range (USD)
                   </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={filters.minSalary}
-                      onChange={(e) => setFilters(prev => ({ ...prev, minSalary: e.target.value }))}
-                      placeholder="Min"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    />
-                    <span className="text-gray-500">-</span>
-                    <input
-                      type="number"
-                      value={filters.maxSalary}
-                      onChange={(e) => setFilters(prev => ({ ...prev, maxSalary: e.target.value }))}
-                      placeholder="Max"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <input
+                        type="number"
+                        value={filters.minSalary}
+                        onChange={(e) => setFilters(prev => ({ ...prev, minSalary: e.target.value }))}
+                        placeholder="Min"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Minimum</p>
+                    </div>
+                    <div>
+                      <input
+                        type="number"
+                        value={filters.maxSalary}
+                        onChange={(e) => setFilters(prev => ({ ...prev, maxSalary: e.target.value }))}
+                        placeholder="Max"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Maximum</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">Annual salary in USD</p>
                 </div>
               </div>
               
