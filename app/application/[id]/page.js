@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useJobs } from '@/context/JobContext';
 import { useSettings } from '@/lib/hooks/useSettings';
-import { ArrowLeftIcon, ArrowDownTrayIcon, CheckIcon, XMarkIcon, DocumentArrowUpIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ArrowDownTrayIcon, CheckIcon, XMarkIcon, DocumentArrowUpIcon, ArrowUturnLeftIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
 
 const APPLICATION_STAGES = [
@@ -47,6 +47,9 @@ export default function ApplicationDetailPage() {
   // Auto-update status toggle (on by default)
   const [autoUpdateStatus, setAutoUpdateStatus] = useState(true);
   
+  // Follow-up tracking (show count of follow-ups sent)
+  const [followUpsSent, setFollowUpsSent] = useState(0);
+  
   // Determine if verification stages should be shown based on automation settings
   const hasCVVerification = settings?.automationStages?.writeResumeAndCoverLetter || false;
   const hasMessageVerification = settings?.automationStages?.applyViaEmailsAndForms || false;
@@ -63,6 +66,11 @@ export default function ApplicationDetailPage() {
       }
       if (foundApp.messageSendTime) {
         setMessageSendTime(foundApp.messageSendTime);
+      }
+      
+      // Load follow-up count from application (from backend)
+      if (foundApp.followUpsSent !== undefined) {
+        setFollowUpsSent(foundApp.followUpsSent);
       }
       
       // Check if this app requires verification (this would come from backend in real app)
@@ -326,17 +334,25 @@ export default function ApplicationDetailPage() {
             </h2>
 
             {/* Application dates - smaller */}
-            <div className="mb-3 text-xs text-gray-600">
-              Applied {new Date(application.appliedAt).toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric', 
-                year: 'numeric' 
-              })}
-              {application.updatedAt && application.updatedAt !== application.appliedAt && (
-                <> • Updated {new Date(application.updatedAt).toLocaleDateString('en-US', { 
+            <div className="mb-3 text-xs text-gray-600 flex items-center gap-3 flex-wrap">
+              <span>
+                Applied {new Date(application.appliedAt).toLocaleDateString('en-US', { 
                   month: 'short', 
-                  day: 'numeric'
-                })}</>
+                  day: 'numeric', 
+                  year: 'numeric' 
+                })}
+                {application.updatedAt && application.updatedAt !== application.appliedAt && (
+                  <> • Updated {new Date(application.updatedAt).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric'
+                  })}</>
+                )}
+              </span>
+              {followUpsSent > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs font-medium">
+                  <EnvelopeIcon className="h-3 w-3" />
+                  {followUpsSent} follow-up{followUpsSent > 1 ? 's' : ''} sent
+                </span>
               )}
             </div>
 

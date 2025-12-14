@@ -335,6 +335,75 @@ export default function SettingsPage() {
                 </div>
               )}
             </div>
+            
+            {/* Auto follow-up emails to employers */}
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex-1">
+                  <label htmlFor="auto-followup-email" className="block text-sm font-medium text-gray-700">
+                    Auto send follow-up emails
+                  </label>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Automatically email employers to follow up on applications
+                  </p>
+                </div>
+                <button
+                  id="auto-followup-email"
+                  type="button"
+                  onClick={() => updateSetting('autoFollowUpEmailEnabled', !settings.autoFollowUpEmailEnabled)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.autoFollowUpEmailEnabled ? 'bg-blue-500' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.autoFollowUpEmailEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+              
+              {/* Auto follow-up configuration */}
+              {settings.autoFollowUpEmailEnabled && (
+                <div className="ml-4 space-y-2">
+                  <div>
+                    <label htmlFor="followup-interval" className="block text-xs font-medium text-gray-700 mb-1">
+                      Send every
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        id="followup-interval"
+                        min="1"
+                        max="30"
+                        value={settings.autoFollowUpIntervalDays || 7}
+                        onChange={(e) => updateSetting('autoFollowUpIntervalDays', parseInt(e.target.value) || 7)}
+                        className="w-20 px-2 py-1 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <span className="text-xs text-gray-600">days</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="followup-max-count" className="block text-xs font-medium text-gray-700 mb-1">
+                      Maximum follow-ups
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        id="followup-max-count"
+                        min="1"
+                        max="5"
+                        value={settings.autoFollowUpMaxCount || 2}
+                        onChange={(e) => updateSetting('autoFollowUpMaxCount', parseInt(e.target.value) || 2)}
+                        className="w-20 px-2 py-1 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <span className="text-xs text-gray-600">emails per application</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Base Documents Upload */}

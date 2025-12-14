@@ -89,6 +89,14 @@ export default function SwipeContainer() {
   // Note: This ref is updated in handleToggleAutoApply to match autoApplyEnabled state
   const autoApplyMetadataRef = useRef({ automaticApply: false });
   
+  // Filter state
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    location: '',
+    minSalary: '',
+    maxSalary: '',
+  });
+  
   // Online status
   const [isOnline, setIsOnline] = useState(true);
   
@@ -286,6 +294,34 @@ export default function SwipeContainer() {
         setShowAutoApplyTooltip(true);
       }
       return newValue;
+    });
+  }, []);
+  
+  /**
+   * Toggle filters panel
+   */
+  const handleToggleFilters = useCallback(() => {
+    setShowFilters(prev => !prev);
+  }, []);
+  
+  /**
+   * Apply filters
+   */
+  const handleApplyFilters = useCallback(() => {
+    // TODO: Implement filter logic - send to backend or filter locally
+    console.log('Applying filters:', filters);
+    setShowFilters(false);
+    // In real implementation, this would trigger a job refetch with filter params
+  }, [filters]);
+  
+  /**
+   * Clear filters
+   */
+  const handleClearFilters = useCallback(() => {
+    setFilters({
+      location: '',
+      minSalary: '',
+      maxSalary: '',
     });
   }, []);
   
@@ -498,7 +534,23 @@ export default function SwipeContainer() {
         )}
         
         {/* Auto-apply toggle button - minimal design */}
-        <div className="fixed bottom-24 left-6 z-50">
+        <div className="fixed bottom-24 left-6 z-50 flex flex-col gap-2">
+          {/* Filter button - above auto-apply */}
+          <button
+            onClick={handleToggleFilters}
+            className={`rounded-full p-2 shadow-lg hover:scale-110 transition-all active:scale-95 ${
+              filters.location || filters.minSalary || filters.maxSalary
+                ? 'bg-blue-500 text-white' 
+                : 'bg-white text-gray-700 border border-gray-300'
+            }`}
+            aria-label="Toggle filters"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+          </button>
+          
+          {/* Auto-apply button */}
           <button
             onClick={handleToggleAutoApply}
             className={`rounded-full p-2 shadow-lg hover:scale-110 transition-all active:scale-95 ${
@@ -513,12 +565,90 @@ export default function SwipeContainer() {
           
           {/* Tooltip - only shown when auto-apply is ON, positioned to not block content */}
           {autoApplyEnabled && showAutoApplyTooltip && (
-            <div className="absolute bottom-full left-0 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap shadow-lg">
+            <div className="absolute bottom-0 left-full ml-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap shadow-lg">
               Auto-apply is on
-              <div className="absolute top-full left-4 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+              <div className="absolute top-1/2 right-full -translate-y-1/2 mr-[-1px] border-4 border-transparent border-r-gray-900"></div>
             </div>
           )}
         </div>
+        
+        {/* Filter modal */}
+        {showFilters && (
+          <div className="fixed inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center p-4" onClick={() => setShowFilters(false)}>
+            <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900">Filter Jobs</h3>
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label="Close filters"
+                >
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Location filter */}
+                <div>
+                  <label htmlFor="filter-location" className="block text-sm font-medium text-gray-700 mb-1">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    id="filter-location"
+                    value={filters.location}
+                    onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
+                    placeholder="e.g., San Francisco, Remote"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  />
+                </div>
+                
+                {/* Salary range filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Salary Range
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={filters.minSalary}
+                      onChange={(e) => setFilters(prev => ({ ...prev, minSalary: e.target.value }))}
+                      placeholder="Min"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    />
+                    <span className="text-gray-500">-</span>
+                    <input
+                      type="number"
+                      value={filters.maxSalary}
+                      onChange={(e) => setFilters(prev => ({ ...prev, maxSalary: e.target.value }))}
+                      placeholder="Max"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Annual salary in USD</p>
+                </div>
+              </div>
+              
+              {/* Actions */}
+              <div className="flex items-center gap-3 mt-6">
+                <button
+                  onClick={handleClearFilters}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={handleApplyFilters}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Report Modal */}
         <ReportModal
