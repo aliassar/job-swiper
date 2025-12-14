@@ -35,6 +35,12 @@ export default function ApplicationDetailPage() {
   const [editedMessage, setEditedMessage] = useState('');
   const [messageSendTime, setMessageSendTime] = useState(null);
   const [canRollbackMessage, setCanRollbackMessage] = useState(false);
+  
+  // Document editing states
+  const [isEditingResume, setIsEditingResume] = useState(false);
+  const [isEditingCoverLetter, setIsEditingCoverLetter] = useState(false);
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [uploadingCoverLetter, setUploadingCoverLetter] = useState(false);
 
   useEffect(() => {
     const appId = params.id;
@@ -153,11 +159,46 @@ export default function ApplicationDetailPage() {
     console.log('Message Verification skipped');
   };
 
-  const handleCustomDocumentUpload = (type) => (e) => {
+  const handleCustomDocumentUpload = (type) => async (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      // TODO: Upload custom document
-      console.log(`Custom ${type} uploaded:`, file.name);
+      if (type === 'resume') {
+        setUploadingResume(true);
+      } else {
+        setUploadingCoverLetter(true);
+      }
+      
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', type);
+        
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          console.log(`Custom ${type} uploaded:`, data.name);
+          // TODO: Update application with new document reference
+        } else {
+          console.error('Upload failed:', data.error);
+          alert('Upload failed. Please try again.');
+        }
+      } catch (error) {
+        console.error(`Error uploading ${type}:`, error);
+        alert('Upload failed. Please try again.');
+      } finally {
+        if (type === 'resume') {
+          setUploadingResume(false);
+          setIsEditingResume(false);
+        } else {
+          setUploadingCoverLetter(false);
+          setIsEditingCoverLetter(false);
+        }
+      }
     }
   };
 
@@ -350,6 +391,71 @@ export default function ApplicationDetailPage() {
                   Cover Letter
                 </button>
               </div>
+              
+              {/* Edit documents button for CV and Message Verification stages */}
+              {(application.stage === 'CV Verification' || application.stage === 'Message Verification') && (
+                <div className="mt-2">
+                  <button
+                    onClick={() => {
+                      setIsEditingResume(!isEditingResume);
+                      setIsEditingCoverLetter(false);
+                    }}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-50 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-100 transition-colors mb-2"
+                  >
+                    <DocumentArrowUpIcon className="h-3.5 w-3.5" />
+                    {isEditingResume ? 'Cancel' : 'Edit Resume'}
+                  </button>
+                  {isEditingResume && (
+                    <label className={`flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors ${uploadingResume ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}>
+                      {uploadingResume ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent" />
+                      ) : (
+                        <DocumentArrowUpIcon className="h-4 w-4 text-blue-600" />
+                      )}
+                      <span className="text-xs text-blue-700">
+                        {uploadingResume ? 'Uploading...' : 'Upload New Resume'}
+                      </span>
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleCustomDocumentUpload('resume')}
+                        disabled={uploadingResume}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                  
+                  <button
+                    onClick={() => {
+                      setIsEditingCoverLetter(!isEditingCoverLetter);
+                      setIsEditingResume(false);
+                    }}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-50 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-100 transition-colors mb-2"
+                  >
+                    <DocumentArrowUpIcon className="h-3.5 w-3.5" />
+                    {isEditingCoverLetter ? 'Cancel' : 'Edit Cover Letter'}
+                  </button>
+                  {isEditingCoverLetter && (
+                    <label className={`flex items-center gap-2 px-3 py-2 bg-green-50 rounded-lg hover:bg-green-100 transition-colors ${uploadingCoverLetter ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}>
+                      {uploadingCoverLetter ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-green-500 border-t-transparent" />
+                      ) : (
+                        <DocumentArrowUpIcon className="h-4 w-4 text-green-600" />
+                      )}
+                      <span className="text-xs text-green-700">
+                        {uploadingCoverLetter ? 'Uploading...' : 'Upload New Cover Letter'}
+                      </span>
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleCustomDocumentUpload('coverLetter')}
+                        disabled={uploadingCoverLetter}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
               
               {/* Verification buttons for pending verification */}
               {showVerification && (
