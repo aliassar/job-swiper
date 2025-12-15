@@ -46,6 +46,10 @@ export default function ApplicationDetailPage() {
   const [uploadingResume, setUploadingResume] = useState(false);
   const [uploadingCoverLetter, setUploadingCoverLetter] = useState(false);
   
+  // Document URLs
+  const [resumeUrl, setResumeUrl] = useState(null);
+  const [coverLetterUrl, setCoverLetterUrl] = useState(null);
+  
   // Auto-update status toggle (on by default)
   const [autoUpdateStatus, setAutoUpdateStatus] = useState(true);
   
@@ -113,6 +117,17 @@ export default function ApplicationDetailPage() {
           if (foundApp.stage === 'CV Verification') {
             setVerificationState('pending');
           }
+        }
+        
+        // Fetch document URLs
+        try {
+          const docsResponse = await applicationsApi.getDocuments(appId);
+          if (docsResponse && docsResponse.success) {
+            setResumeUrl(docsResponse.resumeUrl);
+            setCoverLetterUrl(docsResponse.coverLetterUrl);
+          }
+        } catch (docError) {
+          console.error('Error fetching documents:', docError);
         }
       } finally {
         setLoading(false);
@@ -293,6 +308,13 @@ export default function ApplicationDetailPage() {
             type === 'coverLetter' ? data.url : undefined
           );
           
+          // Update local state
+          if (type === 'resume') {
+            setResumeUrl(data.url);
+          } else {
+            setCoverLetterUrl(data.url);
+          }
+          
           alert(`${type === 'resume' ? 'Resume' : 'Cover letter'} uploaded successfully!`);
         } else {
           console.error('Upload failed:', data.error);
@@ -325,6 +347,45 @@ export default function ApplicationDetailPage() {
       alert('Failed to save notes. Please try again.');
     } finally {
       setSavingNotes(false);
+    }
+  };
+  
+  const handleDownloadDocument = async (documentType) => {
+    if (!application) return;
+    
+    const url = documentType === 'resume' ? resumeUrl : coverLetterUrl;
+    
+    if (!url) {
+      alert(`No ${documentType} available for this application. Please upload one in Settings or during CV Verification.`);
+      return;
+    }
+    
+    // In a real app, this would download from cloud storage
+    // For now, simulate download by opening the URL or showing info
+    try {
+      // Extract filename from URL, handling query params and fragments
+      let filename;
+      try {
+        const urlObj = new URL(url, window.location.origin);
+        const pathname = urlObj.pathname;
+        filename = pathname.split('/').pop() || `${documentType}-${application.company}-${application.position}.pdf`;
+      } catch {
+        // Fallback if URL parsing fails
+        filename = `${documentType}-${application.company}-${application.position}.pdf`;
+      }
+      
+      // Create a temporary link to trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log(`Downloading ${documentType} from:`, url);
+    } catch (error) {
+      console.error(`Error downloading ${documentType}:`, error);
+      alert(`Failed to download ${documentType}. Please try again.`);
     }
   };
 
@@ -554,21 +615,25 @@ export default function ApplicationDetailPage() {
               <h3 className="text-xs font-semibold text-gray-700 mb-2">Documents</h3>
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => {
-                    // TODO: Implement resume download
-                    console.log('Download resume for application:', application.id);
-                  }}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors"
+                  onClick={() => handleDownloadDocument('resume')}
+                  disabled={!resumeUrl}
+                  className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                    resumeUrl
+                      ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
                 >
                   <ArrowDownTrayIcon className="h-3.5 w-3.5" />
                   Resume
                 </button>
                 <button
-                  onClick={() => {
-                    // TODO: Implement cover letter download
-                    console.log('Download cover letter for application:', application.id);
-                  }}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-xs font-medium hover:bg-green-100 transition-colors"
+                  onClick={() => handleDownloadDocument('coverLetter')}
+                  disabled={!coverLetterUrl}
+                  className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                    coverLetterUrl
+                      ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
                 >
                   <ArrowDownTrayIcon className="h-3.5 w-3.5" />
                   Cover Letter
