@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useJobs } from '@/context/JobContext';
+import { applicationsApi } from '@/lib/api';
 import { ArrowLeftIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
 
@@ -23,6 +24,8 @@ export default function ApplicationDetailPage() {
   const router = useRouter();
   const { applications, updateApplicationStage } = useJobs();
   const [application, setApplication] = useState(null);
+  const [resumeUrl, setResumeUrl] = useState(null);
+  const [coverLetterUrl, setCoverLetterUrl] = useState(null);
 
   useEffect(() => {
     const appId = params.id;
@@ -30,6 +33,21 @@ export default function ApplicationDetailPage() {
     if (foundApp) {
       setApplication(foundApp);
     }
+    
+    // Fetch document URLs
+    const fetchDocuments = async () => {
+      try {
+        const docsResponse = await applicationsApi.getDocuments(appId);
+        if (docsResponse && docsResponse.success) {
+          setResumeUrl(docsResponse.resumeUrl);
+          setCoverLetterUrl(docsResponse.coverLetterUrl);
+        }
+      } catch (error) {
+        console.error('Error fetching documents:', error);
+      }
+    };
+    
+    fetchDocuments();
   }, [params.id, applications]);
 
   const handleStageChange = async (e) => {
@@ -38,6 +56,45 @@ export default function ApplicationDetailPage() {
       await updateApplicationStage(application.id, newStage);
       // Update local state
       setApplication({ ...application, stage: newStage });
+    }
+  };
+
+  const handleDownloadDocument = async (documentType) => {
+    if (!application) return;
+    
+    const url = documentType === 'resume' ? resumeUrl : coverLetterUrl;
+    
+    if (!url) {
+      alert(`No ${documentType} available for this application. Please upload one in Settings or during CV Verification.`);
+      return;
+    }
+    
+    // In a real app, this would download from cloud storage
+    // For now, simulate download by opening the URL or showing info
+    try {
+      // Extract filename from URL, handling query params and fragments
+      let filename;
+      try {
+        const urlObj = new URL(url, window.location.origin);
+        const pathname = urlObj.pathname;
+        filename = pathname.split('/').pop() || `${documentType}-${application.company}-${application.position}.pdf`;
+      } catch {
+        // Fallback if URL parsing fails
+        filename = `${documentType}-${application.company}-${application.position}.pdf`;
+      }
+      
+      // Create a temporary link to trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log(`Downloading ${documentType} from:`, url);
+    } catch (error) {
+      console.error(`Error downloading ${documentType}:`, error);
+      alert(`Failed to download ${documentType}. Please try again.`);
     }
   };
 
@@ -171,21 +228,25 @@ export default function ApplicationDetailPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Application Documents</h3>
               <div className="flex gap-3">
                 <button
-                  onClick={() => {
-                    // TODO: Implement resume download
-                    console.log('Download resume for application:', application.id);
-                  }}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition-colors"
+                  onClick={() => handleDownloadDocument('resume')}
+                  disabled={!resumeUrl}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors ${
+                    resumeUrl
+                      ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
                 >
                   <ArrowDownTrayIcon className="h-5 w-5" />
                   Download Resume
                 </button>
                 <button
-                  onClick={() => {
-                    // TODO: Implement cover letter download
-                    console.log('Download cover letter for application:', application.id);
-                  }}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-50 text-green-700 rounded-lg font-medium hover:bg-green-100 transition-colors"
+                  onClick={() => handleDownloadDocument('coverLetter')}
+                  disabled={!coverLetterUrl}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors ${
+                    coverLetterUrl
+                      ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
                 >
                   <ArrowDownTrayIcon className="h-5 w-5" />
                   Download Cover Letter
