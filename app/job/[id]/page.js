@@ -201,9 +201,32 @@ export default function JobDetailPage() {
 
             {isApplication && (
               <div className="mt-8 pt-6 border-t border-gray-200">
-                <div className="bg-blue-50 text-blue-700 px-4 py-3 rounded-lg text-center">
+                <div className="bg-blue-50 text-blue-700 px-4 py-3 rounded-lg text-center mb-4">
                   This job is already in your applications
                 </div>
+                <button
+                  onClick={async () => {
+                    if (confirm('Are you sure you want to undo accepting this job? This will remove it from your applications.')) {
+                      try {
+                        // Call rollback API
+                        await fetch(`/api/jobs/${job.id}/rollback`, {
+                          method: 'POST',
+                        });
+                        // Navigate back
+                        router.push('/');
+                      } catch (err) {
+                        console.error('Error rolling back job:', err);
+                        alert('Failed to undo accept. Please try again.');
+                      }
+                    }
+                  }}
+                  className="w-full px-6 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                  </svg>
+                  Undo Accept
+                </button>
               </div>
             )}
             
