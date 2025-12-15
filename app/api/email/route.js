@@ -10,27 +10,82 @@ export async function POST(request) {
     const body = await request.json();
     const { provider, email, password, imapServer, imapPort } = body;
     
-    // Validation
-    if (!provider || !email || !password) {
+    // Validation - provider
+    if (!provider || typeof provider !== 'string') {
       return NextResponse.json(
-        { error: 'Provider, email, and password are required' },
+        { error: 'Valid provider is required' },
         { status: 400 }
       );
     }
     
-    if (!email.includes('@')) {
+    // Sanitize provider input
+    const sanitizedProvider = provider.trim().toLowerCase();
+    const validProviders = ['gmail', 'yahoo', 'outlook', 'imap'];
+    
+    if (!validProviders.includes(sanitizedProvider)) {
       return NextResponse.json(
-        { error: 'Invalid email address' },
+        { error: 'Invalid email provider' },
+        { status: 400 }
+      );
+    }
+    
+    // Validation - email
+    if (!email || typeof email !== 'string') {
+      return NextResponse.json(
+        { error: 'Email is required' },
+        { status: 400 }
+      );
+    }
+    
+    // Sanitize and validate email
+    const sanitizedEmail = email.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (!emailRegex.test(sanitizedEmail)) {
+      return NextResponse.json(
+        { error: 'Invalid email address format' },
+        { status: 400 }
+      );
+    }
+    
+    // Validation - password
+    if (!password || typeof password !== 'string') {
+      return NextResponse.json(
+        { error: 'Password is required' },
+        { status: 400 }
+      );
+    }
+    
+    if (password.length < 8) {
+      return NextResponse.json(
+        { error: 'Password must be at least 8 characters' },
         { status: 400 }
       );
     }
     
     // Validate IMAP settings for custom provider
-    if (provider === 'imap' && (!imapServer || !imapPort)) {
-      return NextResponse.json(
-        { error: 'IMAP server and port are required for custom IMAP' },
-        { status: 400 }
-      );
+    if (sanitizedProvider === 'imap') {
+      if (!imapServer || typeof imapServer !== 'string' || !imapServer.trim()) {
+        return NextResponse.json(
+          { error: 'IMAP server is required for custom IMAP' },
+          { status: 400 }
+        );
+      }
+      
+      if (!imapPort) {
+        return NextResponse.json(
+          { error: 'IMAP port is required for custom IMAP' },
+          { status: 400 }
+        );
+      }
+      
+      const port = parseInt(imapPort, 10);
+      if (isNaN(port) || port < 1 || port > 65535) {
+        return NextResponse.json(
+          { error: 'Invalid IMAP port number (must be 1-65535)' },
+          { status: 400 }
+        );
+      }
     }
     
     // In production, this would:
@@ -50,10 +105,10 @@ export async function POST(request) {
     // Store connection info (in production, encrypt sensitive data)
     const userId = 'default'; // In production, get from session
     const connectionData = {
-      provider,
-      email,
-      imapServer: provider === 'imap' ? imapServer : getDefaultImapServer(provider),
-      imapPort: provider === 'imap' ? imapPort : '993',
+      provider: sanitizedProvider,
+      email: sanitizedEmail,
+      imapServer: sanitizedProvider === 'imap' ? imapServer.trim() : getDefaultImapServer(sanitizedProvider),
+      imapPort: sanitizedProvider === 'imap' ? imapPort : '993',
       connectedAt: new Date().toISOString(),
       status: 'connected',
     };
@@ -121,6 +176,19 @@ export async function GET(request) {
       });
     }
     
+    // Check if OAuth token is expired (for OAuth providers)
+    let tokenStatus = 'valid';
+    if (connection.expiresAt) {
+      const now = Date.now();
+      if (now >= connection.expiresAt) {
+        tokenStatus = 'expired';
+        connection.status = 'token_expired';
+      } else if (now >= connection.expiresAt - 5 * 60 * 1000) {
+        // Token expires in less than 5 minutes
+        tokenStatus = 'expiring_soon';
+      }
+    }
+    
     return NextResponse.json({
       connected: true,
       connection: {
@@ -130,6 +198,7 @@ export async function GET(request) {
         imapPort: connection.imapPort,
         connectedAt: connection.connectedAt,
         status: connection.status,
+        tokenStatus,
       }
     });
   } catch (error) {

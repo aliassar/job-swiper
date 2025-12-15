@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+// Mark this route as dynamic (not statically generated)
+export const dynamic = 'force-dynamic';
+
 // Import state storage from parent route
 // In production, this would be in a shared module or database
 let oauthStates, GMAIL_CONFIG;
@@ -29,10 +32,13 @@ const emailConnections = new Map();
  */
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(request.url);
+    const { searchParams, origin } = new URL(request.url);
     const code = searchParams.get('code');
     const state = searchParams.get('state');
     const error = searchParams.get('error');
+    
+    // Helper function to build absolute redirect URL
+    const redirectUrl = (path) => `${origin}${path}`;
     
     // Handle user denial or errors from OAuth provider
     if (error) {
@@ -40,14 +46,14 @@ export async function GET(request) {
         ? 'Access denied. Please grant permission to connect your Gmail account.'
         : 'OAuth authentication failed. Please try again.';
       return NextResponse.redirect(
-        '/connect-email?error=' + encodeURIComponent(errorMessage)
+        redirectUrl('/connect-email?error=' + encodeURIComponent(errorMessage))
       );
     }
     
     // Validate required parameters
     if (!code || !state) {
       return NextResponse.redirect(
-        '/connect-email?error=' + encodeURIComponent('Invalid OAuth callback parameters')
+        redirectUrl('/connect-email?error=' + encodeURIComponent('Invalid OAuth callback parameters'))
       );
     }
     
@@ -55,7 +61,7 @@ export async function GET(request) {
     const stateData = oauthStates.get(state);
     if (!stateData) {
       return NextResponse.redirect(
-        '/connect-email?error=' + encodeURIComponent('Invalid or expired OAuth state')
+        redirectUrl('/connect-email?error=' + encodeURIComponent('Invalid or expired OAuth state'))
       );
     }
     
@@ -66,7 +72,7 @@ export async function GET(request) {
     const now = Date.now();
     if (now - stateData.createdAt > 10 * 60 * 1000) {
       return NextResponse.redirect(
-        '/connect-email?error=' + encodeURIComponent('OAuth session expired. Please try again.')
+        redirectUrl('/connect-email?error=' + encodeURIComponent('OAuth session expired. Please try again.'))
       );
     }
     
@@ -89,7 +95,7 @@ export async function GET(request) {
       const errorData = await tokenResponse.json();
       console.error('Token exchange failed:', errorData);
       return NextResponse.redirect(
-        '/connect-email?error=' + encodeURIComponent('Failed to obtain access tokens. Please try again.')
+        redirectUrl('/connect-email?error=' + encodeURIComponent('Failed to obtain access tokens. Please try again.'))
       );
     }
     
@@ -104,7 +110,7 @@ export async function GET(request) {
     
     if (!userInfoResponse.ok) {
       return NextResponse.redirect(
-        '/connect-email?error=' + encodeURIComponent('Failed to retrieve user information')
+        redirectUrl('/connect-email?error=' + encodeURIComponent('Failed to retrieve user information'))
       );
     }
     
@@ -126,12 +132,14 @@ export async function GET(request) {
     
     // Redirect to settings page with success message
     return NextResponse.redirect(
-      '/connect-email?success=' + encodeURIComponent('Gmail connected successfully!')
+      redirectUrl('/connect-email?success=' + encodeURIComponent('Gmail connected successfully!'))
     );
   } catch (error) {
     console.error('Error in Gmail OAuth callback:', error);
+    // Get origin from request for error redirect
+    const origin = new URL(request.url).origin;
     return NextResponse.redirect(
-      '/connect-email?error=' + encodeURIComponent('An unexpected error occurred. Please try again.')
+      `${origin}/connect-email?error=` + encodeURIComponent('An unexpected error occurred. Please try again.')
     );
   }
 }
