@@ -32,22 +32,20 @@ export default function ApplicationDetailPage() {
     const foundApp = applications.find(a => a.id === appId);
     if (foundApp) {
       setApplication(foundApp);
-    }
-    
-    // Fetch document URLs
-    const fetchDocuments = async () => {
-      try {
-        const docsResponse = await applicationsApi.getDocuments(appId);
-        if (docsResponse && docsResponse.success) {
-          setResumeUrl(docsResponse.resumeUrl);
-          setCoverLetterUrl(docsResponse.coverLetterUrl);
+      
+      // Fetch document URLs
+      const fetchDocuments = async () => {
+        try {
+          const docsResponse = await applicationsApi.getDocuments(appId);
+          if (docsResponse && docsResponse.success) {
+            setResumeUrl(docsResponse.resumeUrl);
+            setCoverLetterUrl(docsResponse.coverLetterUrl);
+          }
+        } catch (docError) {
+          console.error('Error fetching documents:', docError);
         }
-      } catch (docError) {
-        console.error('Error fetching documents:', docError);
-      }
-    };
-    
-    if (foundApp) {
+      };
+      
       fetchDocuments();
     }
   }, [params.id, applications]);
@@ -89,11 +87,21 @@ export default function ApplicationDetailPage() {
     // In a real app, this would download from cloud storage
     // For now, simulate download by opening the URL or showing info
     try {
+      // Extract filename from URL, handling query params and fragments
+      let filename;
+      try {
+        const urlObj = new URL(url, window.location.origin);
+        const pathname = urlObj.pathname;
+        filename = pathname.split('/').pop() || `${documentType}-${application.company}-${application.position}.pdf`;
+      } catch {
+        // Fallback if URL parsing fails
+        filename = `${documentType}-${application.company}-${application.position}.pdf`;
+      }
+      
       // Create a temporary link to trigger download
       const link = document.createElement('a');
       link.href = url;
-      link.download = url.split('/').pop() || `${documentType}-${application.company}-${application.position}.pdf`;
-      link.target = '_blank';
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
