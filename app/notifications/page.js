@@ -23,7 +23,8 @@ export default function NotificationsPage() {
     // Connect to SSE endpoint using API_URL
     const connectSSE = () => {
       try {
-        const sseUrl = `${API_URL}/api/notifications/stream`;
+        // Use API_URL if configured, otherwise use relative path for local development
+        const sseUrl = API_URL ? `${API_URL}/api/notifications/stream` : '/api/notifications/stream';
         eventSourceRef.current = new EventSource(sseUrl);
         
         eventSourceRef.current.onmessage = (event) => {
