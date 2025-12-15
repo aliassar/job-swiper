@@ -11,7 +11,7 @@ export default function SavedJobsList() {
   const handleExportCSV = () => {
     const csvHeaders = 'Company,Position,Location,Salary,Skills,Saved At\n';
     const csvRows = savedJobs.map(job => {
-      const skills = job.skills.join('; ');
+      const skills = (job.skills || []).join('; '); // Safety check for undefined skills
       const savedAt = job.savedAt || new Date().toISOString();
       return `"${job.company}","${job.position}","${job.location}","${job.salary || 'N/A'}","${skills}","${savedAt}"`;
     }).join('\n');
@@ -27,6 +27,7 @@ export default function SavedJobsList() {
   };
 
   const handleExportPDF = () => {
+    const PRINT_DELAY = 250; // Delay before triggering print to ensure DOM is ready
     // Create a simple HTML document for printing
     const printWindow = window.open('', '_blank');
     const html = `
@@ -66,7 +67,7 @@ export default function SavedJobsList() {
     printWindow.document.close();
     setTimeout(() => {
       printWindow.print();
-    }, 250);
+    }, PRINT_DELAY);
   };
 
   const handleJobClick = (job) => {
