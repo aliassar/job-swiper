@@ -69,8 +69,6 @@ export default function ApplicationDetailPage() {
       return;
     }
     
-    // In a real app, this would download from cloud storage
-    // For now, simulate download by opening the URL or showing info
     try {
       // Extract filename from URL, handling query params and fragments
       let filename;
