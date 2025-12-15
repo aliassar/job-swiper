@@ -5,6 +5,7 @@
 @layer base {
   :root {
     --swipe-transition-duration: 0.3s;
+    --bottom-nav-height: 4rem;
   }
 
   html, body, #__next {
@@ -15,6 +16,15 @@
   
   body {
     @apply bg-gradient-to-br from-blue-50 via-white to-blue-50;
+  }
+  
+  /* Improved text rendering on mobile */
+  @media (max-width: 768px) {
+    body {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
   }
 }
 
@@ -46,5 +56,32 @@
   /* Show REJECT when dragging left (class applied via JS) */
   .swiping-left .swipe-reject {
     opacity: 1;
+  }
+  
+  /* Mobile-friendly touch targets */
+  @media (max-width: 768px) {
+    button, a {
+      min-height: 44px; /* iOS recommended touch target size */
+      min-width: 44px;
+    }
+  }
+  
+  /* Responsive container with better mobile padding */
+  .container-responsive {
+    @apply max-w-7xl mx-auto px-4;
+  }
+  
+  @media (max-width: 640px) {
+    .container-responsive {
+      @apply px-3;
+    }
+  }
+  
+  /* Mobile-optimized scrolling */
+  @media (max-width: 768px) {
+    .scroll-container {
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
   }
 }
