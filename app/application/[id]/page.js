@@ -235,35 +235,22 @@ export default function ApplicationDetailPage() {
     setVerificationState('rejected');
     // Don't start timer for rejection
     
-    try {
-      // For rejection, user will need to upload custom documents
-      // The backend server expects this flow:
-      // 1. User rejects auto-generated CV
-      // 2. User uploads custom CV via reuploadCv() method
-      // Note: There's no specific "reject" endpoint - rejection is implicit when user uploads custom docs
-      console.log('Documents rejected - user can now upload custom documents');
-    } catch (error) {
-      console.error('Error rejecting documents:', error);
-      alert('Failed to reject documents. Please try again.');
-      // Rollback state on error
-      setVerificationState('pending');
-    }
+    // For rejection, user will need to upload custom documents
+    // The backend server expects this flow:
+    // 1. User rejects auto-generated CV
+    // 2. User uploads custom CV via reuploadCv() method
+    // Note: There's no specific "reject" endpoint - rejection is implicit when user uploads custom docs
+    console.log('Documents rejected - user can now upload custom documents');
   };
 
   const handleRollbackCV = async () => {
+    // UI-only rollback - backend server doesn't support rollback endpoint
+    // User can re-confirm or upload new documents after rollback
     setVerificationState('pending');
     setCvVerificationTime(null);
     setCanRollbackCV(false);
     
-    try {
-      // Note: The backend server may not support rollback of CV confirmation
-      // This is a UI-only rollback - user will need to re-confirm or upload new docs
-      // If the server supports rollback, add the appropriate API endpoint here
-      console.log('CV confirmation rolled back (UI only)');
-    } catch (error) {
-      console.error('Error rolling back CV verification:', error);
-      alert('Failed to rollback verification. Please try again.');
-    }
+    console.log('CV confirmation rolled back (UI only - user can re-confirm or upload new docs)');
   };
   
   const handleSkipCVVerification = () => {
@@ -922,18 +909,12 @@ Best regards`}
                         <p className="text-xs text-gray-600 mb-2">Changed your mind?</p>
                         <button
                           onClick={async () => {
+                            // UI-only rollback - backend server doesn't support message rollback endpoint
+                            // User can re-edit and re-approve the message after rollback
                             setMessageSendTime(null);
                             setCanRollbackMessage(false);
                             
-                            try {
-                              // Note: Backend server may not support message rollback
-                              // This is a UI-only rollback for now
-                              // User can re-edit and re-approve the message
-                              console.log('Message send rolled back (UI only)');
-                            } catch (error) {
-                              console.error('Error rolling back message:', error);
-                              alert('Failed to cancel message. Please try again.');
-                            }
+                            console.log('Message send rolled back (UI only - user can re-edit and re-approve)');
                           }}
                           className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors"
                         >
