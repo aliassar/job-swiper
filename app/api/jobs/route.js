@@ -80,6 +80,7 @@ function getJobWithStatus(jobId) {
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const searchQuery = searchParams.get('search')?.toLowerCase() || '';
+  const countOnly = searchParams.get('countOnly') === 'true';
   
   // Return only pending jobs (not accepted, rejected, or skipped)
   let pendingJobs = jobsStorage.jobs.filter(job => {
@@ -98,6 +99,13 @@ export async function GET(request) {
       ].join(' ').toLowerCase();
       
       return searchableText.includes(searchQuery);
+    });
+  }
+  
+  // If countOnly is requested, return just the count
+  if (countOnly) {
+    return NextResponse.json({ 
+      count: pendingJobs.length 
     });
   }
   
