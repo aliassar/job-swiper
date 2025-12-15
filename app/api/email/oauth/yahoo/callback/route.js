@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+// Mark this route as dynamic (not statically generated)
+export const dynamic = 'force-dynamic';
+
 // Import state storage from parent route
 let oauthStates, YAHOO_CONFIG;
 try {
@@ -26,23 +29,25 @@ const emailConnections = new Map();
  */
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(request.url);
+    const { searchParams, origin } = new URL(request.url);
     const code = searchParams.get('code');
     const state = searchParams.get('state');
     const error = searchParams.get('error');
+    
+    const redirectUrl = (path) => `${origin}${path}`;
     
     if (error) {
       const errorMessage = error === 'access_denied' 
         ? 'Access denied. Please grant permission to connect your Yahoo account.'
         : 'OAuth authentication failed. Please try again.';
       return NextResponse.redirect(
-        '/connect-email?error=' + encodeURIComponent(errorMessage)
+        redirectUrl('/connect-email?error=' + encodeURIComponent(errorMessage))
       );
     }
     
     if (!code || !state) {
       return NextResponse.redirect(
-        '/connect-email?error=' + encodeURIComponent('Invalid OAuth callback parameters')
+        redirectUrl('/connect-email?error=' + encodeURIComponent('Invalid OAuth callback parameters'))
       );
     }
     
@@ -50,7 +55,7 @@ export async function GET(request) {
     const stateData = oauthStates.get(state);
     if (!stateData) {
       return NextResponse.redirect(
-        '/connect-email?error=' + encodeURIComponent('Invalid or expired OAuth state')
+        redirectUrl('/connect-email?error=' + encodeURIComponent('Invalid or expired OAuth state'))
       );
     }
     
@@ -60,7 +65,7 @@ export async function GET(request) {
     const now = Date.now();
     if (now - stateData.createdAt > 10 * 60 * 1000) {
       return NextResponse.redirect(
-        '/connect-email?error=' + encodeURIComponent('OAuth session expired. Please try again.')
+        redirectUrl('/connect-email?error=' + encodeURIComponent('OAuth session expired. Please try again.'))
       );
     }
     
@@ -84,7 +89,7 @@ export async function GET(request) {
       const errorData = await tokenResponse.json();
       console.error('Token exchange failed:', errorData);
       return NextResponse.redirect(
-        '/connect-email?error=' + encodeURIComponent('Failed to obtain access tokens. Please try again.')
+        redirectUrl('/connect-email?error=' + encodeURIComponent('Failed to obtain access tokens. Please try again.'))
       );
     }
     
@@ -119,12 +124,13 @@ export async function GET(request) {
     emailConnections.set(userId, connectionData);
     
     return NextResponse.redirect(
-      '/connect-email?success=' + encodeURIComponent('Yahoo Mail connected successfully!')
+      redirectUrl('/connect-email?success=' + encodeURIComponent('Yahoo Mail connected successfully!'))
     );
   } catch (error) {
     console.error('Error in Yahoo OAuth callback:', error);
+    const origin = new URL(request.url).origin;
     return NextResponse.redirect(
-      '/connect-email?error=' + encodeURIComponent('An unexpected error occurred. Please try again.')
+      `${origin}/connect-email?error=` + encodeURIComponent('An unexpected error occurred. Please try again.')
     );
   }
 }

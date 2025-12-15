@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, EnvelopeIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { useSettings } from '@/lib/hooks/useSettings';
 import { emailApi } from '@/lib/api';
 import { useToast } from '@/lib/hooks/useToast';
 import ToastContainer from '@/components/ToastContainer';
+import OAuthCallbackHandler from '@/components/OAuthCallbackHandler';
 
 export default function ConnectEmailPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { settings, updateSetting } = useSettings();
   const toast = useToast();
   const [selectedProvider, setSelectedProvider] = useState(settings.emailProvider || '');
@@ -20,27 +20,6 @@ export default function ConnectEmailPage() {
   const [imapPort, setImapPort] = useState('993');
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState('');
-
-  // Handle OAuth callback success/error messages
-  useEffect(() => {
-    const successMsg = searchParams.get('success');
-    const errorMsg = searchParams.get('error');
-    
-    if (successMsg) {
-      toast.success(successMsg);
-      // Update settings to reflect connected state
-      updateSetting('emailConnected', true);
-      // Redirect to settings after short delay
-      setTimeout(() => {
-        router.push('/settings');
-      }, 1500);
-    }
-    
-    if (errorMsg) {
-      toast.error(errorMsg);
-      setError(errorMsg);
-    }
-  }, [searchParams, toast, updateSetting, router]);
 
   const emailProviders = [
     {
@@ -231,6 +210,9 @@ export default function ConnectEmailPage() {
   if (settings.emailConnected && settings.connectedEmail) {
     return (
       <>
+        <Suspense fallback={null}>
+          <OAuthCallbackHandler />
+        </Suspense>
         <ToastContainer />
         <div className="h-full overflow-y-auto bg-gray-50 pb-20">
         {/* Header */}
@@ -295,12 +277,16 @@ export default function ConnectEmailPage() {
             </p>
           </div>
         </div>
+        </div>
       </>
     );
   }
 
   return (
     <>
+      <Suspense fallback={null}>
+        <OAuthCallbackHandler />
+      </Suspense>
       <ToastContainer />
       <div className="h-full overflow-y-auto bg-gray-50 pb-20">
       {/* Header */}
@@ -476,6 +462,7 @@ export default function ConnectEmailPage() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </>
   );

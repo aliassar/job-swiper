@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 
+// Mark this route as dynamic
+export const dynamic = 'force-dynamic';
+
 // In-memory storage for OAuth state tokens (in production, use Redis or database)
 const oauthStates = new Map();
 
