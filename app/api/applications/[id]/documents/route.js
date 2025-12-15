@@ -1,6 +1,38 @@
 import { NextResponse } from 'next/server';
 import { jobsStorage } from '../../../jobs/route';
 
+// GET - Get application documents (resume and cover letter URLs)
+export async function GET(request, { params }) {
+  try {
+    const { id } = params;
+    
+    const application = jobsStorage.applications.get(id);
+    
+    if (!application) {
+      return NextResponse.json(
+        { error: 'Application not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Return document URLs
+    // Priority: custom documents > base documents from settings
+    return NextResponse.json({
+      success: true,
+      resumeUrl: application.customResumeUrl || null,
+      coverLetterUrl: application.customCoverLetterUrl || null,
+      hasCustomResume: application.hasCustomResume || false,
+      hasCustomCoverLetter: application.hasCustomCoverLetter || false,
+    });
+  } catch (error) {
+    console.error('Error fetching documents:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch documents' },
+      { status: 500 }
+    );
+  }
+}
+
 // PUT - Update application with custom document references
 export async function PUT(request, { params }) {
   try {
