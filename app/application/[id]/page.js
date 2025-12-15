@@ -235,12 +235,11 @@ export default function ApplicationDetailPage() {
     setVerificationState('rejected');
     // Don't start timer for rejection
     
-    // For rejection, user will need to upload custom documents
-    // The backend server expects this flow:
-    // 1. User rejects auto-generated CV
-    // 2. User uploads custom CV via reuploadCv() method
-    // Note: There's no specific "reject" endpoint - rejection is implicit when user uploads custom docs
-    console.log('Documents rejected - user can now upload custom documents');
+    // For rejection, user needs to upload custom documents using the upload controls
+    // that appear below when verificationState is 'rejected'. The reuploadCv() API method
+    // will be called when user selects a file in the upload control.
+    // Note: There's no specific "reject" API endpoint - rejection is implicit when user uploads custom docs
+    console.log('Documents rejected - upload controls now available for custom documents');
   };
 
   const handleRollbackCV = async () => {
@@ -836,9 +835,8 @@ Best regards`}
                                 
                                 try {
                                   // If message was edited, update it first
-                                  const messageToSend = editedMessage || application.recommendedMessage;
                                   if (editedMessage && editedMessage !== application.recommendedMessage) {
-                                    await applicationsApi.updateMessage(application.id, messageToSend);
+                                    await applicationsApi.updateMessage(application.id, editedMessage);
                                   }
                                   
                                   console.log('Message approved, 5-minute timer started at:', new Date(now).toISOString());
