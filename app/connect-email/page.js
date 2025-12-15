@@ -1,14 +1,18 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeftIcon, EnvelopeIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { useSettings } from '@/lib/hooks/useSettings';
 import { emailApi } from '@/lib/api';
+import { useToast } from '@/lib/hooks/useToast';
+import ToastContainer from '@/components/ToastContainer';
 
 export default function ConnectEmailPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { settings, updateSetting } = useSettings();
+  const toast = useToast();
   const [selectedProvider, setSelectedProvider] = useState(settings.emailProvider || '');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,6 +20,27 @@ export default function ConnectEmailPage() {
   const [imapPort, setImapPort] = useState('993');
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState('');
+
+  // Handle OAuth callback success/error messages
+  useEffect(() => {
+    const successMsg = searchParams.get('success');
+    const errorMsg = searchParams.get('error');
+    
+    if (successMsg) {
+      toast.success(successMsg);
+      // Update settings to reflect connected state
+      updateSetting('emailConnected', true);
+      // Redirect to settings after short delay
+      setTimeout(() => {
+        router.push('/settings');
+      }, 1500);
+    }
+    
+    if (errorMsg) {
+      toast.error(errorMsg);
+      setError(errorMsg);
+    }
+  }, [searchParams, toast, updateSetting, router]);
 
   const emailProviders = [
     {
@@ -25,6 +50,8 @@ export default function ConnectEmailPage() {
       description: 'Connect your Google account',
       imapServer: 'imap.gmail.com',
       imapPort: '993',
+      useOAuth: true,
+      oauthUrl: '/api/email/oauth/gmail',
     },
     {
       id: 'yahoo',
@@ -33,6 +60,8 @@ export default function ConnectEmailPage() {
       description: 'Connect your Yahoo account',
       imapServer: 'imap.mail.yahoo.com',
       imapPort: '993',
+      useOAuth: true,
+      oauthUrl: '/api/email/oauth/yahoo',
     },
     {
       id: 'outlook',
@@ -41,6 +70,8 @@ export default function ConnectEmailPage() {
       description: 'Connect your Microsoft account',
       imapServer: 'outlook.office365.com',
       imapPort: '993',
+      useOAuth: true,
+      oauthUrl: '/api/email/oauth/outlook',
     },
     {
       id: 'imap',
@@ -49,6 +80,7 @@ export default function ConnectEmailPage() {
       description: 'Connect using IMAP settings',
       imapServer: '',
       imapPort: '993',
+      useOAuth: false,
     },
   ];
 
@@ -56,7 +88,15 @@ export default function ConnectEmailPage() {
     setSelectedProvider(provider.id);
     setError('');
     
-    // Pre-fill IMAP settings for known providers
+    // For OAuth providers, redirect immediately
+    if (provider.useOAuth) {
+      setConnecting(true);
+      toast.info('Redirecting to ' + provider.name + '...');
+      window.location.href = provider.oauthUrl;
+      return;
+    }
+    
+    // Pre-fill IMAP settings for non-OAuth providers
     if (provider.id !== 'imap') {
       setImapServer(provider.imapServer);
       setImapPort(provider.imapPort);
@@ -69,20 +109,56 @@ export default function ConnectEmailPage() {
   const handleConnect = async () => {
     setError('');
     
-    // Validation
-    if (!email || !email.includes('@')) {
-      setError('Please enter a valid email address');
+    // Validation - sanitize inputs
+    const sanitizedEmail = email.trim();
+    
+    if (!sanitizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizedEmail)) {
+      const errorMsg = 'Please enter a valid email address';
+      setError(errorMsg);
+      toast.error(errorMsg);
       return;
     }
     
     if (!password) {
-      setError('Please enter your password');
+      const errorMsg = 'Please enter your password';
+      setError(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+    
+    // Validate password length for security
+    if (password.length < 8) {
+      const errorMsg = 'Password must be at least 8 characters';
+      setError(errorMsg);
+      toast.error(errorMsg);
       return;
     }
     
     if (selectedProvider === 'imap' && (!imapServer || !imapPort)) {
-      setError('Please enter IMAP server and port');
+      const errorMsg = 'Please enter IMAP server and port';
+      setError(errorMsg);
+      toast.error(errorMsg);
       return;
+    }
+    
+    // Validate IMAP settings
+    if (selectedProvider === 'imap') {
+      const sanitizedServer = imapServer.trim();
+      const port = parseInt(imapPort, 10);
+      
+      if (!sanitizedServer) {
+        const errorMsg = 'Please enter a valid IMAP server';
+        setError(errorMsg);
+        toast.error(errorMsg);
+        return;
+      }
+      
+      if (isNaN(port) || port < 1 || port > 65535) {
+        const errorMsg = 'Please enter a valid port number (1-65535)';
+        setError(errorMsg);
+        toast.error(errorMsg);
+        return;
+      }
     }
 
     setConnecting(true);
@@ -91,9 +167,9 @@ export default function ConnectEmailPage() {
       // Implement actual email connection with backend
       const response = await emailApi.connect(
         selectedProvider,
-        email,
+        sanitizedEmail,
         password,
-        selectedProvider === 'imap' ? imapServer : null,
+        selectedProvider === 'imap' ? imapServer.trim() : null,
         selectedProvider === 'imap' ? imapPort : null
       );
       
@@ -101,17 +177,21 @@ export default function ConnectEmailPage() {
         // Save the settings locally as well for UI state
         updateSetting('emailConnected', true);
         updateSetting('emailProvider', selectedProvider);
-        updateSetting('connectedEmail', email);
+        updateSetting('connectedEmail', sanitizedEmail);
         updateSetting('imapSettings', {
           server: response.connection.imapServer,
           port: response.connection.imapPort,
         });
         
-        // Show success and redirect
-        alert('Email connected successfully!');
-        router.push('/settings');
+        // Show success toast and redirect
+        toast.success('Email connected successfully!');
+        setTimeout(() => {
+          router.push('/settings');
+        }, 1500);
       } else {
-        setError('Failed to connect. Please check your credentials and try again.');
+        const errorMsg = 'Failed to connect. Please check your credentials and try again.';
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
       
     } catch (err) {
@@ -119,6 +199,7 @@ export default function ConnectEmailPage() {
       // Use error message from API if available
       const errorMessage = err.message || 'Failed to connect. Please check your credentials and try again.';
       setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setConnecting(false);
     }
@@ -134,17 +215,24 @@ export default function ConnectEmailPage() {
       updateSetting('connectedEmail', '');
       updateSetting('imapSettings', null);
       
-      router.push('/settings');
+      toast.success('Email disconnected successfully');
+      
+      setTimeout(() => {
+        router.push('/settings');
+      }, 1500);
     } catch (err) {
       console.error('Disconnect error:', err);
-      alert('Failed to disconnect email. Please try again.');
+      const errorMsg = 'Failed to disconnect email. Please try again.';
+      toast.error(errorMsg);
     }
   };
 
   // If already connected, show disconnect option
   if (settings.emailConnected && settings.connectedEmail) {
     return (
-      <div className="h-full overflow-y-auto bg-gray-50 pb-20">
+      <>
+        <ToastContainer />
+        <div className="h-full overflow-y-auto bg-gray-50 pb-20">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
           <div className="max-w-2xl mx-auto px-4 py-3">
@@ -207,12 +295,14 @@ export default function ConnectEmailPage() {
             </p>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50 pb-20">
+    <>
+      <ToastContainer />
+      <div className="h-full overflow-y-auto bg-gray-50 pb-20">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3">
@@ -387,6 +477,6 @@ export default function ConnectEmailPage() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
