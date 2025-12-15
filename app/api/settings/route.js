@@ -30,9 +30,11 @@ export async function GET(request) {
 export async function PUT(request) {
   try {
     const body = await request.json();
-    const { settings } = body;
     
-    if (!settings) {
+    // Support both flat body (new format) and wrapped body (legacy format)
+    const settings = body.settings || body;
+    
+    if (!settings || typeof settings !== 'object') {
       return NextResponse.json(
         { error: 'Settings object is required' },
         { status: 400 }
