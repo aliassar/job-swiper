@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, EnvelopeIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { useSettings } from '@/lib/hooks/useSettings';
+import { emailApi } from '@/lib/api';
 
 export default function ConnectEmailPage() {
   const router = useRouter();
@@ -87,39 +88,57 @@ export default function ConnectEmailPage() {
     setConnecting(true);
 
     try {
-      // TODO: Implement actual email connection with backend
-      // This would validate credentials and set up IMAP connection
+      // Implement actual email connection with backend
+      const response = await emailApi.connect(
+        selectedProvider,
+        email,
+        password,
+        selectedProvider === 'imap' ? imapServer : null,
+        selectedProvider === 'imap' ? imapPort : null
+      );
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // For now, just save the settings locally
-      updateSetting('emailConnected', true);
-      updateSetting('emailProvider', selectedProvider);
-      updateSetting('connectedEmail', email);
-      updateSetting('imapSettings', {
-        server: imapServer,
-        port: imapPort,
-      });
-      
-      // Show success and redirect
-      alert('Email connected successfully!');
-      router.push('/settings');
+      if (response.success) {
+        // Save the settings locally as well for UI state
+        updateSetting('emailConnected', true);
+        updateSetting('emailProvider', selectedProvider);
+        updateSetting('connectedEmail', email);
+        updateSetting('imapSettings', {
+          server: response.connection.imapServer,
+          port: response.connection.imapPort,
+        });
+        
+        // Show success and redirect
+        alert('Email connected successfully!');
+        router.push('/settings');
+      } else {
+        setError('Failed to connect. Please check your credentials and try again.');
+      }
       
     } catch (err) {
       console.error('Connection error:', err);
-      setError('Failed to connect. Please check your credentials and try again.');
+      // Use error message from API if available
+      const errorMessage = err.message || 'Failed to connect. Please check your credentials and try again.';
+      setError(errorMessage);
     } finally {
       setConnecting(false);
     }
   };
 
-  const handleDisconnect = () => {
-    updateSetting('emailConnected', false);
-    updateSetting('emailProvider', '');
-    updateSetting('connectedEmail', '');
-    updateSetting('imapSettings', null);
-    router.push('/settings');
+  const handleDisconnect = async () => {
+    try {
+      await emailApi.disconnect();
+      
+      // Update local settings
+      updateSetting('emailConnected', false);
+      updateSetting('emailProvider', '');
+      updateSetting('connectedEmail', '');
+      updateSetting('imapSettings', null);
+      
+      router.push('/settings');
+    } catch (err) {
+      console.error('Disconnect error:', err);
+      alert('Failed to disconnect email. Please try again.');
+    }
   };
 
   // If already connected, show disconnect option

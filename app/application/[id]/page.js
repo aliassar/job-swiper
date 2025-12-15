@@ -134,7 +134,9 @@ export default function ApplicationDetailPage() {
         if (elapsed >= fiveMinutes) {
           setCanRollbackCV(false);
           setCvVerificationTime(null);
-          // TODO: Update server to remove rollback capability
+          // Update server to remove rollback capability
+          applicationsApi.verifyDocuments(application.id, 'accept', cvVerificationTime)
+            .catch(err => console.error('Error updating server after rollback window:', err));
         } else {
           setCanRollbackCV(true);
           setTick(t => t + 1); // Force re-render to update countdown display
@@ -166,7 +168,10 @@ export default function ApplicationDetailPage() {
           // Actually send the message and move to Applied stage
           if (application && application.stage === 'Message Verification') {
             updateApplicationStage(application.id, 'Applied');
-            // TODO: Actually send the message via API
+            // Actually send the message via API
+            applicationsApi.handleMessage(application.id, 'send')
+              .then(() => console.log('Message sent successfully'))
+              .catch(err => console.error('Error sending message:', err));
           }
         } else {
           setCanRollbackMessage(true);
@@ -192,28 +197,54 @@ export default function ApplicationDetailPage() {
     }
   };
 
-  const handleVerificationAccept = () => {
+  const handleVerificationAccept = async () => {
     setVerificationState('accepted');
     const now = Date.now();
     setCvVerificationTime(now);
-    // TODO: Call API to mark documents as verified and sync time to server
-    // The 5-minute timer starts NOW after CV approval
-    console.log('Documents verified and accepted, 5-minute timer started');
+    
+    try {
+      // Call API to mark documents as verified and sync time to server
+      await applicationsApi.verifyDocuments(application.id, 'accept', now);
+      // The 5-minute timer starts NOW after CV approval
+      console.log('Documents verified and accepted, 5-minute timer started');
+    } catch (error) {
+      console.error('Error verifying documents:', error);
+      alert('Failed to verify documents. Please try again.');
+      // Rollback state on error
+      setVerificationState('pending');
+      setCvVerificationTime(null);
+    }
   };
 
-  const handleVerificationReject = () => {
+  const handleVerificationReject = async () => {
     setVerificationState('rejected');
     // Don't start timer for rejection
-    // TODO: Call API to reject auto-generated documents
-    console.log('Documents rejected');
+    
+    try {
+      // Call API to reject auto-generated documents
+      await applicationsApi.verifyDocuments(application.id, 'reject');
+      console.log('Documents rejected');
+    } catch (error) {
+      console.error('Error rejecting documents:', error);
+      alert('Failed to reject documents. Please try again.');
+      // Rollback state on error
+      setVerificationState('pending');
+    }
   };
 
-  const handleRollbackCV = () => {
+  const handleRollbackCV = async () => {
     setVerificationState('pending');
     setCvVerificationTime(null);
     setCanRollbackCV(false);
-    // TODO: Call API to rollback CV verification decision
-    console.log('CV Verification decision rolled back');
+    
+    try {
+      // Call API to rollback CV verification decision
+      await applicationsApi.verifyDocuments(application.id, 'rollback');
+      console.log('CV Verification decision rolled back');
+    } catch (error) {
+      console.error('Error rolling back CV verification:', error);
+      alert('Failed to rollback verification. Please try again.');
+    }
   };
   
   const handleSkipCVVerification = () => {
@@ -255,7 +286,18 @@ export default function ApplicationDetailPage() {
         
         if (data.success) {
           console.log(`Custom ${type} uploaded:`, data.name);
-          // TODO: Update application with new document reference
+          // Update application with new document reference
+          const updateData = type === 'resume' 
+            ? { resumeUrl: data.url, coverLetterUrl: undefined }
+            : { resumeUrl: undefined, coverLetterUrl: data.url };
+          
+          await applicationsApi.updateDocuments(
+            application.id,
+            type === 'resume' ? data.url : undefined,
+            type === 'coverLetter' ? data.url : undefined
+          );
+          
+          alert(`${type === 'resume' ? 'Resume' : 'Cover letter'} uploaded successfully!`);
         } else {
           console.error('Upload failed:', data.error);
           alert('Upload failed. Please try again.');
@@ -737,13 +779,26 @@ Best regards`}
                           <p className="text-xs text-gray-600 mb-2">Do you approve this message?</p>
                           <div className="grid grid-cols-2 gap-2">
                             <button
-                              onClick={() => {
+                              onClick={async () => {
                                 // Approve and schedule send in 5 minutes
                                 // This starts the 5-minute timer - synced with server
                                 const now = Date.now();
                                 setMessageSendTime(now);
-                                // TODO: Sync this timestamp to server so timer persists across sessions
-                                console.log('Message approved, 5-minute timer started at:', new Date(now).toISOString());
+                                
+                                try {
+                                  // Sync this timestamp to server so timer persists across sessions
+                                  await applicationsApi.handleMessage(
+                                    application.id,
+                                    'approve',
+                                    now,
+                                    editedMessage || application.recommendedMessage
+                                  );
+                                  console.log('Message approved, 5-minute timer started at:', new Date(now).toISOString());
+                                } catch (error) {
+                                  console.error('Error approving message:', error);
+                                  alert('Failed to approve message. Please try again.');
+                                  setMessageSendTime(null);
+                                }
                               }}
                               className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-green-500 text-white rounded-lg text-xs font-semibold hover:bg-green-600 transition-colors"
                             >
@@ -805,11 +860,18 @@ Best regards`}
                       <div className="mt-3 pt-3 border-t border-gray-200">
                         <p className="text-xs text-gray-600 mb-2">Changed your mind?</p>
                         <button
-                          onClick={() => {
+                          onClick={async () => {
                             setMessageSendTime(null);
                             setCanRollbackMessage(false);
-                            // TODO: Sync rollback to server to cancel scheduled send
-                            console.log('Message send rolled back');
+                            
+                            try {
+                              // Sync rollback to server to cancel scheduled send
+                              await applicationsApi.handleMessage(application.id, 'rollback');
+                              console.log('Message send rolled back');
+                            } catch (error) {
+                              console.error('Error rolling back message:', error);
+                              alert('Failed to cancel message. Please try again.');
+                            }
                           }}
                           className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors"
                         >
