@@ -287,10 +287,6 @@ export default function ApplicationDetailPage() {
         if (data.success) {
           console.log(`Custom ${type} uploaded:`, data.name);
           // Update application with new document reference
-          const updateData = type === 'resume' 
-            ? { resumeUrl: data.url, coverLetterUrl: undefined }
-            : { resumeUrl: undefined, coverLetterUrl: data.url };
-          
           await applicationsApi.updateDocuments(
             application.id,
             type === 'resume' ? data.url : undefined,

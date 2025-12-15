@@ -38,9 +38,6 @@ export async function POST(request) {
     // 2. Store encrypted credentials in database
     // 3. Set up email monitoring service
     
-    // Simulate validation delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
     // For demo purposes, simulate a failure for invalid credentials
     // (In production, you'd validate against actual IMAP server)
     if (password === 'invalid') {

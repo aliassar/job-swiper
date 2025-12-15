@@ -38,11 +38,15 @@ export async function PUT(request) {
     }
     
     // Validate email if provided
-    if (settings.email && !settings.email.includes('@')) {
-      return NextResponse.json(
-        { error: 'Invalid email address' },
-        { status: 400 }
-      );
+    if (settings.email) {
+      // Proper email validation using regex
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(settings.email)) {
+        return NextResponse.json(
+          { error: 'Invalid email address format' },
+          { status: 400 }
+        );
+      }
     }
     
     // Validate URLs if provided
