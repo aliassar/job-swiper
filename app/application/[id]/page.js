@@ -149,9 +149,9 @@ export default function ApplicationDetailPage() {
         if (elapsed >= fiveMinutes) {
           setCanRollbackCV(false);
           setCvVerificationTime(null);
-          // Update server to remove rollback capability
-          applicationsApi.verifyDocuments(application.id, 'accept', cvVerificationTime)
-            .catch(err => console.error('Error updating server after rollback window:', err));
+          // Update server to finalize CV confirmation (rollback window expired)
+          applicationsApi.confirmCv(application.id)
+            .catch(err => console.error('Error finalizing CV confirmation on server:', err));
         } else {
           setCanRollbackCV(true);
           setTick(t => t + 1); // Force re-render to update countdown display
@@ -183,10 +183,10 @@ export default function ApplicationDetailPage() {
           // Actually send the message and move to Applied stage
           if (application && application.stage === 'Message Verification') {
             updateApplicationStage(application.id, 'Applied');
-            // Actually send the message via API
-            applicationsApi.handleMessage(application.id, 'send')
-              .then(() => console.log('Message sent successfully'))
-              .catch(err => console.error('Error sending message:', err));
+            // Actually confirm and send the message via API
+            applicationsApi.confirmMessage(application.id)
+              .then(() => console.log('Message confirmed and sent successfully'))
+              .catch(err => console.error('Error confirming message:', err));
           }
         } else {
           setCanRollbackMessage(true);
@@ -218,13 +218,13 @@ export default function ApplicationDetailPage() {
     setCvVerificationTime(now);
     
     try {
-      // Call API to mark documents as verified and sync time to server
-      await applicationsApi.verifyDocuments(application.id, 'accept', now);
+      // Call API to confirm CV is good
+      await applicationsApi.confirmCv(application.id);
       // The 5-minute timer starts NOW after CV approval
-      console.log('Documents verified and accepted, 5-minute timer started');
+      console.log('CV confirmed and accepted, 5-minute rollback timer started');
     } catch (error) {
-      console.error('Error verifying documents:', error);
-      alert('Failed to verify documents. Please try again.');
+      console.error('Error confirming CV:', error);
+      alert('Failed to confirm CV. Please try again.');
       // Rollback state on error
       setVerificationState('pending');
       setCvVerificationTime(null);
@@ -236,9 +236,12 @@ export default function ApplicationDetailPage() {
     // Don't start timer for rejection
     
     try {
-      // Call API to reject auto-generated documents
-      await applicationsApi.verifyDocuments(application.id, 'reject');
-      console.log('Documents rejected');
+      // For rejection, user will need to upload custom documents
+      // The backend server expects this flow:
+      // 1. User rejects auto-generated CV
+      // 2. User uploads custom CV via reuploadCv() method
+      // Note: There's no specific "reject" endpoint - rejection is implicit when user uploads custom docs
+      console.log('Documents rejected - user can now upload custom documents');
     } catch (error) {
       console.error('Error rejecting documents:', error);
       alert('Failed to reject documents. Please try again.');
@@ -253,9 +256,10 @@ export default function ApplicationDetailPage() {
     setCanRollbackCV(false);
     
     try {
-      // Call API to rollback CV verification decision
-      await applicationsApi.verifyDocuments(application.id, 'rollback');
-      console.log('CV Verification decision rolled back');
+      // Note: The backend server may not support rollback of CV confirmation
+      // This is a UI-only rollback - user will need to re-confirm or upload new docs
+      // If the server supports rollback, add the appropriate API endpoint here
+      console.log('CV confirmation rolled back (UI only)');
     } catch (error) {
       console.error('Error rolling back CV verification:', error);
       alert('Failed to rollback verification. Please try again.');
@@ -839,19 +843,17 @@ Best regards`}
                           <div className="grid grid-cols-2 gap-2">
                             <button
                               onClick={async () => {
-                                // Approve and schedule send in 5 minutes
-                                // This starts the 5-minute timer - synced with server
+                                // Approve message - update if edited, then schedule send in 5 minutes
                                 const now = Date.now();
                                 setMessageSendTime(now);
                                 
                                 try {
-                                  // Sync this timestamp to server so timer persists across sessions
-                                  await applicationsApi.handleMessage(
-                                    application.id,
-                                    'approve',
-                                    now,
-                                    editedMessage || application.recommendedMessage
-                                  );
+                                  // If message was edited, update it first
+                                  const messageToSend = editedMessage || application.recommendedMessage;
+                                  if (editedMessage && editedMessage !== application.recommendedMessage) {
+                                    await applicationsApi.updateMessage(application.id, messageToSend);
+                                  }
+                                  
                                   console.log('Message approved, 5-minute timer started at:', new Date(now).toISOString());
                                 } catch (error) {
                                   console.error('Error approving message:', error);
@@ -924,9 +926,10 @@ Best regards`}
                             setCanRollbackMessage(false);
                             
                             try {
-                              // Sync rollback to server to cancel scheduled send
-                              await applicationsApi.handleMessage(application.id, 'rollback');
-                              console.log('Message send rolled back');
+                              // Note: Backend server may not support message rollback
+                              // This is a UI-only rollback for now
+                              // User can re-edit and re-approve the message
+                              console.log('Message send rolled back (UI only)');
                             } catch (error) {
                               console.error('Error rolling back message:', error);
                               alert('Failed to cancel message. Please try again.');

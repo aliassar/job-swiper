@@ -1,5 +1,15 @@
 import { NextResponse } from 'next/server';
 
+/**
+ * Local mock API for notifications - Development only
+ * 
+ * This is a mock implementation that mimics the backend server response format.
+ * In production, requests are proxied to the real backend server (job-swipper-server).
+ * 
+ * Server response format: 
+ * { success: true, data: { items: [...], pagination: { page, limit, total, totalPages } } }
+ */
+
 // Mock notifications data - in production, this would come from a database
 let notifications = [
   {
@@ -75,11 +85,39 @@ let notifications = [
 ];
 
 // GET - Get all notifications
-export async function GET() {
-  return NextResponse.json({ 
-    notifications,
-    unreadCount: notifications.filter(n => !n.read).length 
-  });
+export async function GET(request) {
+  try {
+    // Parse query parameters
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    
+    // Calculate pagination
+    const total = notifications.length;
+    const totalPages = Math.ceil(total / limit);
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const items = notifications.slice(startIndex, endIndex);
+    
+    // Return server response format
+    return NextResponse.json({ 
+      success: true,
+      data: {
+        items,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages
+        }
+      }
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch notifications' },
+      { status: 500 }
+    );
+  }
 }
 
 // POST - Mark notifications as read/unread
