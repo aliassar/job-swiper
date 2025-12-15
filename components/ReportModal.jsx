@@ -11,7 +11,7 @@ export default function ReportModal({ isOpen, onClose, onReport, job }) {
   const reasons = [
     { id: 'fake', label: 'Fake', description: 'This job posting appears to be fake' },
     { id: 'not_interested', label: 'Not Interested', description: 'I\'m not interested in this type of job' },
-    { id: 'block_company', label: 'Don\'t Recommend From This Company', description: 'Don\'t show jobs from this company' }
+    { id: 'dont_recommend_company', label: 'Don\'t Recommend From This Company', description: 'Don\'t show jobs from this company' }
   ];
 
   const handleReport = (reason) => {
