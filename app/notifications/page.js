@@ -3,6 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, CheckCircleIcon, DocumentCheckIcon, EnvelopeIcon, ExclamationCircleIcon, ClockIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { notificationsApi } from '@/lib/api';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function NotificationsPage() {
   const router = useRouter();
@@ -17,10 +20,11 @@ export default function NotificationsPage() {
 
   // Set up SSE for real-time updates
   useEffect(() => {
-    // Connect to SSE endpoint
+    // Connect to SSE endpoint using API_URL
     const connectSSE = () => {
       try {
-        eventSourceRef.current = new EventSource('/api/notifications/stream');
+        const sseUrl = `${API_URL}/api/notifications/stream`;
+        eventSourceRef.current = new EventSource(sseUrl);
         
         eventSourceRef.current.onmessage = (event) => {
           try {
@@ -56,8 +60,7 @@ export default function NotificationsPage() {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/notifications');
-      const data = await response.json();
+      const data = await notificationsApi.getNotifications(1, 20);
       setNotifications(data.notifications || []);
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -104,11 +107,7 @@ export default function NotificationsPage() {
     // Mark as read via API
     if (!notification.read) {
       try {
-        await fetch('/api/notifications', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ notificationIds: [notification.id], read: true }),
-        });
+        await notificationsApi.markAsRead(notification.id);
         
         setNotifications(prev =>
           prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
@@ -132,9 +131,7 @@ export default function NotificationsPage() {
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
       
       // Call API to delete notification
-      await fetch(`/api/notifications/${notificationId}`, { 
-        method: 'DELETE' 
-      });
+      await notificationsApi.deleteNotification(notificationId);
     } catch (error) {
       console.error('Error dismissing notification:', error);
       // Refetch to restore state if delete failed
@@ -144,18 +141,14 @@ export default function NotificationsPage() {
 
   const markAllAsRead = async () => {
     try {
-      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+      const unreadCount = notifications.filter(n => !n.read).length;
       
-      if (unreadIds.length === 0) return;
+      if (unreadCount === 0) return;
       
       // Optimistically update UI
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       
-      await fetch('/api/notifications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notificationIds: unreadIds, read: true }),
-      });
+      await notificationsApi.markAllAsRead();
     } catch (error) {
       console.error('Error marking all as read:', error);
       // Refetch to restore state if update failed
@@ -172,7 +165,7 @@ export default function NotificationsPage() {
       // Optimistically update UI
       setNotifications([]);
       
-      await fetch('/api/notifications', { method: 'DELETE' });
+      await notificationsApi.clearAll();
     } catch (error) {
       console.error('Error clearing notifications:', error);
       // Refetch to restore state if delete failed
