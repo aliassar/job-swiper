@@ -5,6 +5,7 @@ import { BellIcon as BellIconSolid } from '@heroicons/react/24/solid';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { NOTIFICATION_POLL_INTERVAL } from '@/lib/constants';
 
 /**
  * Notification icon types mapping
@@ -25,7 +26,7 @@ const NOTIFICATION_ICONS = {
  */
 export default function NotificationBell() {
   const router = useRouter();
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(30000); // Poll every 30s
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(NOTIFICATION_POLL_INTERVAL);
   const [isOpen, setIsOpen] = useState(false);
 
   const handleNotificationClick = (notification) => {
