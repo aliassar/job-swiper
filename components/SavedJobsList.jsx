@@ -56,7 +56,7 @@ export default function SavedJobsList() {
               <div class="location">${job.location}</div>
               ${job.salary ? `<div class="salary">💰 ${job.salary}</div>` : ''}
               <div class="skills">
-                ${job.skills.map(skill => `<span class="skill">${skill}</span>`).join('')}
+                ${(job.skills || []).map(skill => `<span class="skill">${skill}</span>`).join('')}
               </div>
             </div>
           `).join('')}

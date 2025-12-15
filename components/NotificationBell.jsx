@@ -23,10 +23,12 @@ const NOTIFICATION_ICONS = {
 /**
  * NotificationBell component
  * Displays notification icon with badge and dropdown panel
+ * 
+ * @param {number} pollingInterval - Optional polling interval in milliseconds (default: NOTIFICATION_POLL_INTERVAL)
  */
-export default function NotificationBell() {
+export default function NotificationBell({ pollingInterval = NOTIFICATION_POLL_INTERVAL } = {}) {
   const router = useRouter();
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(NOTIFICATION_POLL_INTERVAL);
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(pollingInterval);
   const [isOpen, setIsOpen] = useState(false);
 
   const handleNotificationClick = (notification) => {
