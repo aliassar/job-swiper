@@ -89,12 +89,26 @@ export default function SwipeContainer() {
   // Note: This ref is updated in handleToggleAutoApply to match autoApplyEnabled state
   const autoApplyMetadataRef = useRef({ automaticApply: false });
   
-  // Filter state
+  // Filter state with localStorage persistence
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    location: '',
-    minSalary: '',
-    maxSalary: '',
+  const [filters, setFilters] = useState(() => {
+    // Load filters from localStorage on mount
+    if (typeof window !== 'undefined') {
+      const savedFilters = localStorage.getItem('jobFilters');
+      if (savedFilters) {
+        try {
+          return JSON.parse(savedFilters);
+        } catch (e) {
+          console.error('Error parsing saved filters:', e);
+        }
+      }
+    }
+    return {
+      location: '',
+      minSalary: '',
+      maxSalary: '',
+      jobType: '',
+    };
   });
   
   // Online status
@@ -136,12 +150,22 @@ export default function SwipeContainer() {
     };
   }, []);
   
-  // Load jobs on mount
+  // Load jobs on mount and when filters change
   useEffect(() => {
     const loadJobs = async () => {
       setLoading(true);
       try {
-        const data = await jobsApi.getJobs();
+        // Build query parameters from filters
+        const queryParams = new URLSearchParams();
+        if (filters.location) queryParams.append('location', filters.location);
+        if (filters.minSalary) queryParams.append('minSalary', filters.minSalary);
+        if (filters.maxSalary) queryParams.append('maxSalary', filters.maxSalary);
+        if (filters.jobType) queryParams.append('jobType', filters.jobType);
+        
+        const queryString = queryParams.toString();
+        const endpoint = queryString ? `?${queryString}` : '';
+        
+        const data = await jobsApi.getJobs(endpoint);
         initializeJobs(data.jobs);
       } catch (err) {
         setError({
@@ -152,7 +176,7 @@ export default function SwipeContainer() {
     };
     
     loadJobs();
-  }, [initializeJobs, setLoading, setError]);
+  }, [initializeJobs, setLoading, setError, filters]);
   
   /**
    * Handle drag end - determines swipe action
@@ -308,21 +332,29 @@ export default function SwipeContainer() {
    * Apply filters
    */
   const handleApplyFilters = useCallback(() => {
-    // TODO: Implement filter logic - send to backend or filter locally
-    console.log('Applying filters:', filters);
+    // Persist filters to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('jobFilters', JSON.stringify(filters));
+    }
     setShowFilters(false);
-    // In real implementation, this would trigger a job refetch with filter params
+    // Note: The useEffect will automatically reload jobs when filters change
   }, [filters]);
   
   /**
    * Clear filters
    */
   const handleClearFilters = useCallback(() => {
-    setFilters({
+    const clearedFilters = {
       location: '',
       minSalary: '',
       maxSalary: '',
-    });
+      jobType: '',
+    };
+    setFilters(clearedFilters);
+    // Persist cleared filters
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('jobFilters', JSON.stringify(clearedFilters));
+    }
   }, []);
   
   // Keep tooltip visible when auto-apply is on
@@ -539,7 +571,7 @@ export default function SwipeContainer() {
           <button
             onClick={handleToggleFilters}
             className={`rounded-full p-2 shadow-lg hover:scale-110 transition-all active:scale-95 ${
-              filters.location || filters.minSalary || filters.maxSalary
+              filters.location || filters.minSalary || filters.maxSalary || filters.jobType
                 ? 'bg-blue-500 text-white' 
                 : 'bg-white text-gray-700 border border-gray-300'
             }`}
@@ -632,6 +664,26 @@ export default function SwipeContainer() {
                       <p className="text-xs text-gray-400 mt-1">Maximum</p>
                     </div>
                   </div>
+                </div>
+                
+                {/* Job type filter */}
+                <div>
+                  <label htmlFor="filter-job-type" className="block text-sm font-medium text-gray-700 mb-1">
+                    Job Type
+                  </label>
+                  <select
+                    id="filter-job-type"
+                    value={filters.jobType}
+                    onChange={(e) => setFilters(prev => ({ ...prev, jobType: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  >
+                    <option value="">All Types</option>
+                    <option value="full-time">Full-time</option>
+                    <option value="part-time">Part-time</option>
+                    <option value="contract">Contract</option>
+                    <option value="internship">Internship</option>
+                    <option value="remote">Remote</option>
+                  </select>
                 </div>
               </div>
               
