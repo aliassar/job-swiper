@@ -1,0 +1,55 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - button "Open menu" [ref=e2] [cursor=pointer]
+  - button "Notifications" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+    - generic [ref=e10]: "4"
+  - main [ref=e11]:
+    - generic [ref=e13]:
+      - generic [ref=e14]:
+        - heading "Application History" [level=2] [ref=e15]
+        - paragraph [ref=e16]: Track and manage all your job applications
+      - generic [ref=e17]:
+        - generic [ref=e18]:
+          - generic:
+            - img
+          - textbox "Search by company, position, or location..." [ref=e19]
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - generic [ref=e22]: "Stage:"
+            - combobox [ref=e23]:
+              - option "All Stages" [selected]
+              - option "Applied"
+              - option "Screening"
+              - option "Interview"
+              - option "Offer"
+              - option "Accepted"
+              - option "Rejected"
+          - generic [ref=e24]:
+            - button "Export CSV" [active] [ref=e25] [cursor=pointer]:
+              - img [ref=e26]
+              - text: Export CSV
+            - button "Export PDF" [ref=e28] [cursor=pointer]:
+              - img [ref=e29]
+              - text: Export PDF
+      - paragraph [ref=e31]: Showing 1 of 1 application
+      - table [ref=e34]:
+        - rowgroup [ref=e35]:
+          - row "Date Job Title Company Stage Actions" [ref=e36]:
+            - columnheader "Date" [ref=e37]
+            - columnheader "Job Title" [ref=e38]
+            - columnheader "Company" [ref=e39]
+            - columnheader "Stage" [ref=e40]
+            - columnheader "Actions" [ref=e41]
+        - rowgroup [ref=e42]:
+          - row "Dec 12, 2025 Full Stack Developer Microsoft Phone Screen View" [ref=e43]:
+            - cell "Dec 12, 2025" [ref=e44]
+            - cell "Full Stack Developer" [ref=e45]
+            - cell "Microsoft" [ref=e46]
+            - cell "Phone Screen" [ref=e47]
+            - cell "View" [ref=e48]:
+              - button "View" [ref=e49] [cursor=pointer]
+  - alert [ref=e50]
+```
