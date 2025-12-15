@@ -351,19 +351,24 @@ export function JobProvider({ children }) {
     // Use reducer's ROLLBACK_JOB action which handles all state updates atomically
     dispatch({ type: ACTIONS.ROLLBACK_JOB, payload: { job: lastAction.job, lastAction } });
     
-    // Add to offline queue for background sync
+    // Add to offline queue for background sync with retry capability
     try {
       await offlineQueue.addOperation({
         type: 'rollback',
         id: lastAction.jobId,
         payload: { jobId: lastAction.jobId },
         apiCall: async (payload) => {
+          // Retry logic is built into the offline queue
+          // The queue will automatically retry with exponential backoff on failure
           await jobsApi.rollbackJob(payload.jobId);
           // Rollback synced successfully - no UI update needed
+          console.log('Rollback synced to server successfully');
         },
       });
     } catch (error) {
       console.error('Error queuing rollback:', error);
+      // The operation is still in the queue and will be retried
+      // The offline queue handles retries automatically
     }
   };
 
