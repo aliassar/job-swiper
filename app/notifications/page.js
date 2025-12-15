@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, CheckCircleIcon, DocumentCheckIcon, EnvelopeIcon, ExclamationCircleIcon, ClockIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
@@ -8,10 +8,49 @@ export default function NotificationsPage() {
   const router = useRouter();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const eventSourceRef = useRef(null);
 
   // Fetch notifications from API
   useEffect(() => {
     fetchNotifications();
+  }, []);
+
+  // Set up SSE for real-time updates
+  useEffect(() => {
+    // Connect to SSE endpoint
+    const connectSSE = () => {
+      try {
+        eventSourceRef.current = new EventSource('/api/notifications/stream');
+        
+        eventSourceRef.current.onmessage = (event) => {
+          try {
+            const newNotification = JSON.parse(event.data);
+            // Add new notification to the list
+            setNotifications(prev => [newNotification, ...prev]);
+          } catch (err) {
+            console.error('Error parsing SSE data:', err);
+          }
+        };
+
+        eventSourceRef.current.onerror = (error) => {
+          console.error('SSE error:', error);
+          // Reconnect after 5 seconds if connection is lost
+          eventSourceRef.current?.close();
+          setTimeout(connectSSE, 5000);
+        };
+      } catch (err) {
+        console.error('Error connecting to SSE:', err);
+      }
+    };
+
+    connectSSE();
+
+    // Cleanup on unmount
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+    };
   }, []);
 
   const fetchNotifications = async () => {
@@ -89,38 +128,55 @@ export default function NotificationsPage() {
     e.stopPropagation(); // Prevent notification click
     
     try {
-      // TODO: Add API endpoint to dismiss single notification
-      // For now, remove from local state
+      // Optimistically update UI
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
       
-      // In production, this would call:
-      // await fetch(`/api/notifications/${notificationId}`, { method: 'DELETE' });
+      // Call API to delete notification
+      await fetch(`/api/notifications/${notificationId}`, { 
+        method: 'DELETE' 
+      });
     } catch (error) {
       console.error('Error dismissing notification:', error);
+      // Refetch to restore state if delete failed
+      fetchNotifications();
     }
   };
 
   const markAllAsRead = async () => {
     try {
       const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+      
+      if (unreadIds.length === 0) return;
+      
+      // Optimistically update UI
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      
       await fetch('/api/notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notificationIds: unreadIds, read: true }),
       });
-      
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     } catch (error) {
       console.error('Error marking all as read:', error);
+      // Refetch to restore state if update failed
+      fetchNotifications();
     }
   };
 
   const clearAll = async () => {
+    if (!confirm('Are you sure you want to clear all notifications? This action cannot be undone.')) {
+      return;
+    }
+    
     try {
-      await fetch('/api/notifications', { method: 'DELETE' });
+      // Optimistically update UI
       setNotifications([]);
+      
+      await fetch('/api/notifications', { method: 'DELETE' });
     } catch (error) {
       console.error('Error clearing notifications:', error);
+      // Refetch to restore state if delete failed
+      fetchNotifications();
     }
   };
 
@@ -132,6 +188,7 @@ export default function NotificationsPage() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
+    if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     return `${diffDays}d ago`;

@@ -93,23 +93,28 @@ export default function SavedJobsPage() {
           <div className="space-y-3">
             {savedJobs.map((job) => {
               const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
+              // Check if this job has been accepted (has an application)
+              const hasApplication = job.status === 'accepted' || job.applicationId;
               
               return (
                 <div 
                   key={job.id}
-                  onClick={() => router.push(`/job/${job.id}`)}
-                  className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow overflow-hidden cursor-pointer"
+                  className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow overflow-hidden"
                 >
                   <div className="flex items-start gap-4">
                     <img 
                       src={logoUrl}
                       alt={`${job.company} logo`}
-                      className="w-14 h-14 rounded-xl flex-shrink-0"
+                      className="w-14 h-14 rounded-xl flex-shrink-0 cursor-pointer"
+                      onClick={() => router.push(`/job/${job.id}`)}
                     />
                     
                     <div className="flex-1 min-w-0 overflow-hidden">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0 overflow-hidden">
+                        <div 
+                          className="flex-1 min-w-0 overflow-hidden cursor-pointer"
+                          onClick={() => router.push(`/job/${job.id}`)}
+                        >
                           <h3 className="font-semibold text-gray-900 truncate">
                             {job.position}
                           </h3>
@@ -157,6 +162,73 @@ export default function SavedJobsPage() {
                           </span>
                         )}
                       </div>
+                      
+                      {/* Action buttons for undecided jobs */}
+                      {!hasApplication && (
+                        <div className="flex gap-2 mt-3">
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                // Accept the job and create application
+                                const response = await fetch(`/api/jobs/${job.id}/accept`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({}),
+                                });
+                                const data = await response.json();
+                                
+                                if (data.applicationId) {
+                                  // Navigate to the application page
+                                  router.push(`/application/${data.applicationId}`);
+                                } else {
+                                  // Refresh the list
+                                  mutate();
+                                }
+                              } catch (err) {
+                                console.error('Error accepting job:', err);
+                              }
+                            }}
+                            className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium flex items-center justify-center gap-1"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Accept
+                          </button>
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                // Reject the job
+                                await fetch(`/api/jobs/${job.id}/reject`, {
+                                  method: 'POST',
+                                });
+                                // Remove from saved list
+                                mutate();
+                              } catch (err) {
+                                console.error('Error rejecting job:', err);
+                              }
+                            }}
+                            className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium flex items-center justify-center gap-1"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                      
+                      {/* View application button for decided jobs */}
+                      {hasApplication && (
+                        <button
+                          onClick={() => router.push(`/application/${job.applicationId || job.id}`)}
+                          className="w-full px-4 py-2 mt-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+                        >
+                          View Application
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
