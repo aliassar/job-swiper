@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { ArrowLeftIcon, UserCircleIcon, EnvelopeIcon, PhoneIcon, LockClosedIcon } from '@heroicons/react/24/outline';
+import { userApi } from '@/lib/api';
 
 export default function UserSettingsPage() {
   const router = useRouter();
@@ -58,19 +59,34 @@ export default function UserSettingsPage() {
       }
     }
 
-    // TODO: Implement actual API call to update user settings
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      setMessage({ type: 'success', text: 'Settings updated successfully!' });
-      // Clear password fields
-      setFormData(prev => ({
-        ...prev,
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      }));
+      // Implement actual API call to update user settings
+      const response = await userApi.updateSettings(formData);
+      
+      if (response.success) {
+        setMessage({ 
+          type: 'success', 
+          text: response.message || 'Settings updated successfully!' 
+        });
+        
+        // Clear password fields
+        setFormData(prev => ({
+          ...prev,
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        }));
+      } else {
+        setMessage({ 
+          type: 'error', 
+          text: response.error || 'Failed to update settings. Please try again.' 
+        });
+      }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to update settings. Please try again.' });
+      console.error('Error updating settings:', error);
+      // Provide more specific error messages based on the error
+      const errorMessage = error.message || 'Failed to update settings. Please try again.';
+      setMessage({ type: 'error', text: errorMessage });
     } finally {
       setIsSubmitting(false);
     }
