@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useToast } from '@/lib/hooks/useToast';
 import { useSettings } from '@/lib/hooks/useSettings';
@@ -14,12 +14,17 @@ export default function OAuthCallbackHandler() {
   const router = useRouter();
   const toast = useToast();
   const { updateSetting } = useSettings();
+  const hasProcessed = useRef(false);
 
   useEffect(() => {
+    // Only process once to avoid infinite loops
+    if (hasProcessed.current) return;
+    
     const successMsg = searchParams.get('success');
     const errorMsg = searchParams.get('error');
     
     if (successMsg) {
+      hasProcessed.current = true;
       toast.success(successMsg);
       // Update settings to reflect connected state
       updateSetting('emailConnected', true);
@@ -30,9 +35,10 @@ export default function OAuthCallbackHandler() {
     }
     
     if (errorMsg) {
+      hasProcessed.current = true;
       toast.error(errorMsg);
     }
-  }, [searchParams, toast, updateSetting, router]);
+  }, [searchParams]);
 
   return null; // This component doesn't render anything
 }
