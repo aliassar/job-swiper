@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated, getAuthToken } from '@/lib/auth';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
 /**
  * Session wrapper that checks authentication status
  * Updated to work with JWT tokens stored in localStorage
@@ -25,7 +27,7 @@ function SessionWrapper({ children }) {
           const token = await getAuthToken();
           
           // Check user verification status from backend
-          const response = await fetch('/api/auth/me', {
+          const response = await fetch(`${API_URL}/api/auth/me`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -59,7 +61,7 @@ function SessionWrapper({ children }) {
             <button
               onClick={async () => {
                 try {
-                  await fetch('/api/auth/resend-verification', {
+                  await fetch(`${API_URL}/api/auth/resend-verification`, {
                     method: 'POST',
                   });
                   alert('Verification email resent!');
