@@ -60,6 +60,12 @@ export function JobProvider({ children }) {
       dispatch({ type: ACTIONS.SET_SAVED_JOBS, payload: data.saveds });
     } catch (error) {
       console.error('Error fetching saved jobs:', error);
+      // Set error state for saved jobs
+      dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: {
+        message: 'Unable to load saved jobs. Please try again later.',
+        type: 'savedJobs',
+        canRetry: true,
+      }});
     }
   }, []);
 
@@ -69,6 +75,12 @@ export function JobProvider({ children }) {
       dispatch({ type: ACTIONS.SET_APPLICATIONS, payload: data.applications });
     } catch (error) {
       console.error('Error fetching applications:', error);
+      // Set error state for applications
+      dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: {
+        message: 'Unable to load applications. Please try again later.',
+        type: 'applications',
+        canRetry: true,
+      }});
     }
   }, []);
 
@@ -78,6 +90,12 @@ export function JobProvider({ children }) {
       dispatch({ type: ACTIONS.SET_REPORTED_JOBS, payload: data.reportedJobs });
     } catch (error) {
       console.error('Error fetching reported jobs:', error);
+      // Set error state for reported jobs
+      dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: {
+        message: 'Unable to load reported jobs. Please try again later.',
+        type: 'reportedJobs',
+        canRetry: true,
+      }});
     }
   }, []);
 
@@ -89,6 +107,12 @@ export function JobProvider({ children }) {
       dispatch({ type: ACTIONS.MERGE_SKIPPED_JOBS, payload: serverSkipped });
     } catch (error) {
       console.error('Error fetching skipped jobs:', error);
+      // Set error state for skipped jobs
+      dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: {
+        message: 'Unable to load skipped jobs. Please try again later.',
+        type: 'skippedJobs',
+        canRetry: true,
+      }});
     }
   }, []);
 
