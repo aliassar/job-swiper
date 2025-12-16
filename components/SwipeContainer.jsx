@@ -158,14 +158,13 @@ export default function SwipeContainer() {
         // Build query parameters from filters
         const queryParams = new URLSearchParams();
         if (filters.location) queryParams.append('location', filters.location);
-        if (filters.minSalary) queryParams.append('minSalary', filters.minSalary);
-        if (filters.maxSalary) queryParams.append('maxSalary', filters.maxSalary);
+        if (filters.minSalary) queryParams.append('salaryMin', filters.minSalary);
+        if (filters.maxSalary) queryParams.append('salaryMax', filters.maxSalary);
         if (filters.jobType) queryParams.append('jobType', filters.jobType);
         
         const queryString = queryParams.toString();
-        const endpoint = queryString ? `?${queryString}` : '';
         
-        const data = await jobsApi.getJobs(endpoint);
+        const data = await jobsApi.getJobs(queryString);
         initializeJobs(data.jobs);
       } catch (err) {
         setError({
