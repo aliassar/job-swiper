@@ -145,6 +145,13 @@ export function useSwipeStateMachine() {
   
   // Cleanup processed swipes periodically to prevent memory leak
   // Using a time-based approach to avoid cleaning on every render
+  // Alternative approaches considered:
+  // 1. Convert Set to Array, slice last N items, convert back - INEFFICIENT
+  //    Problem: Sets don't preserve insertion order, Array conversion is expensive O(n)
+  // 2. Use Map with timestamps - MORE COMPLEX
+  //    Problem: Requires additional bookkeeping for each swipe
+  // 3. Clear entire Set periodically - CHOSEN APPROACH
+  //    Benefits: Simple, efficient O(1), acceptable tradeoff of clearing all vs partial cleanup
   useEffect(() => {
     const MAX_PROCESSED_SWIPES = 1000; // Keep only last 1000 processed swipes
     const CLEANUP_INTERVAL_MS = 60000; // Cleanup every 60 seconds max
