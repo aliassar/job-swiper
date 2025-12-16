@@ -198,7 +198,8 @@ export default function SwipeContainer() {
         }
       } catch (err) {
         // Ignore abort errors - they're expected when filters change rapidly
-        if (err.name === 'AbortError') {
+        // Check both error name and DOMException for better cross-browser compatibility
+        if (err.name === 'AbortError' || (err instanceof DOMException && err.code === 20)) {
           console.log('Job fetch aborted - filters changed');
           return;
         }
