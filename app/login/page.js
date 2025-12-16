@@ -1,8 +1,10 @@
 'use client';
 
-import { signIn } from 'next-auth/react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { setAuthToken } from '@/lib/auth';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 /**
  * Login Page
@@ -14,23 +16,48 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const router = useRouter();
 
-  const handleSignIn = async (provider, credentials = null) => {
+  const handleOAuthSignIn = (provider) => {
+    setIsLoading(true);
+    // Redirect to server OAuth endpoint
+    window.location.href = `${API_URL}/api/auth/${provider}`;
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
     setIsLoading(true);
     setError('');
+    
+    const email = e.target.email.value;
+    const password = e.target.password.value;
+    
     try {
-      const result = await signIn(provider, credentials || { 
-        callbackUrl: '/',
-        redirect: true,
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       });
       
-      if (result?.error) {
-        console.error('Sign in error:', result.error);
+      const data = await response.json();
+      
+      if (!response.ok) {
         // Check for email verification error
-        if (result.error.includes('verify') || result.error.includes('verified')) {
+        if (data.error?.includes('verify') || data.error?.includes('verified')) {
           setError('Please verify your email before signing in. Check your inbox for the verification link.');
         } else {
-          setError(result.error);
+          setError(data.error || 'Login failed');
         }
+        setIsLoading(false);
+        return;
+      }
+      
+      // Store token and redirect
+      if (data.token) {
+        setAuthToken(data.token);
+        router.push('/');
+      } else {
+        setError('No token received from server');
         setIsLoading(false);
       }
     } catch (error) {
@@ -38,19 +65,6 @@ export default function LoginPage() {
       setError('An error occurred during sign in');
       setIsLoading(false);
     }
-  };
-
-  const handlePasswordSubmit = async (e) => {
-    e.preventDefault();
-    const email = e.target.email.value;
-    const password = e.target.password.value;
-    
-    await handleSignIn('credentials', {
-      email,
-      password,
-      callbackUrl: '/',
-      redirect: true,
-    });
   };
 
   // Password Login Form
@@ -169,7 +183,7 @@ export default function LoginPage() {
 
         <div className="space-y-3">
           <button
-            onClick={() => handleSignIn('github')}
+            onClick={() => handleOAuthSignIn('github')}
             disabled={isLoading}
             className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
           >
@@ -180,7 +194,7 @@ export default function LoginPage() {
           </button>
 
           <button
-            onClick={() => handleSignIn('google')}
+            onClick={() => handleOAuthSignIn('google')}
             disabled={isLoading}
             className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-white text-gray-700 border-2 border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
           >

@@ -1,31 +1,36 @@
 'use client';
 
-import { SessionProvider as NextAuthSessionProvider, useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { isAuthenticated } from '@/lib/auth';
 
 /**
  * Session wrapper that checks authentication status
+ * Updated to work with JWT tokens stored in localStorage
  */
 function SessionWrapper({ children }) {
-  const { data: session, status } = useSession();
   const router = useRouter();
   const [userVerified, setUserVerified] = useState(true);
+  const [isAuth, setIsAuth] = useState(false);
 
-  // Query /auth/me on session mount to check email verification
+  // Check authentication status on mount
   useEffect(() => {
-    const checkUser = async () => {
-      if (status === 'authenticated' && session) {
+    const checkAuth = async () => {
+      const authenticated = await isAuthenticated();
+      setIsAuth(authenticated);
+      
+      if (authenticated) {
         try {
+          // Check user verification status from backend
           const response = await fetch('/api/auth/me');
-          const data = await response.json();
-          
-          if (data.user && !data.user.emailVerified) {
-            setUserVerified(false);
-            // Optionally redirect to email verification page
-            // router.push('/login?error=EmailNotVerified');
-          } else {
-            setUserVerified(true);
+          if (response.ok) {
+            const data = await response.json();
+            
+            if (data.user && !data.user.emailVerified) {
+              setUserVerified(false);
+            } else {
+              setUserVerified(true);
+            }
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
@@ -33,11 +38,11 @@ function SessionWrapper({ children }) {
       }
     };
 
-    checkUser();
-  }, [session, status, router]);
+    checkAuth();
+  }, []);
 
   // Show email verification warning if needed
-  if (status === 'authenticated' && !userVerified) {
+  if (isAuth && !userVerified) {
     return (
       <div>
         <div className="bg-yellow-50 border-b border-yellow-200 p-3 text-center">
@@ -69,16 +74,14 @@ function SessionWrapper({ children }) {
 }
 
 /**
- * Client-side SessionProvider wrapper for NextAuth
- * This component must be a client component to use next-auth/react
+ * Client-side SessionProvider wrapper
+ * Replaces NextAuth SessionProvider with JWT-based authentication
  */
 export default function SessionProvider({ children }) {
   return (
-    <NextAuthSessionProvider>
-      <SessionWrapper>
-        {children}
-      </SessionWrapper>
-    </NextAuthSessionProvider>
+    <SessionWrapper>
+      {children}
+    </SessionWrapper>
   );
 }
 
