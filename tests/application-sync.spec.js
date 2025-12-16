@@ -55,8 +55,19 @@ test.describe('Application Sync and Stage Preservation', () => {
           console.log('✓ Step 6: Stage selector disabled during sync');
         }
         
-        // Wait for sync to complete (max 10 seconds)
-        await page.waitForTimeout(10000);
+        // Wait for sync to complete by checking if syncing indicator disappears
+        // or stage selector becomes enabled (max 15 seconds)
+        await page.waitForFunction(
+          () => {
+            const syncIndicator = document.querySelector('text=Syncing...');
+            const stageSelect = document.querySelector('select');
+            return (!syncIndicator || !syncIndicator.textContent.includes('Syncing')) && 
+                   stageSelect && !stageSelect.disabled;
+          },
+          { timeout: 15000 }
+        ).catch(() => {
+          console.log('Note: Sync may still be in progress or already completed');
+        });
         
         // Take screenshot after sync
         await page.screenshot({ 
@@ -124,14 +135,18 @@ test.describe('Application Sync and Stage Preservation', () => {
       
       console.log('✓ Step 2: Job accepted');
       
-      // Wait for navigation to application detail page
-      await page.waitForURL('**/application/**', { timeout: 3000 }).catch(() => {
-        console.log('⊘ No automatic navigation to application detail');
-      });
+      // Check if navigation to application detail page occurs
+      // Navigation may happen immediately or not at all depending on implementation
+      const navigationOccurred = await page.waitForURL('**/application/**', { timeout: 3000 })
+        .then(() => true)
+        .catch(() => {
+          console.log('⊘ No automatic navigation to application detail - this is OK');
+          return false;
+        });
       
       // Check if we're on an application detail page (could be temp ID)
       const currentUrl = page.url();
-      if (currentUrl.includes('/application/')) {
+      if (navigationOccurred && currentUrl.includes('/application/')) {
         console.log(`✓ Step 3: Navigated to application: ${currentUrl}`);
         
         // Wait for page to load
