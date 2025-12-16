@@ -16,6 +16,9 @@ export const ACTIONS = {
   SET_QUEUE_STATUS: 'SET_QUEUE_STATUS',
   SET_FETCH_ERROR: 'SET_FETCH_ERROR',
   SET_RETRY_COUNT: 'SET_RETRY_COUNT',
+  SET_OPERATION_ERROR: 'SET_OPERATION_ERROR', // For queue operation errors
+  SET_SAVING_JOB: 'SET_SAVING_JOB', // Loading state for save/unsave operations
+  SET_REPORTING_JOB: 'SET_REPORTING_JOB', // Loading state for report operations
   
   // Complex actions
   ADD_SESSION_ACTION: 'ADD_SESSION_ACTION',
@@ -55,7 +58,10 @@ export const initialState = {
   loading: true,
   queueStatus: { length: 0, operations: [] },
   fetchError: null,
+  operationError: null, // For displaying queue operation errors to user
   retryCount: 0,
+  savingJob: null, // ID of job currently being saved/unsaved, or null
+  reportingJob: null, // ID of job currently being reported, or null
 };
 
 // Reducer function
@@ -93,6 +99,15 @@ export function jobReducer(state, action) {
       
     case ACTIONS.SET_RETRY_COUNT:
       return { ...state, retryCount: action.payload };
+      
+    case ACTIONS.SET_OPERATION_ERROR:
+      return { ...state, operationError: action.payload };
+      
+    case ACTIONS.SET_SAVING_JOB:
+      return { ...state, savingJob: action.payload };
+      
+    case ACTIONS.SET_REPORTING_JOB:
+      return { ...state, reportingJob: action.payload };
       
     case ACTIONS.ADD_SESSION_ACTION:
       return {

@@ -25,7 +25,8 @@ import {
   EXIT_ROTATION, 
   EXIT_PADDING, 
   EXIT_FALLBACK, 
-  DRAG_CONSTRAINTS 
+  DRAG_CONSTRAINTS,
+  NAVIGATION_DELAY 
 } from '@/lib/constants';
 import { useSwipeStateMachine } from '@/context/useSwipeStateMachine';
 import { SwipeActionType } from '@/context/swipeStateMachine';
@@ -70,7 +71,15 @@ export default function SwipeContainer() {
     unlock,
   } = useSwipeStateMachine();
   
-  const { toggleSaveJob, reportJob, savedJobs, acceptJob: createApplication } = useJobs();
+  const { 
+    toggleSaveJob, 
+    reportJob, 
+    savedJobs, 
+    acceptJob: createApplication,
+    rejectJob,
+    skipJob,
+    rollbackLastAction 
+  } = useJobs();
   
   // Animation state (local to UI only)
   const x = useMotionValue(0);
@@ -88,6 +97,12 @@ export default function SwipeContainer() {
   // Store auto-apply metadata for the next accept action
   // Note: This ref is updated in handleToggleAutoApply to match autoApplyEnabled state
   const autoApplyMetadataRef = useRef({ automaticApply: false });
+  
+  // Track timeout for rollback unlock to prevent memory leak
+  const rollbackTimeoutRef = useRef(null);
+  
+  // Track navigation timeouts to prevent memory leaks
+  const navigationTimeoutRef = useRef(null);
   
   // Filter state with localStorage persistence
   const [showFilters, setShowFilters] = useState(false);
@@ -146,23 +161,52 @@ export default function SwipeContainer() {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      
+      // Cleanup rollback timeout on unmount
+      if (rollbackTimeoutRef.current) {
+        clearTimeout(rollbackTimeoutRef.current);
+      }
+      
+      // Cleanup navigation timeout on unmount
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+      }
     };
   }, []);
   
   // Load jobs on mount and when filters change
   useEffect(() => {
+    // Create AbortController to handle race conditions when filters change rapidly
+    const abortController = new AbortController();
+    
     const loadJobs = async () => {
       setLoading(true);
       try {
         // Build options object from filters
-        const options = {};
+        const options = {
+          signal: abortController.signal, // Pass abort signal for request cancellation
+        };
         if (filters.location) options.location = filters.location;
         if (filters.minSalary) options.salaryMin = filters.minSalary;
         if (filters.maxSalary) options.salaryMax = filters.maxSalary;
         
         const data = await jobsApi.getJobs(options);
-        initializeJobs(data.jobs);
+        
+        // Only update state if request wasn't aborted
+        if (!abortController.signal.aborted) {
+          initializeJobs(data.jobs);
+        }
       } catch (err) {
+        // Ignore abort errors - they're expected when filters change rapidly
+        // Check both error name and DOMException for better cross-browser compatibility
+        // DOMException.ABORT_ERR is not available in all environments, so we check the code
+        const isAbortError = err.name === 'AbortError' || 
+                           (err instanceof DOMException && err.code === DOMException.ABORT_ERR);
+        if (isAbortError) {
+          console.log('Job fetch aborted - filters changed');
+          return;
+        }
+        
         setError({
           message: 'Unable to load jobs. Please check your connection and try again.',
           canRetry: true,
@@ -171,6 +215,11 @@ export default function SwipeContainer() {
     };
     
     loadJobs();
+    
+    // Cleanup: abort pending request if filters change or component unmounts
+    return () => {
+      abortController.abort();
+    };
   }, [initializeJobs, setLoading, setError, filters]);
   
   /**
@@ -191,36 +240,53 @@ export default function SwipeContainer() {
     
     if (draggedRight || flickedRight) {
       setExitDirection({ x: exitDistance, y: 0 });
+      // Update UI state in state machine
       swipe(currentJob.id, SwipeActionType.ACCEPT);
       
-      // Create application and navigate to it (even if offline)
+      // Create application through JobContext (handles API and persistence)
       // Pass auto-apply metadata to the API
-      const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
-      if (applicationId) {
-        // Small delay to allow swipe animation to start
-        setTimeout(() => {
-          router.push(`/application/${applicationId}`);
-        }, 300);
+      try {
+        const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
+        if (applicationId) {
+          // Small delay to allow swipe animation to start
+          // Track timeout to prevent memory leak
+          if (navigationTimeoutRef.current) {
+            clearTimeout(navigationTimeoutRef.current);
+          }
+          navigationTimeoutRef.current = setTimeout(() => {
+            router.push(`/application/${applicationId}`);
+          }, NAVIGATION_DELAY);
+        }
+      } catch (error) {
+        console.error('Error creating application:', error);
+        // The operation is queued offline and will be retried
+        // User can check Applications page to see sync status
       }
       return;
     }
     
     if (draggedLeft || flickedLeft) {
       setExitDirection({ x: -exitDistance, y: 0 });
+      // Update UI state in state machine
       swipe(currentJob.id, SwipeActionType.REJECT);
+      // Handle API call through JobContext
+      rejectJob(currentJob);
       return;
     }
     
     if (draggedUp || flickedUp) {
       setExitDirection({ x: 0, y: -exitDistance });
+      // Update UI state in state machine
       swipe(currentJob.id, SwipeActionType.SKIP);
+      // Handle API call through JobContext
+      skipJob(currentJob);
       return;
     }
     
     // Reset if threshold not met
     setExitDirection({ x: 0, y: 0 });
     setSwipeDirection('');
-  }, [currentJob, isLocked, exitDistance, swipe, createApplication, router]);
+  }, [currentJob, isLocked, exitDistance, swipe, createApplication, rejectJob, skipJob, router]);
   
   /**
    * Handle accept button click
@@ -228,16 +294,27 @@ export default function SwipeContainer() {
   const handleAccept = useCallback(async () => {
     if (!currentJob || isLocked) return;
     setExitDirection({ x: exitDistance, y: 0 });
+    // Update UI state in state machine
     swipe(currentJob.id, SwipeActionType.ACCEPT);
     
-    // Create application and navigate to it (even if offline)
+    // Create application through JobContext (handles API and persistence)
     // Pass auto-apply metadata to the API
-    const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
-    if (applicationId) {
-      // Small delay to allow swipe animation to start
-      setTimeout(() => {
-        router.push(`/application/${applicationId}`);
-      }, 300);
+    try {
+      const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
+      if (applicationId) {
+        // Small delay to allow swipe animation to start
+        // Track timeout to prevent memory leak
+        if (navigationTimeoutRef.current) {
+          clearTimeout(navigationTimeoutRef.current);
+        }
+        navigationTimeoutRef.current = setTimeout(() => {
+          router.push(`/application/${applicationId}`);
+        }, NAVIGATION_DELAY);
+      }
+    } catch (error) {
+      console.error('Error creating application:', error);
+      // The operation is queued offline and will be retried
+      // User can check Applications page to see sync status
     }
   }, [currentJob, isLocked, exitDistance, swipe, createApplication, router]);
   
@@ -247,8 +324,11 @@ export default function SwipeContainer() {
   const handleReject = useCallback(() => {
     if (!currentJob || isLocked) return;
     setExitDirection({ x: -exitDistance, y: 0 });
+    // Update UI state in state machine
     swipe(currentJob.id, SwipeActionType.REJECT);
-  }, [currentJob, isLocked, exitDistance, swipe]);
+    // Handle API call through JobContext
+    rejectJob(currentJob);
+  }, [currentJob, isLocked, exitDistance, swipe, rejectJob]);
   
   /**
    * Handle skip button click
@@ -256,8 +336,11 @@ export default function SwipeContainer() {
   const handleSkip = useCallback(() => {
     if (!currentJob || isLocked) return;
     setExitDirection({ x: 0, y: -exitDistance });
+    // Update UI state in state machine
     swipe(currentJob.id, SwipeActionType.SKIP);
-  }, [currentJob, isLocked, exitDistance, swipe]);
+    // Handle API call through JobContext
+    skipJob(currentJob);
+  }, [currentJob, isLocked, exitDistance, swipe, skipJob]);
   
   /**
    * Handle rollback button click
@@ -265,18 +348,29 @@ export default function SwipeContainer() {
    * 
    * CRITICAL: Rollback brings a card BACK, there's no exit animation
    * We must unlock immediately, not wait for onExitComplete
+   * 
+   * NOTE: Both state machine and JobContext must be synchronized
    */
   const handleRollback = useCallback(() => {
     if (!canPerformRollback) return;
     
     // Set exit direction for the current card to animate back in
     setExitDirection({ x: 0, y: 0 });
+    
+    // Update UI state in state machine
     rollback();
+    
+    // Also rollback in JobContext to sync sessionActions
+    rollbackLastAction();
     
     // Unlock immediately - rollback has no exit animation to trigger onExitComplete
     // The rolled-back job just appears, it doesn't exit
-    setTimeout(() => unlock(), 0);
-  }, [canPerformRollback, rollback, unlock]);
+    // Track timeout to prevent memory leak
+    if (rollbackTimeoutRef.current) {
+      clearTimeout(rollbackTimeoutRef.current);
+    }
+    rollbackTimeoutRef.current = setTimeout(() => unlock(), 0);
+  }, [canPerformRollback, rollback, rollbackLastAction, unlock]);
   
   /**
    * Animation completion handler
