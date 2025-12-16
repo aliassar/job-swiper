@@ -57,7 +57,10 @@ export function JobProvider({ children }) {
   const fetchSavedJobs = useCallback(async (search = '') => {
     try {
       const data = await savedJobsApi.getSaveds(search);
-      dispatch({ type: ACTIONS.SET_SAVED_JOBS, payload: data.saveds });
+      // After API unwrapping, data should contain savedJobs or jobs property
+      // Try savedJobs first, then fall back to saveds for backward compatibility
+      const savedJobsList = data.savedJobs || data.saveds || data.jobs || [];
+      dispatch({ type: ACTIONS.SET_SAVED_JOBS, payload: savedJobsList });
     } catch (error) {
       console.error('Error fetching saved jobs:', error);
       // Set error state for saved jobs
