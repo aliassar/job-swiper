@@ -229,7 +229,7 @@ export function jobReducer(state, action) {
         ...state,
         applications: state.applications.map(app =>
           app.jobId === action.payload.jobId && app.id.startsWith('temp-')
-            ? { ...action.payload.application, stage: 'Applied', pendingSync: false }
+            ? { ...action.payload.application, pendingSync: false }
             : app
         ),
       };
