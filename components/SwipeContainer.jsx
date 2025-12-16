@@ -28,8 +28,7 @@ import {
   DRAG_CONSTRAINTS,
   NAVIGATION_DELAY 
 } from '@/lib/constants';
-import { useSwipeStateMachine } from '@/context/useSwipeStateMachine';
-import { SwipeActionType } from '@/context/swipeStateMachine';
+import { useSwipeStateMachine, SwipeActionType } from '@/context/useSwipeStateMachine';
 import { jobsApi } from '@/lib/api';
 import { useState } from 'react';
 import { useJobs } from '@/context/JobContext';
@@ -71,7 +70,15 @@ export default function SwipeContainer() {
     unlock,
   } = useSwipeStateMachine();
   
-  const { toggleSaveJob, reportJob, savedJobs, acceptJob: createApplication } = useJobs();
+  const { 
+    toggleSaveJob, 
+    reportJob, 
+    savedJobs, 
+    acceptJob: createApplication,
+    rejectJob,
+    skipJob,
+    rollbackLastAction 
+  } = useJobs();
   
   // Animation state (local to UI only)
   const x = useMotionValue(0);
@@ -220,9 +227,10 @@ export default function SwipeContainer() {
     
     if (draggedRight || flickedRight) {
       setExitDirection({ x: exitDistance, y: 0 });
+      // Update UI state in state machine
       swipe(currentJob.id, SwipeActionType.ACCEPT);
       
-      // Create application and navigate to it (even if offline)
+      // Create application through JobContext (handles API and persistence)
       // Pass auto-apply metadata to the API
       try {
         const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
@@ -242,20 +250,26 @@ export default function SwipeContainer() {
     
     if (draggedLeft || flickedLeft) {
       setExitDirection({ x: -exitDistance, y: 0 });
+      // Update UI state in state machine
       swipe(currentJob.id, SwipeActionType.REJECT);
+      // Handle API call through JobContext
+      rejectJob(currentJob);
       return;
     }
     
     if (draggedUp || flickedUp) {
       setExitDirection({ x: 0, y: -exitDistance });
+      // Update UI state in state machine
       swipe(currentJob.id, SwipeActionType.SKIP);
+      // Handle API call through JobContext
+      skipJob(currentJob);
       return;
     }
     
     // Reset if threshold not met
     setExitDirection({ x: 0, y: 0 });
     setSwipeDirection('');
-  }, [currentJob, isLocked, exitDistance, swipe, createApplication, router]);
+  }, [currentJob, isLocked, exitDistance, swipe, createApplication, rejectJob, skipJob, router]);
   
   /**
    * Handle accept button click
@@ -263,9 +277,10 @@ export default function SwipeContainer() {
   const handleAccept = useCallback(async () => {
     if (!currentJob || isLocked) return;
     setExitDirection({ x: exitDistance, y: 0 });
+    // Update UI state in state machine
     swipe(currentJob.id, SwipeActionType.ACCEPT);
     
-    // Create application and navigate to it (even if offline)
+    // Create application through JobContext (handles API and persistence)
     // Pass auto-apply metadata to the API
     try {
       const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
@@ -288,8 +303,11 @@ export default function SwipeContainer() {
   const handleReject = useCallback(() => {
     if (!currentJob || isLocked) return;
     setExitDirection({ x: -exitDistance, y: 0 });
+    // Update UI state in state machine
     swipe(currentJob.id, SwipeActionType.REJECT);
-  }, [currentJob, isLocked, exitDistance, swipe]);
+    // Handle API call through JobContext
+    rejectJob(currentJob);
+  }, [currentJob, isLocked, exitDistance, swipe, rejectJob]);
   
   /**
    * Handle skip button click
@@ -297,8 +315,11 @@ export default function SwipeContainer() {
   const handleSkip = useCallback(() => {
     if (!currentJob || isLocked) return;
     setExitDirection({ x: 0, y: -exitDistance });
+    // Update UI state in state machine
     swipe(currentJob.id, SwipeActionType.SKIP);
-  }, [currentJob, isLocked, exitDistance, swipe]);
+    // Handle API call through JobContext
+    skipJob(currentJob);
+  }, [currentJob, isLocked, exitDistance, swipe, skipJob]);
   
   /**
    * Handle rollback button click
@@ -306,13 +327,20 @@ export default function SwipeContainer() {
    * 
    * CRITICAL: Rollback brings a card BACK, there's no exit animation
    * We must unlock immediately, not wait for onExitComplete
+   * 
+   * NOTE: Both state machine and JobContext must be synchronized
    */
   const handleRollback = useCallback(() => {
     if (!canPerformRollback) return;
     
     // Set exit direction for the current card to animate back in
     setExitDirection({ x: 0, y: 0 });
+    
+    // Update UI state in state machine
     rollback();
+    
+    // Also rollback in JobContext to sync sessionActions
+    rollbackLastAction();
     
     // Unlock immediately - rollback has no exit animation to trigger onExitComplete
     // The rolled-back job just appears, it doesn't exit
@@ -321,7 +349,7 @@ export default function SwipeContainer() {
       clearTimeout(rollbackTimeoutRef.current);
     }
     rollbackTimeoutRef.current = setTimeout(() => unlock(), 0);
-  }, [canPerformRollback, rollback, unlock]);
+  }, [canPerformRollback, rollback, rollbackLastAction, unlock]);
   
   /**
    * Animation completion handler

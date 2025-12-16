@@ -1,9 +1,9 @@
 /**
- * Hook for Swipe State Machine with API Side Effects
+ * Hook for Swipe State Machine
  * 
  * This hook:
- * - Manages the pure swipe state machine
- * - Triggers API calls as side effects (NOT blocking UI)
+ * - Manages the pure swipe state machine for UI state only
+ * - Does NOT handle API calls (delegated to JobContext)
  * - Provides a clean interface for the UI
  * - Implements timeout-based unlock for error recovery
  */
@@ -13,25 +13,21 @@ import {
   swipeReducer,
   initialSwipeState,
   SWIPE_ACTIONS,
-  SwipeActionType,
   getCurrentJob,
   getRemainingJobs,
   getNextJob,
   canRollback,
   canSwipe,
 } from './swipeStateMachine';
-import { getOfflineQueue } from '@/lib/offlineQueue';
-import { jobsApi } from '@/lib/api';
+
+// Re-export SwipeActionType for convenience
+export { SwipeActionType } from './swipeStateMachine';
 
 // Timeout for unlocking state machine if animation fails (5 seconds)
 const UNLOCK_TIMEOUT_MS = 5000;
 
 export function useSwipeStateMachine() {
   const [state, dispatch] = useReducer(swipeReducer, initialSwipeState);
-  const offlineQueue = useRef(getOfflineQueue()).current;
-  
-  // API side effect queue
-  const apiQueueRef = useRef([]);
   
   // Timeout reference for automatic unlock
   const unlockTimeoutRef = useRef(null);
@@ -138,111 +134,22 @@ export function useSwipeStateMachine() {
    * Side effect: Queue API calls when history grows (new swipe)
    * This runs AFTER the UI state has updated
    * API calls do NOT block the UI
+   * 
+   * NOTE: This has been simplified to NOT queue API calls directly.
+   * Instead, SwipeContainer is responsible for calling JobContext methods
+   * (acceptJob, rejectJob, skipJob) which handle API persistence.
+   * This prevents duplicate API calls and ensures JobContext is the
+   * single source of truth for persistence.
    */
   const prevHistoryLengthRef = useRef(0);
-  const processedSwipesRef = useRef(new Set());
-  const lastCleanupTimeRef = useRef(Date.now());
-  
-  // Cleanup processed swipes periodically to prevent memory leak
-  // Using a time-based approach to avoid cleaning on every render
-  // Alternative approaches considered:
-  // 1. Convert Set to Array, slice last N items, convert back - INEFFICIENT
-  //    Problem: Array conversion is expensive O(n), slice creates new array O(n)
-  // 2. Use Map with timestamps - MORE COMPLEX
-  //    Problem: Requires additional bookkeeping for each swipe
-  // 3. Clear entire Set periodically - CHOSEN APPROACH
-  //    Benefits: Simple, efficient O(1), acceptable tradeoff of clearing all vs partial cleanup
-  useEffect(() => {
-    const MAX_PROCESSED_SWIPES = 1000; // Keep only last 1000 processed swipes
-    const CLEANUP_INTERVAL_MS = 60000; // Cleanup every 60 seconds max
-    
-    const now = Date.now();
-    const timeSinceLastCleanup = now - lastCleanupTimeRef.current;
-    
-    if (processedSwipesRef.current.size > MAX_PROCESSED_SWIPES && 
-        timeSinceLastCleanup > CLEANUP_INTERVAL_MS) {
-      // Clear the entire set and rely on duplicate processing prevention
-      // for any operations that might come through again
-      // This is more efficient than array conversion
-      const oldSize = processedSwipesRef.current.size;
-      processedSwipesRef.current.clear();
-      lastCleanupTimeRef.current = now;
-      console.log(`Cleaned up ${oldSize} processed swipes to prevent memory leak`);
-    }
-  }, [state.history.length]); // Run when history changes
   
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      // Clear processed swipes set on unmount
-      processedSwipesRef.current.clear();
       // Clear any pending unlock timeout
       clearUnlockTimeout();
     };
   }, [clearUnlockTimeout]);
-  
-  useEffect(() => {
-    const currentLength = state.history.length;
-    const prevLength = prevHistoryLengthRef.current;
-    
-    // Only process when history grows (new swipe added)
-    if (currentLength > prevLength) {
-      const lastSwipe = state.history[state.history.length - 1];
-      if (!lastSwipe) return;
-      
-      // Create unique key for this swipe event
-      const swipeKey = `${lastSwipe.jobId}-${lastSwipe.action}-${lastSwipe.timestamp}`;
-      
-      // Only process if we haven't seen this exact swipe before
-      if (!processedSwipesRef.current.has(swipeKey)) {
-        processedSwipesRef.current.add(swipeKey);
-        
-        // Queue API call (non-blocking)
-        const { jobId, action } = lastSwipe;
-        
-        offlineQueue.addOperation({
-          type: action,
-          id: jobId,
-          payload: { jobId },
-          apiCall: async (payload) => {
-            switch (action) {
-              case SwipeActionType.ACCEPT:
-                await jobsApi.acceptJob(payload.jobId);
-                break;
-              case SwipeActionType.REJECT:
-                await jobsApi.rejectJob(payload.jobId);
-                break;
-              case SwipeActionType.SKIP:
-                await jobsApi.skipJob(payload.jobId);
-                break;
-            }
-          },
-        }).catch(error => {
-          console.error('Error queuing API call:', error);
-        });
-      }
-    }
-    
-    // Handle rollback (history shrinks)
-    if (currentLength < prevLength) {
-      // Rollback occurred
-      const rolledBackJob = state.jobs[state.cursor];
-      if (rolledBackJob) {
-        offlineQueue.addOperation({
-          type: 'rollback',
-          id: rolledBackJob.id,
-          payload: { jobId: rolledBackJob.id },
-          apiCall: async (payload) => {
-            await jobsApi.rollbackJob(payload.jobId);
-          },
-        }).catch(error => {
-          console.error('Error queuing rollback API call:', error);
-        });
-      }
-    }
-    
-    prevHistoryLengthRef.current = currentLength;
-  }, [state.history.length, state.cursor, state.jobs, state.history, offlineQueue]);
   
   // Computed values
   const currentJob = getCurrentJob(state);
