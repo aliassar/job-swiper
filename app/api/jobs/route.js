@@ -80,6 +80,9 @@ function getJobWithStatus(jobId) {
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const searchQuery = searchParams.get('search')?.toLowerCase() || '';
+  const location = searchParams.get('location')?.toLowerCase() || '';
+  const salaryMin = searchParams.get('salaryMin') ? parseInt(searchParams.get('salaryMin')) : null;
+  const salaryMax = searchParams.get('salaryMax') ? parseInt(searchParams.get('salaryMax')) : null;
   const countOnly = searchParams.get('countOnly') === 'true';
   
   // Return only pending jobs (not accepted, rejected, or skipped)
@@ -99,6 +102,26 @@ export async function GET(request) {
       ].join(' ').toLowerCase();
       
       return searchableText.includes(searchQuery);
+    });
+  }
+  
+  // Apply location filter
+  if (location) {
+    pendingJobs = pendingJobs.filter(job => {
+      return job.location?.toLowerCase().includes(location);
+    });
+  }
+  
+  // Apply salary filters (if salary field exists)
+  if (salaryMin !== null) {
+    pendingJobs = pendingJobs.filter(job => {
+      return job.salary ? job.salary >= salaryMin : true;
+    });
+  }
+  
+  if (salaryMax !== null) {
+    pendingJobs = pendingJobs.filter(job => {
+      return job.salary ? job.salary <= salaryMax : true;
     });
   }
   
