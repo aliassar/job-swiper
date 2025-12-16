@@ -160,18 +160,33 @@ export default function SwipeContainer() {
   
   // Load jobs on mount and when filters change
   useEffect(() => {
+    // Create AbortController to handle race conditions when filters change rapidly
+    const abortController = new AbortController();
+    
     const loadJobs = async () => {
       setLoading(true);
       try {
         // Build options object from filters
-        const options = {};
+        const options = {
+          signal: abortController.signal, // Pass abort signal for request cancellation
+        };
         if (filters.location) options.location = filters.location;
         if (filters.minSalary) options.salaryMin = filters.minSalary;
         if (filters.maxSalary) options.salaryMax = filters.maxSalary;
         
         const data = await jobsApi.getJobs(options);
-        initializeJobs(data.jobs);
+        
+        // Only update state if request wasn't aborted
+        if (!abortController.signal.aborted) {
+          initializeJobs(data.jobs);
+        }
       } catch (err) {
+        // Ignore abort errors - they're expected when filters change rapidly
+        if (err.name === 'AbortError') {
+          console.log('Job fetch aborted - filters changed');
+          return;
+        }
+        
         setError({
           message: 'Unable to load jobs. Please check your connection and try again.',
           canRetry: true,
@@ -180,6 +195,11 @@ export default function SwipeContainer() {
     };
     
     loadJobs();
+    
+    // Cleanup: abort pending request if filters change or component unmounts
+    return () => {
+      abortController.abort();
+    };
   }, [initializeJobs, setLoading, setError, filters]);
   
   /**
