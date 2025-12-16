@@ -107,7 +107,6 @@ export default function SwipeContainer() {
       location: '',
       minSalary: '',
       maxSalary: '',
-      jobType: '',
     };
   });
   
@@ -155,16 +154,13 @@ export default function SwipeContainer() {
     const loadJobs = async () => {
       setLoading(true);
       try {
-        // Build query parameters from filters
-        const queryParams = new URLSearchParams();
-        if (filters.location) queryParams.append('location', filters.location);
-        if (filters.minSalary) queryParams.append('salaryMin', filters.minSalary);
-        if (filters.maxSalary) queryParams.append('salaryMax', filters.maxSalary);
-        if (filters.jobType) queryParams.append('jobType', filters.jobType);
+        // Build options object from filters
+        const options = {};
+        if (filters.location) options.location = filters.location;
+        if (filters.minSalary) options.salaryMin = filters.minSalary;
+        if (filters.maxSalary) options.salaryMax = filters.maxSalary;
         
-        const queryString = queryParams.toString();
-        
-        const data = await jobsApi.getJobs(queryString);
+        const data = await jobsApi.getJobs(options);
         initializeJobs(data.jobs);
       } catch (err) {
         setError({
@@ -198,7 +194,8 @@ export default function SwipeContainer() {
       swipe(currentJob.id, SwipeActionType.ACCEPT);
       
       // Create application and navigate to it (even if offline)
-      const applicationId = await createApplication(currentJob);
+      // Pass auto-apply metadata to the API
+      const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
       if (applicationId) {
         // Small delay to allow swipe animation to start
         setTimeout(() => {
@@ -234,7 +231,8 @@ export default function SwipeContainer() {
     swipe(currentJob.id, SwipeActionType.ACCEPT);
     
     // Create application and navigate to it (even if offline)
-    const applicationId = await createApplication(currentJob);
+    // Pass auto-apply metadata to the API
+    const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
     if (applicationId) {
       // Small delay to allow swipe animation to start
       setTimeout(() => {
@@ -347,7 +345,6 @@ export default function SwipeContainer() {
       location: '',
       minSalary: '',
       maxSalary: '',
-      jobType: '',
     };
     setFilters(clearedFilters);
     // Persist cleared filters
@@ -570,7 +567,7 @@ export default function SwipeContainer() {
           <button
             onClick={handleToggleFilters}
             className={`rounded-full p-2 shadow-lg hover:scale-110 transition-all active:scale-95 ${
-              filters.location || filters.minSalary || filters.maxSalary || filters.jobType
+              filters.location || filters.minSalary || filters.maxSalary
                 ? 'bg-blue-500 text-white' 
                 : 'bg-white text-gray-700 border border-gray-300'
             }`}
@@ -663,26 +660,6 @@ export default function SwipeContainer() {
                       <p className="text-xs text-gray-400 mt-1">Maximum</p>
                     </div>
                   </div>
-                </div>
-                
-                {/* Job type filter */}
-                <div>
-                  <label htmlFor="filter-job-type" className="block text-sm font-medium text-gray-700 mb-1">
-                    Job Type
-                  </label>
-                  <select
-                    id="filter-job-type"
-                    value={filters.jobType}
-                    onChange={(e) => setFilters(prev => ({ ...prev, jobType: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  >
-                    <option value="">All Types</option>
-                    <option value="full-time">Full-time</option>
-                    <option value="part-time">Part-time</option>
-                    <option value="contract">Contract</option>
-                    <option value="internship">Internship</option>
-                    <option value="remote">Remote</option>
-                  </select>
                 </div>
               </div>
               
