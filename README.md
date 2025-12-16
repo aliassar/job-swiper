@@ -290,8 +290,6 @@ All API calls are centralized in `lib/api.js` and proxy through Next.js API rout
 
 For detailed API documentation including request/response examples, see [docs/API.md](docs/API.md).
 
-For detailed API documentation including request/response examples, see [docs/API.md](docs/API.md).
-
 ## Environment Variables
 
 Create a `.env.local` file in the root directory with the following variables:
