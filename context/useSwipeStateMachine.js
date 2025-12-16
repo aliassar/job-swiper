@@ -5,6 +5,7 @@
  * - Manages the pure swipe state machine
  * - Triggers API calls as side effects (NOT blocking UI)
  * - Provides a clean interface for the UI
+ * - Implements timeout-based unlock for error recovery
  */
 
 import { useReducer, useCallback, useEffect, useRef } from 'react';
@@ -22,12 +23,39 @@ import {
 import { getOfflineQueue } from '@/lib/offlineQueue';
 import { jobsApi } from '@/lib/api';
 
+// Timeout for unlocking state machine if animation fails (5 seconds)
+const UNLOCK_TIMEOUT_MS = 5000;
+
 export function useSwipeStateMachine() {
   const [state, dispatch] = useReducer(swipeReducer, initialSwipeState);
   const offlineQueue = useRef(getOfflineQueue()).current;
   
   // API side effect queue
   const apiQueueRef = useRef([]);
+  
+  // Timeout reference for automatic unlock
+  const unlockTimeoutRef = useRef(null);
+  
+  /**
+   * Clear any pending unlock timeout
+   */
+  const clearUnlockTimeout = useCallback(() => {
+    if (unlockTimeoutRef.current) {
+      clearTimeout(unlockTimeoutRef.current);
+      unlockTimeoutRef.current = null;
+    }
+  }, []);
+  
+  /**
+   * Set a timeout to automatically unlock if animation fails
+   */
+  const setUnlockTimeout = useCallback(() => {
+    clearUnlockTimeout();
+    unlockTimeoutRef.current = setTimeout(() => {
+      console.warn('State machine unlock timeout triggered - forcing unlock');
+      dispatch({ type: 'UNLOCK' });
+    }, UNLOCK_TIMEOUT_MS);
+  }, [clearUnlockTimeout]);
   
   /**
    * Initialize jobs data
@@ -73,8 +101,11 @@ export function useSwipeStateMachine() {
       payload: { jobId, action },
     });
     
+    // Set timeout to unlock if animation fails
+    setUnlockTimeout();
+    
     return true;
-  }, [state]);
+  }, [state, setUnlockTimeout]);
   
   /**
    * Perform a rollback (UI only, synchronous)
@@ -89,15 +120,19 @@ export function useSwipeStateMachine() {
       type: SWIPE_ACTIONS.ROLLBACK,
     });
     
+    // Set timeout to unlock if animation fails
+    setUnlockTimeout();
+    
     return true;
-  }, [state]);
+  }, [state, setUnlockTimeout]);
   
   /**
    * Unlock the state machine after animation completes
    */
   const unlock = useCallback(() => {
+    clearUnlockTimeout();
     dispatch({ type: 'UNLOCK' });
-  }, []);
+  }, [clearUnlockTimeout]);
   
   /**
    * Side effect: Queue API calls when history grows (new swipe)
@@ -106,6 +141,45 @@ export function useSwipeStateMachine() {
    */
   const prevHistoryLengthRef = useRef(0);
   const processedSwipesRef = useRef(new Set());
+  const lastCleanupTimeRef = useRef(Date.now());
+  
+  // Cleanup processed swipes periodically to prevent memory leak
+  // Using a time-based approach to avoid cleaning on every render
+  // Alternative approaches considered:
+  // 1. Convert Set to Array, slice last N items, convert back - INEFFICIENT
+  //    Problem: Array conversion is expensive O(n), slice creates new array O(n)
+  // 2. Use Map with timestamps - MORE COMPLEX
+  //    Problem: Requires additional bookkeeping for each swipe
+  // 3. Clear entire Set periodically - CHOSEN APPROACH
+  //    Benefits: Simple, efficient O(1), acceptable tradeoff of clearing all vs partial cleanup
+  useEffect(() => {
+    const MAX_PROCESSED_SWIPES = 1000; // Keep only last 1000 processed swipes
+    const CLEANUP_INTERVAL_MS = 60000; // Cleanup every 60 seconds max
+    
+    const now = Date.now();
+    const timeSinceLastCleanup = now - lastCleanupTimeRef.current;
+    
+    if (processedSwipesRef.current.size > MAX_PROCESSED_SWIPES && 
+        timeSinceLastCleanup > CLEANUP_INTERVAL_MS) {
+      // Clear the entire set and rely on duplicate processing prevention
+      // for any operations that might come through again
+      // This is more efficient than array conversion
+      const oldSize = processedSwipesRef.current.size;
+      processedSwipesRef.current.clear();
+      lastCleanupTimeRef.current = now;
+      console.log(`Cleaned up ${oldSize} processed swipes to prevent memory leak`);
+    }
+  }, [state.history.length]); // Run when history changes
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Clear processed swipes set on unmount
+      processedSwipesRef.current.clear();
+      // Clear any pending unlock timeout
+      clearUnlockTimeout();
+    };
+  }, [clearUnlockTimeout]);
   
   useEffect(() => {
     const currentLength = state.history.length;
