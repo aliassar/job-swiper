@@ -25,7 +25,8 @@ import {
   EXIT_ROTATION, 
   EXIT_PADDING, 
   EXIT_FALLBACK, 
-  DRAG_CONSTRAINTS 
+  DRAG_CONSTRAINTS,
+  NAVIGATION_DELAY 
 } from '@/lib/constants';
 import { useSwipeStateMachine } from '@/context/useSwipeStateMachine';
 import { SwipeActionType } from '@/context/swipeStateMachine';
@@ -89,6 +90,9 @@ export default function SwipeContainer() {
   // Note: This ref is updated in handleToggleAutoApply to match autoApplyEnabled state
   const autoApplyMetadataRef = useRef({ automaticApply: false });
   
+  // Track timeout for rollback unlock to prevent memory leak
+  const rollbackTimeoutRef = useRef(null);
+  
   // Filter state with localStorage persistence
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState(() => {
@@ -146,6 +150,11 @@ export default function SwipeContainer() {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      
+      // Cleanup rollback timeout on unmount
+      if (rollbackTimeoutRef.current) {
+        clearTimeout(rollbackTimeoutRef.current);
+      }
     };
   }, []);
   
@@ -195,12 +204,18 @@ export default function SwipeContainer() {
       
       // Create application and navigate to it (even if offline)
       // Pass auto-apply metadata to the API
-      const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
-      if (applicationId) {
-        // Small delay to allow swipe animation to start
-        setTimeout(() => {
-          router.push(`/application/${applicationId}`);
-        }, 300);
+      try {
+        const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
+        if (applicationId) {
+          // Small delay to allow swipe animation to start
+          setTimeout(() => {
+            router.push(`/application/${applicationId}`);
+          }, NAVIGATION_DELAY);
+        }
+      } catch (error) {
+        console.error('Error creating application:', error);
+        // The operation is queued offline and will be retried
+        // User can check Applications page to see sync status
       }
       return;
     }
@@ -232,12 +247,18 @@ export default function SwipeContainer() {
     
     // Create application and navigate to it (even if offline)
     // Pass auto-apply metadata to the API
-    const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
-    if (applicationId) {
-      // Small delay to allow swipe animation to start
-      setTimeout(() => {
-        router.push(`/application/${applicationId}`);
-      }, 300);
+    try {
+      const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
+      if (applicationId) {
+        // Small delay to allow swipe animation to start
+        setTimeout(() => {
+          router.push(`/application/${applicationId}`);
+        }, NAVIGATION_DELAY);
+      }
+    } catch (error) {
+      console.error('Error creating application:', error);
+      // The operation is queued offline and will be retried
+      // User can check Applications page to see sync status
     }
   }, [currentJob, isLocked, exitDistance, swipe, createApplication, router]);
   
@@ -275,7 +296,11 @@ export default function SwipeContainer() {
     
     // Unlock immediately - rollback has no exit animation to trigger onExitComplete
     // The rolled-back job just appears, it doesn't exit
-    setTimeout(() => unlock(), 0);
+    // Track timeout to prevent memory leak
+    if (rollbackTimeoutRef.current) {
+      clearTimeout(rollbackTimeoutRef.current);
+    }
+    rollbackTimeoutRef.current = setTimeout(() => unlock(), 0);
   }, [canPerformRollback, rollback, unlock]);
   
   /**
