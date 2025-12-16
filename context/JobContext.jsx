@@ -167,7 +167,7 @@ export function JobProvider({ children }) {
     return () => clearTimeout(timeoutId);
   }, [state.applications, state.savedJobs, state.reportedJobs, state.skippedJobs, state.currentIndex]);
 
-  const acceptJob = async (job) => {
+  const acceptJob = async (job, metadata = {}) => {
     // Create initial application with "Syncing" stage
     const tempApplication = {
       id: `temp-${job.id}-${Date.now()}`,
@@ -201,9 +201,9 @@ export function JobProvider({ children }) {
       await offlineQueue.addOperation({
         type: 'accept',
         id: job.id,
-        payload: { jobId: job.id },
+        payload: { jobId: job.id, metadata },
         apiCall: async (payload) => {
-          const result = await jobsApi.acceptJob(payload.jobId);
+          const result = await jobsApi.acceptJob(payload.jobId, payload.metadata);
           
           // Update applications on success - use server response for stage and real ID
           if (result.application) {
