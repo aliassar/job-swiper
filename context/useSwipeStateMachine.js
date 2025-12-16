@@ -141,16 +141,26 @@ export function useSwipeStateMachine() {
    */
   const prevHistoryLengthRef = useRef(0);
   const processedSwipesRef = useRef(new Set());
+  const lastCleanupTimeRef = useRef(Date.now());
   
   // Cleanup processed swipes periodically to prevent memory leak
+  // Using a time-based approach to avoid cleaning on every render
   useEffect(() => {
     const MAX_PROCESSED_SWIPES = 1000; // Keep only last 1000 processed swipes
+    const CLEANUP_INTERVAL_MS = 60000; // Cleanup every 60 seconds max
     
-    if (processedSwipesRef.current.size > MAX_PROCESSED_SWIPES) {
-      // Convert to array, keep last MAX_PROCESSED_SWIPES items, convert back to Set
-      const swipesArray = Array.from(processedSwipesRef.current);
-      processedSwipesRef.current = new Set(swipesArray.slice(-MAX_PROCESSED_SWIPES));
-      console.log('Cleaned up old processed swipes, retained last', MAX_PROCESSED_SWIPES);
+    const now = Date.now();
+    const timeSinceLastCleanup = now - lastCleanupTimeRef.current;
+    
+    if (processedSwipesRef.current.size > MAX_PROCESSED_SWIPES && 
+        timeSinceLastCleanup > CLEANUP_INTERVAL_MS) {
+      // Clear the entire set and rely on duplicate processing prevention
+      // for any operations that might come through again
+      // This is more efficient than array conversion
+      const oldSize = processedSwipesRef.current.size;
+      processedSwipesRef.current.clear();
+      lastCleanupTimeRef.current = now;
+      console.log(`Cleaned up ${oldSize} processed swipes to prevent memory leak`);
     }
   }, [state.history.length]); // Run when history changes
   
