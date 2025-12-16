@@ -215,3 +215,199 @@ This architecture solves all the root causes of race conditions by:
 4. Eliminating all setTimeout and async logic from state updates
 
 The result is a fast, reliable, testable swipe UI that works perfectly even under rapid user input.
+
+## API Integration Pattern
+
+### Centralized API Client
+
+All backend communication flows through `lib/api.js`, which provides:
+
+- **Modular Organization**: Separate objects for jobs, applications, notifications, etc.
+- **Consistent Error Handling**: Centralized error catching and reporting
+- **Type Safety**: FormData auto-detection for file uploads
+- **Environment Configuration**: Single point to configure backend URL
+
+```javascript
+// Example: Centralized API structure
+export const jobsApi = {
+  getJobs: (search = '') => apiRequest(`/api/jobs${params}`),
+  acceptJob: (jobId, metadata = {}) => apiRequest(`/api/jobs/${jobId}/accept`, {
+    method: 'POST',
+    body: JSON.stringify(metadata),
+  }),
+  // ... more methods
+};
+```
+
+### API Proxy Layer
+
+Next.js API routes act as a proxy between frontend and backend:
+
+```
+Frontend Component
+  ↓ (calls lib/api.js)
+Next.js API Route (/app/api/*/route.js)
+  ↓ (proxies to backend)
+Backend Server (job-swipper-server)
+  ↓ (queries database)
+Database
+```
+
+**Benefits:**
+- **Security**: Hide backend URL and add auth middleware
+- **Flexibility**: Easy to switch backends or add caching
+- **Error Handling**: Transform backend errors for frontend consumption
+- **CORS**: No CORS issues since proxy runs on same domain
+
+### Request/Response Flow
+
+1. Component calls API method from `lib/api.js`
+2. API client sends request to Next.js API route
+3. Next.js route validates and forwards to backend
+4. Backend processes and returns response
+5. Next.js route transforms response if needed
+6. Frontend receives standardized response format
+
+### Error Handling
+
+```javascript
+async function apiRequest(endpoint, options = {}) {
+  try {
+    const response = await fetch(url, config);
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'API request failed');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error(`API Error [${endpoint}]:`, error);
+    throw error;
+  }
+}
+```
+
+## Offline Queue Architecture
+
+### Overview
+
+The offline queue enables offline-first functionality by queueing operations when the backend is unavailable and automatically replaying them when connection is restored.
+
+### Core Components
+
+**1. IndexedDB Storage (`lib/indexedDB.js`)**
+- Persistent storage for application state
+- Survives page refreshes and browser restarts
+- Stores jobs, applications, and user actions
+
+**2. Offline Queue (`lib/offlineQueue.js`)**
+- Queue operations when offline
+- Automatic retry with exponential backoff
+- Operation deduplication and conflict resolution
+- Deterministic operation handlers
+
+### Operation Lifecycle
+
+```
+User Action
+  ↓
+Optimistic UI Update (immediate)
+  ↓
+Queue Operation
+  ↓
+[Online?]
+  Yes → Execute Immediately → Update IndexedDB
+  No → Store in Queue → Update IndexedDB
+  ↓
+[Connection Restored]
+  ↓
+Replay Queue → Update Backend → Clear Queue
+```
+
+### Queue Structure
+
+```javascript
+{
+  id: 'unique-operation-id',
+  type: 'accept' | 'reject' | 'skip' | 'save' | 'updateStage',
+  timestamp: Date.now(),
+  retries: 0,
+  maxRetries: 3,
+  data: { jobId, metadata, ... },
+  handler: async (operation) => {
+    // Deterministic operation execution
+    await api.performAction(operation.data);
+  }
+}
+```
+
+### Deterministic Handlers
+
+Each operation type has a dedicated handler ensuring consistent replay:
+
+```javascript
+const handlers = {
+  accept: async (op) => await jobsApi.acceptJob(op.data.jobId, op.data.metadata),
+  reject: async (op) => await jobsApi.rejectJob(op.data.jobId),
+  skip: async (op) => await jobsApi.skipJob(op.data.jobId),
+  updateStage: async (op) => await applicationsApi.updateStage(op.data.id, op.data.stage),
+  // ... more handlers
+};
+```
+
+### Conflict Resolution
+
+When replaying queued operations, conflicts may arise:
+
+- **Deleted Jobs**: Skip if job no longer exists
+- **State Conflicts**: Use latest timestamp as source of truth
+- **Failed Operations**: Retry with exponential backoff (1s, 2s, 4s, 8s)
+- **Max Retries**: After 3 failures, log error and remove from queue
+
+### Synchronization Strategy
+
+**On Page Load:**
+1. Load state from IndexedDB
+2. Display cached data immediately
+3. Fetch fresh data from backend
+4. Merge and resolve conflicts
+5. Update IndexedDB with latest state
+
+**On Connection Restore:**
+1. Detect online event
+2. Get queued operations
+3. Sort by timestamp (FIFO)
+4. Execute operations sequentially
+5. Remove successful operations from queue
+6. Retry failed operations
+
+### Performance Optimizations
+
+- **Debounced Saves**: Batch IndexedDB writes (300ms debounce)
+- **Lazy Queue Processing**: Only process queue when needed
+- **Memory-First**: Keep hot data in memory, persist periodically
+- **Selective Sync**: Only sync changed entities, not entire state
+
+### Testing Offline Mode
+
+```javascript
+// Simulate offline mode
+window.offlineQueue.setOfflineMode(true);
+
+// Make actions (they queue)
+await jobsApi.acceptJob(jobId);
+
+// Simulate online mode
+window.offlineQueue.setOfflineMode(false);
+
+// Queue automatically replays
+```
+
+### Benefits
+
+- ✅ **Works Offline**: Full app functionality without connection
+- ✅ **No Data Loss**: All actions preserved and synced
+- ✅ **Fast UI**: Optimistic updates for instant feedback
+- ✅ **Resilient**: Handles network failures gracefully
+- ✅ **Transparent**: Users don't need to know about queue
