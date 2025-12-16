@@ -1,6 +1,7 @@
 'use client';
 
 import { Component } from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * Error Boundary Component
@@ -84,5 +85,9 @@ class ErrorBoundary extends Component {
     return this.props.children;
   }
 }
+
+ErrorBoundary.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 export default ErrorBoundary;
