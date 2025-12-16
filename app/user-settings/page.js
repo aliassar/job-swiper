@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { ArrowLeftIcon, UserCircleIcon, EnvelopeIcon, PhoneIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import { userApi } from '@/lib/api';
 
 export default function UserSettingsPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session } = useAuth();
   
   const [formData, setFormData] = useState({
     name: session?.user?.name || '',
