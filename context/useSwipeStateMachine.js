@@ -147,7 +147,7 @@ export function useSwipeStateMachine() {
   // Using a time-based approach to avoid cleaning on every render
   // Alternative approaches considered:
   // 1. Convert Set to Array, slice last N items, convert back - INEFFICIENT
-  //    Problem: Sets don't preserve insertion order, Array conversion is expensive O(n)
+  //    Problem: Array conversion is expensive O(n), slice creates new array O(n)
   // 2. Use Map with timestamps - MORE COMPLEX
   //    Problem: Requires additional bookkeeping for each swipe
   // 3. Clear entire Set periodically - CHOSEN APPROACH
