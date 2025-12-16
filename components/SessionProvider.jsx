@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAuthenticated } from '@/lib/auth';
+import { isAuthenticated, getAuthToken } from '@/lib/auth';
 
 /**
  * Session wrapper that checks authentication status
@@ -21,8 +21,16 @@ function SessionWrapper({ children }) {
       
       if (authenticated) {
         try {
+          // Get token for authenticated requests
+          const token = await getAuthToken();
+          
           // Check user verification status from backend
-          const response = await fetch('/api/auth/me');
+          const response = await fetch('/api/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
           if (response.ok) {
             const data = await response.json();
             

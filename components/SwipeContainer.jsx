@@ -78,7 +78,8 @@ export default function SwipeContainer() {
     acceptJob: createApplication,
     rejectJob,
     skipJob,
-    rollbackLastAction 
+    rollbackLastAction,
+    manualRetry
   } = useJobs();
   
   // Animation state (local to UI only)
