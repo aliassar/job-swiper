@@ -116,14 +116,16 @@ export async function GET(request) {
   if (salaryMin !== null) {
     pendingJobs = pendingJobs.filter(job => {
       // Exclude jobs without salary information when filtering by salary
-      return job.salary && job.salary >= salaryMin;
+      // Use != null to allow salary value of 0
+      return job.salary != null && job.salary >= salaryMin;
     });
   }
   
   if (salaryMax !== null) {
     pendingJobs = pendingJobs.filter(job => {
       // Exclude jobs without salary information when filtering by salary
-      return job.salary && job.salary <= salaryMax;
+      // Use != null to allow salary value of 0
+      return job.salary != null && job.salary <= salaryMax;
     });
   }
   
