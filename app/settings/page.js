@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth, signOut } from '@/lib/hooks/useAuth';
 import { ArrowLeftIcon, UserCircleIcon, DocumentArrowUpIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
 import { useSettings } from '@/lib/hooks/useSettings';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useAuth();
   const { settings, isLoading, updateSetting, updateAutomationStage } = useSettings();
   const [uploadingResume, setUploadingResume] = useState(false);
   const [uploadingCoverLetter, setUploadingCoverLetter] = useState(false);
