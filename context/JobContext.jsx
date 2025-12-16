@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useCallback, useReducer } from 'react';
 import { jobsApi, savedJobsApi, applicationsApi, reportedApi } from '@/lib/api';
 import { getOfflineQueue } from '@/lib/offlineQueue';
-import { MAX_FETCH_RETRIES } from '@/lib/constants';
+import { MAX_FETCH_RETRIES, STATE_PERSISTENCE_DEBOUNCE } from '@/lib/constants';
 import { saveAppState, loadAppState } from '@/lib/indexedDB';
 import { jobReducer, initialState, ACTIONS } from './jobReducer';
 
@@ -187,7 +187,7 @@ export function JobProvider({ children }) {
     };
 
     // Debounce the save operation
-    const timeoutId = setTimeout(persistState, 1000);
+    const timeoutId = setTimeout(persistState, STATE_PERSISTENCE_DEBOUNCE);
     return () => clearTimeout(timeoutId);
   }, [state.applications, state.savedJobs, state.reportedJobs, state.skippedJobs, state.currentIndex]);
 
