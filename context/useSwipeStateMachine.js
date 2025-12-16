@@ -20,9 +20,6 @@ import {
   canSwipe,
 } from './swipeStateMachine';
 
-// Re-export SwipeActionType for convenience
-export { SwipeActionType } from './swipeStateMachine';
-
 // Timeout for unlocking state machine if animation fails (5 seconds)
 const UNLOCK_TIMEOUT_MS = 5000;
 

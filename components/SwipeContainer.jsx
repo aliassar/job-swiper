@@ -28,7 +28,8 @@ import {
   DRAG_CONSTRAINTS,
   NAVIGATION_DELAY 
 } from '@/lib/constants';
-import { useSwipeStateMachine, SwipeActionType } from '@/context/useSwipeStateMachine';
+import { useSwipeStateMachine } from '@/context/useSwipeStateMachine';
+import { SwipeActionType } from '@/context/swipeStateMachine';
 import { jobsApi } from '@/lib/api';
 import { useState } from 'react';
 import { useJobs } from '@/context/JobContext';
@@ -100,6 +101,9 @@ export default function SwipeContainer() {
   // Track timeout for rollback unlock to prevent memory leak
   const rollbackTimeoutRef = useRef(null);
   
+  // Track navigation timeouts to prevent memory leaks
+  const navigationTimeoutRef = useRef(null);
+  
   // Filter state with localStorage persistence
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState(() => {
@@ -161,6 +165,11 @@ export default function SwipeContainer() {
       // Cleanup rollback timeout on unmount
       if (rollbackTimeoutRef.current) {
         clearTimeout(rollbackTimeoutRef.current);
+      }
+      
+      // Cleanup navigation timeout on unmount
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
       }
     };
   }, []);
@@ -236,7 +245,11 @@ export default function SwipeContainer() {
         const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
         if (applicationId) {
           // Small delay to allow swipe animation to start
-          setTimeout(() => {
+          // Track timeout to prevent memory leak
+          if (navigationTimeoutRef.current) {
+            clearTimeout(navigationTimeoutRef.current);
+          }
+          navigationTimeoutRef.current = setTimeout(() => {
             router.push(`/application/${applicationId}`);
           }, NAVIGATION_DELAY);
         }
@@ -286,7 +299,11 @@ export default function SwipeContainer() {
       const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
       if (applicationId) {
         // Small delay to allow swipe animation to start
-        setTimeout(() => {
+        // Track timeout to prevent memory leak
+        if (navigationTimeoutRef.current) {
+          clearTimeout(navigationTimeoutRef.current);
+        }
+        navigationTimeoutRef.current = setTimeout(() => {
           router.push(`/application/${applicationId}`);
         }, NAVIGATION_DELAY);
       }
