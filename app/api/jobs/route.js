@@ -112,16 +112,18 @@ export async function GET(request) {
     });
   }
   
-  // Apply salary filters (if salary field exists)
+  // Apply salary filters (only if job has salary field)
   if (salaryMin !== null) {
     pendingJobs = pendingJobs.filter(job => {
-      return job.salary ? job.salary >= salaryMin : true;
+      // Exclude jobs without salary information when filtering by salary
+      return job.salary && job.salary >= salaryMin;
     });
   }
   
   if (salaryMax !== null) {
     pendingJobs = pendingJobs.filter(job => {
-      return job.salary ? job.salary <= salaryMax : true;
+      // Exclude jobs without salary information when filtering by salary
+      return job.salary && job.salary <= salaryMax;
     });
   }
   
