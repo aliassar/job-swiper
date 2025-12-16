@@ -154,9 +154,16 @@ export function JobProvider({ children }) {
       dispatch({ type: ACTIONS.SET_QUEUE_STATUS, payload: offlineQueue.getQueueStatus() });
       
       if (event === 'failed') {
-        // Handle failed operation
+        // Handle failed operation - dispatch error for user notification
         console.error('Operation failed:', data);
-        // Could show user notification here
+        dispatch({ 
+          type: ACTIONS.SET_OPERATION_ERROR, 
+          payload: {
+            message: `Failed to sync operation: ${data.type || 'unknown'}`,
+            details: data,
+            timestamp: new Date().toISOString(),
+          }
+        });
       }
     });
 
@@ -336,6 +343,9 @@ export function JobProvider({ children }) {
     const isSaved = state.savedJobs.some(saved => saved.id === job.id);
     const newSavedState = !isSaved;
     
+    // Set loading state
+    dispatch({ type: ACTIONS.SET_SAVING_JOB, payload: job.id });
+    
     // Optimistically update UI
     if (isSaved) {
       dispatch({ type: ACTIONS.TOGGLE_SAVED_JOB, payload: job });
@@ -359,10 +369,15 @@ export function JobProvider({ children }) {
               jobId: payload.jobId
             }});
           }
+          
+          // Clear loading state
+          dispatch({ type: ACTIONS.SET_SAVING_JOB, payload: null });
         },
       });
     } catch (error) {
       console.error('Error queuing save job toggle:', error);
+      // Clear loading state on error
+      dispatch({ type: ACTIONS.SET_SAVING_JOB, payload: null });
     }
   };
 
@@ -431,6 +446,9 @@ export function JobProvider({ children }) {
       return;
     }
     
+    // Set loading state
+    dispatch({ type: ACTIONS.SET_REPORTING_JOB, payload: job.id });
+    
     // Optimistic UI update
     const reportId = `report-${job.id}-${Date.now()}`;
     const newReport = {
@@ -458,6 +476,9 @@ export function JobProvider({ children }) {
           dispatch({ type: ACTIONS.MARK_REPORTED_JOB_SYNCED, payload: {
             jobId: payload.jobId
           }});
+          
+          // Clear loading state
+          dispatch({ type: ACTIONS.SET_REPORTING_JOB, payload: null });
         },
       });
       
@@ -465,10 +486,14 @@ export function JobProvider({ children }) {
       // This is expected when user toggles report/unreport quickly
       if (operation === null) {
         console.log(`Cancelled pending unreport for job ${job.id}`);
+        // Clear loading state
+        dispatch({ type: ACTIONS.SET_REPORTING_JOB, payload: null });
       }
     } catch (error) {
       console.error('Error queuing report:', error);
       // Operation is still in queue for retry
+      // Clear loading state on error
+      dispatch({ type: ACTIONS.SET_REPORTING_JOB, payload: null });
     }
   };
 
@@ -523,8 +548,11 @@ export function JobProvider({ children }) {
         sessionActions: state.sessionActions,
         loading: state.loading,
         fetchError: state.fetchError,
+        operationError: state.operationError,
         retryCount: state.retryCount,
         queueStatus: state.queueStatus,
+        savingJob: state.savingJob,
+        reportingJob: state.reportingJob,
         acceptJob,
         rejectJob,
         skipJob,
