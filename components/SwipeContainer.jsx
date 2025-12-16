@@ -78,7 +78,8 @@ export default function SwipeContainer() {
     acceptJob: createApplication,
     rejectJob,
     skipJob,
-    rollbackLastAction 
+    rollbackLastAction,
+    manualRetry
   } = useJobs();
   
   // Animation state (local to UI only)
@@ -485,6 +486,15 @@ export default function SwipeContainer() {
           <div className="text-6xl mb-4">😕</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Unable to Load Jobs</h2>
           <p className="text-gray-600 mb-6">{error.message}</p>
+          
+          {error.canRetry && (
+            <button
+              onClick={() => manualRetry()}
+              className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-full font-medium hover:bg-blue-600 transition-colors"
+            >
+              Try Again
+            </button>
+          )}
           
           {!isOnline && (
             <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-sm">
