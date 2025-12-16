@@ -4,7 +4,6 @@ import { createContext, useContext, useEffect, useMemo, useRef, useCallback, use
 import { jobsApi, savedJobsApi, applicationsApi, reportedApi } from '@/lib/api';
 import { getOfflineQueue } from '@/lib/offlineQueue';
 import { MAX_FETCH_RETRIES } from '@/lib/constants';
-import { debounce } from '@/lib/utils';
 import { saveAppState, loadAppState } from '@/lib/indexedDB';
 import { jobReducer, initialState, ACTIONS } from './jobReducer';
 
@@ -400,7 +399,7 @@ export function JobProvider({ children }) {
     }
   };
 
-  const reportJob = async (job, reason = 'other') => {
+  const reportJob = async (job, reason = 'not_interested') => {
     // Check if already reported to avoid duplicates
     const alreadyReported = state.reportedJobs.some(r => r.jobId === job.id);
     if (alreadyReported) {
@@ -506,7 +505,6 @@ export function JobProvider({ children }) {
         rejectJob,
         skipJob,
         toggleSaveJob,
-        toggleSaveJob: toggleSaveJob, // Keep for backward compatibility
         reportJob,
         unreportJob,
         rollbackLastAction,
