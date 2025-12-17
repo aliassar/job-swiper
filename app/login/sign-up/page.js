@@ -82,7 +82,21 @@ export default function SignUpPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error?.message || data.message || 'Registration failed');
+        const errorMessage = data.error?.message || data.message || 'Registration failed';
+
+        // Check if user already exists but might not be verified
+        // Show verification UI so they can resend
+        if (errorMessage.toLowerCase().includes('already exists') ||
+          errorMessage.toLowerCase().includes('already registered') ||
+          data.error?.code === 'USER_EXISTS') {
+          // Show email verification UI with option to resend
+          setUserEmail(email);
+          setShowEmailVerification(true);
+          setIsLoading(false);
+          return;
+        }
+
+        throw new Error(errorMessage);
       }
 
       // Show email verification message

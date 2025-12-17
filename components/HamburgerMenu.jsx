@@ -6,9 +6,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth, signOut } from '@/lib/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { notificationsApi } from '@/lib/api';
-import { 
-  BriefcaseIcon, 
-  BookmarkIcon, 
+import {
+  BriefcaseIcon,
+  BookmarkIcon,
   ClockIcon,
   ArrowPathIcon,
   FlagIcon,
@@ -25,8 +25,13 @@ export default function HamburgerMenu() {
   const { data: session, status } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Fetch unread count
+  // Fetch unread count - ONLY when authenticated
   useEffect(() => {
+    // Don't fetch if not authenticated
+    if (status !== 'authenticated') {
+      return;
+    }
+
     const fetchUnreadCount = async () => {
       try {
         const data = await notificationsApi.getUnreadCount();
@@ -40,7 +45,7 @@ export default function HamburgerMenu() {
     // Poll every 30 seconds
     const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [status]);
 
   const menuItems = [
     {
@@ -142,8 +147,8 @@ export default function HamburgerMenu() {
               <div className="p-4 pt-6 border-b border-gray-200">
                 <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
                   {session.user.image ? (
-                    <img 
-                      src={session.user.image} 
+                    <img
+                      src={session.user.image}
                       alt={session.user.name || 'User'}
                       className="w-12 h-12 rounded-full"
                     />
@@ -168,17 +173,16 @@ export default function HamburgerMenu() {
                 {menuItems.map((item) => {
                   const isActive = pathname === item.href;
                   const Icon = item.icon;
-                  
+
                   return (
                     <li key={item.href}>
                       <Link
                         href={item.href}
                         onClick={closeMenu}
-                        className={`flex items-start gap-4 p-4 rounded-xl transition-all ${
-                          isActive 
-                            ? 'bg-blue-50 text-blue-600' 
+                        className={`flex items-start gap-4 p-4 rounded-xl transition-all ${isActive
+                            ? 'bg-blue-50 text-blue-600'
                             : 'hover:bg-gray-50 text-gray-700'
-                        }`}
+                          }`}
                       >
                         <Icon className={`h-6 w-6 flex-shrink-0 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
                         <div className="flex-1 min-w-0">
@@ -220,7 +224,7 @@ export default function HamburgerMenu() {
                   </button>
                 )}
               </div>
-              
+
               <div className="px-4 pb-4">
                 <p className="text-xs text-gray-500 text-center">
                   © 2024 Job Swiper. All rights reserved.

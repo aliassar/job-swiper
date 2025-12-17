@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
 import http from '@/lib/http';
 
-const PUBLIC_PATHS = ['/login', '/login/sign-up', '/login/forgot-password', '/auth/callback'];
+const PUBLIC_PATHS = ['/login', '/login/sign-up', '/login/forgot-password', '/auth/callback', '/auth/verify-email'];
 
 function SessionWrapper({ children }) {
   const router = useRouter();
