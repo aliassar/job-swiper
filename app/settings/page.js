@@ -33,14 +33,14 @@ export default function SettingsPage() {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('type', 'resume');
-        
+
         const response = await fetch('/api/upload', {
           method: 'POST',
           body: formData,
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
           updateSetting('baseResume', { name: data.name, url: data.url });
         } else {
@@ -64,14 +64,14 @@ export default function SettingsPage() {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('type', 'coverLetter');
-        
+
         const response = await fetch('/api/upload', {
           method: 'POST',
           body: formData,
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
           updateSetting('baseCoverLetter', { name: data.name, url: data.url });
         } else {
@@ -112,11 +112,11 @@ export default function SettingsPage() {
 
         {/* Compact single card with all settings */}
         <div className="bg-white rounded-xl shadow-lg p-4 mb-4">
-          
+
           {/* Application Automation Section */}
           <div className="mb-4 pb-4 border-b border-gray-200">
             <h3 className="text-sm font-bold text-gray-900 mb-3">Application Automation</h3>
-            
+
             {/* Write resume and cover letter */}
             <div className="mb-3">
               <div className="flex items-center justify-between mb-2">
@@ -129,18 +129,16 @@ export default function SettingsPage() {
                   id="write-docs"
                   type="button"
                   onClick={() => updateAutomationStage('writeResumeAndCoverLetter', !settings.automationStages.writeResumeAndCoverLetter)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    settings.automationStages.writeResumeAndCoverLetter ? 'bg-blue-500' : 'bg-gray-200'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.automationStages.writeResumeAndCoverLetter ? 'bg-blue-500' : 'bg-gray-200'
+                    }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      settings.automationStages.writeResumeAndCoverLetter ? 'translate-x-6' : 'translate-x-1'
-                    }`}
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.automationStages.writeResumeAndCoverLetter ? 'translate-x-6' : 'translate-x-1'
+                      }`}
                   />
                 </button>
               </div>
-              
+
               {/* Sub-option: Verify documents */}
               {settings.automationStages.writeResumeAndCoverLetter && (
                 <div className="ml-4 pl-3 border-l-2 border-blue-200">
@@ -154,14 +152,12 @@ export default function SettingsPage() {
                       id="verify-docs"
                       type="button"
                       onClick={() => updateAutomationStage('verifyResumeAndCoverLetter', !settings.automationStages.verifyResumeAndCoverLetter)}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                        settings.automationStages.verifyResumeAndCoverLetter ? 'bg-blue-500' : 'bg-gray-200'
-                      }`}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.automationStages.verifyResumeAndCoverLetter ? 'bg-blue-500' : 'bg-gray-200'
+                        }`}
                     >
                       <span
-                        className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                          settings.automationStages.verifyResumeAndCoverLetter ? 'translate-x-5' : 'translate-x-1'
-                        }`}
+                        className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${settings.automationStages.verifyResumeAndCoverLetter ? 'translate-x-5' : 'translate-x-1'
+                          }`}
                       />
                     </button>
                   </div>
@@ -181,14 +177,12 @@ export default function SettingsPage() {
                   id="apply-auto"
                   type="button"
                   onClick={() => updateAutomationStage('applyViaEmailsAndForms', !settings.automationStages.applyViaEmailsAndForms)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    settings.automationStages.applyViaEmailsAndForms ? 'bg-blue-500' : 'bg-gray-200'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.automationStages.applyViaEmailsAndForms ? 'bg-blue-500' : 'bg-gray-200'
+                    }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      settings.automationStages.applyViaEmailsAndForms ? 'translate-x-6' : 'translate-x-1'
-                    }`}
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.automationStages.applyViaEmailsAndForms ? 'translate-x-6' : 'translate-x-1'
+                      }`}
                   />
                 </button>
               </div>
@@ -206,18 +200,16 @@ export default function SettingsPage() {
                   id="update-status"
                   type="button"
                   onClick={() => updateAutomationStage('updateJobStatus', !settings.automationStages.updateJobStatus)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    settings.automationStages.updateJobStatus ? 'bg-blue-500' : 'bg-gray-200'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.automationStages.updateJobStatus ? 'bg-blue-500' : 'bg-gray-200'
+                    }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      settings.automationStages.updateJobStatus ? 'translate-x-6' : 'translate-x-1'
-                    }`}
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.automationStages.updateJobStatus ? 'translate-x-6' : 'translate-x-1'
+                      }`}
                   />
                 </button>
               </div>
-              
+
               {/* Email connection button */}
               {settings.automationStages.updateJobStatus && (
                 <div className="ml-4">
@@ -231,7 +223,7 @@ export default function SettingsPage() {
                 </div>
               )}
             </div>
-            
+
             {/* Filter out fake jobs */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex-1">
@@ -246,18 +238,16 @@ export default function SettingsPage() {
                 id="filter-fake-jobs"
                 type="button"
                 onClick={() => updateSetting('filterOutFakeJobs', !settings.filterOutFakeJobs)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.filterOutFakeJobs ? 'bg-blue-500' : 'bg-gray-200'
-                }`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.filterOutFakeJobs ? 'bg-blue-500' : 'bg-gray-200'
+                  }`}
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.filterOutFakeJobs ? 'translate-x-6' : 'translate-x-1'
-                  }`}
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.filterOutFakeJobs ? 'translate-x-6' : 'translate-x-1'
+                    }`}
                 />
               </button>
             </div>
-            
+
             {/* Auto follow-up emails to employers */}
             <div className="mb-2">
               <div className="flex items-center justify-between mb-2">
@@ -273,18 +263,16 @@ export default function SettingsPage() {
                   id="auto-followup-email"
                   type="button"
                   onClick={() => updateSetting('autoFollowUpEmailEnabled', !settings.autoFollowUpEmailEnabled)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    settings.autoFollowUpEmailEnabled ? 'bg-blue-500' : 'bg-gray-200'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.autoFollowUpEmailEnabled ? 'bg-blue-500' : 'bg-gray-200'
+                    }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      settings.autoFollowUpEmailEnabled ? 'translate-x-6' : 'translate-x-1'
-                    }`}
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.autoFollowUpEmailEnabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
                   />
                 </button>
               </div>
-              
+
               {/* Auto follow-up configuration */}
               {settings.autoFollowUpEmailEnabled && (
                 <div className="ml-4 space-y-2">
@@ -305,7 +293,7 @@ export default function SettingsPage() {
                       <span className="text-xs text-gray-600">days</span>
                     </div>
                   </div>
-                  
+
                   <div>
                     <label htmlFor="followup-max-count" className="block text-xs font-medium text-gray-700 mb-1">
                       Maximum follow-ups
@@ -315,7 +303,7 @@ export default function SettingsPage() {
                         type="number"
                         id="followup-max-count"
                         min="1"
-                        max="5"
+                        max="3"
                         value={settings.autoFollowUpMaxCount || 2}
                         onChange={(e) => updateSetting('autoFollowUpMaxCount', parseInt(e.target.value) || 2)}
                         className="w-20 px-2 py-1 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -344,18 +332,16 @@ export default function SettingsPage() {
                 id="email-notifications"
                 type="button"
                 onClick={() => updateSetting('emailNotificationsEnabled', !settings.emailNotificationsEnabled)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.emailNotificationsEnabled ? 'bg-blue-500' : 'bg-gray-200'
-                }`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.emailNotificationsEnabled ? 'bg-blue-500' : 'bg-gray-200'
+                  }`}
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.emailNotificationsEnabled ? 'translate-x-6' : 'translate-x-1'
-                  }`}
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.emailNotificationsEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
                 />
               </button>
             </div>
-            
+
             {/* Follow-up reminder (user reminders, not auto emails) */}
             <div className="mb-2">
               <div className="flex items-center justify-between mb-2">
@@ -371,18 +357,16 @@ export default function SettingsPage() {
                   id="followup-reminder"
                   type="button"
                   onClick={() => updateSetting('followUpReminderEnabled', !settings.followUpReminderEnabled)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    settings.followUpReminderEnabled ? 'bg-blue-500' : 'bg-gray-200'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.followUpReminderEnabled ? 'bg-blue-500' : 'bg-gray-200'
+                    }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      settings.followUpReminderEnabled ? 'translate-x-6' : 'translate-x-1'
-                    }`}
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.followUpReminderEnabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
                   />
                 </button>
               </div>
-              
+
               {/* Days selector */}
               {settings.followUpReminderEnabled && (
                 <div className="ml-4">
@@ -410,7 +394,7 @@ export default function SettingsPage() {
           <div className="mb-4 pb-4 border-b border-gray-200">
             <h3 className="text-sm font-bold text-gray-900 mb-3">Base Documents</h3>
             <p className="text-xs text-gray-500 mb-3">Upload templates for tailoring</p>
-            
+
             <div className="space-y-2">
               {/* Resume upload */}
               <div>
@@ -432,7 +416,7 @@ export default function SettingsPage() {
                   />
                 </label>
               </div>
-              
+
               {/* Cover letter upload */}
               <div>
                 <label className={`flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors ${uploadingCoverLetter ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}>
@@ -473,8 +457,8 @@ export default function SettingsPage() {
           <div className="bg-white rounded-xl shadow-lg p-4">
             <div className="flex items-center gap-3 mb-3">
               {session.user.image ? (
-                <img 
-                  src={session.user.image} 
+                <img
+                  src={session.user.image}
                   alt={session.user.name || 'User'}
                   className="w-10 h-10 rounded-full"
                 />
