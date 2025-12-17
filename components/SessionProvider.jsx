@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAuthenticated, getAuthToken } from '@/lib/auth';
+import { isAuthenticated, getAuthToken, getAuthHeaders } from '@/lib/auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -61,8 +61,10 @@ function SessionWrapper({ children }) {
             <button
               onClick={async () => {
                 try {
+                  const authHeaders = await getAuthHeaders();
                   await fetch(`${API_URL}/api/auth/resend-verification`, {
                     method: 'POST',
+                    headers: authHeaders,
                   });
                   alert('Verification email resent!');
                 } catch (err) {
