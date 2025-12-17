@@ -6,10 +6,15 @@ import { getOfflineQueue } from '@/lib/offlineQueue';
 import { MAX_FETCH_RETRIES, STATE_PERSISTENCE_DEBOUNCE } from '@/lib/constants';
 import { saveAppState, loadAppState } from '@/lib/indexedDB';
 import { jobReducer, initialState, ACTIONS } from './jobReducer';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 const JobContext = createContext();
 
 export function JobProvider({ children }) {
+  // Get user session for user-specific state persistence
+  const { data: session } = useAuth();
+  const userId = session?.user?.id;
+
   // Optimization 9: useReducer for complex state management
   const [state, dispatch] = useReducer(jobReducer, initialState);
 
@@ -122,8 +127,10 @@ export function JobProvider({ children }) {
   // Feature 19: Load persisted state from IndexedDB on mount
   useEffect(() => {
     const loadPersistedState = async () => {
+      if (!userId) return; // Don't load if not authenticated
+      
       try {
-        const persistedState = await loadAppState();
+        const persistedState = await loadAppState(userId);
         if (persistedState && persistedState.timestamp) {
           // Check if state is not too old (e.g., less than 24 hours)
           const ageInHours = (Date.now() - persistedState.timestamp) / (1000 * 60 * 60);
@@ -142,7 +149,7 @@ export function JobProvider({ children }) {
     };
 
     loadPersistedState();
-  }, []);
+  }, [userId]);
 
   // Fetch jobs and saved jobs on mount
   useEffect(() => {
@@ -181,6 +188,8 @@ export function JobProvider({ children }) {
 
   // Feature 19: Persist state to IndexedDB when it changes
   useEffect(() => {
+    if (!userId) return; // Don't persist if not authenticated
+    
     const persistState = async () => {
       try {
         await saveAppState({
@@ -190,7 +199,7 @@ export function JobProvider({ children }) {
           skippedJobs: state.skippedJobs,
           currentIndex: state.currentIndex,
           timestamp: Date.now(),
-        });
+        }, userId);
       } catch (error) {
         console.error('Error persisting state:', error);
       }
@@ -199,7 +208,7 @@ export function JobProvider({ children }) {
     // Debounce the save operation
     const timeoutId = setTimeout(persistState, STATE_PERSISTENCE_DEBOUNCE);
     return () => clearTimeout(timeoutId);
-  }, [state.applications, state.savedJobs, state.reportedJobs, state.skippedJobs, state.currentIndex]);
+  }, [state.applications, state.savedJobs, state.reportedJobs, state.skippedJobs, state.currentIndex, userId]);
 
   const acceptJob = async (job, metadata = {}) => {
     // Create initial application with "Syncing" stage
