@@ -30,7 +30,48 @@ class ErrorBoundary extends Component {
       error,
       errorInfo,
     });
+    
+    // Report error to tracking service if configured
+    this.reportError(error, errorInfo);
   }
+
+  /**
+   * Report error to external tracking service
+   * Override this method or configure via environment to enable error tracking
+   */
+  reportError = (error, errorInfo) => {
+    // Check if error reporting is enabled
+    const errorReportingUrl = process.env.NEXT_PUBLIC_ERROR_REPORTING_URL;
+    
+    if (errorReportingUrl) {
+      try {
+        // Send error to reporting endpoint
+        fetch(errorReportingUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: error.message,
+            stack: error.stack,
+            componentStack: errorInfo?.componentStack,
+            url: typeof window !== 'undefined' ? window.location.href : '',
+            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+            timestamp: new Date().toISOString(),
+          }),
+        }).catch(reportError => {
+          console.error('Failed to report error:', reportError);
+        });
+      } catch (e) {
+        console.error('Error reporting failed:', e);
+      }
+    }
+    
+    // Also support window.onerror style global handler
+    if (typeof window !== 'undefined' && typeof window.__reportError === 'function') {
+      window.__reportError(error, errorInfo);
+    }
+  };
 
   handleReset = () => {
     // Reset the error boundary state
