@@ -81,11 +81,11 @@ test.describe('Application Sync and Stage Preservation', () => {
         console.log(`✓ Step 7: Application stage after sync: ${currentStage}`);
         
         // The stage should be one of the valid stages from the server
-        // and not necessarily 'Applied' (could be 'CV Verification', 'Message Verification', etc.)
+        // and not necessarily 'Applied' (could be 'CV Check', 'Message Check', etc.)
         const validStages = [
           'Syncing',
-          'CV Verification', 
-          'Message Verification',
+          'CV Check', 
+          'Message Check',
           'Being Applied',
           'Applied',
           'Interview 1',

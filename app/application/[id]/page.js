@@ -10,8 +10,8 @@ import ApplicationTimeline from '@/components/ApplicationTimeline';
 
 const APPLICATION_STAGES = [
   'Syncing',
-  'CV Verification',
-  'Message Verification',
+  'CV Check',
+  'Message Check',
   'Being Applied',
   'Applied',
   'Interview 1',
@@ -92,7 +92,7 @@ export default function ApplicationDetailPage() {
           }
           
           // Check if this app requires verification
-          if (response.application.stage === 'CV Verification') {
+          if (response.application.stage === 'CV Check') {
             setVerificationState('pending');
           }
         }
@@ -114,7 +114,7 @@ export default function ApplicationDetailPage() {
           if (foundApp.followUpsSent !== undefined) {
             setFollowUpsSent(foundApp.followUpsSent);
           }
-          if (foundApp.stage === 'CV Verification') {
+          if (foundApp.stage === 'CV Check') {
             setVerificationState('pending');
           }
         }
@@ -137,7 +137,7 @@ export default function ApplicationDetailPage() {
     fetchApplication();
   }, [params.id, applications]);
 
-  // CV Verification rollback timer - 5 minutes from CV approval time
+  // CV Check rollback timer - 5 minutes from CV approval time
   // Timer synced with server so reloading page won't reset it
   useEffect(() => {
     if (cvVerificationTime) {
@@ -181,7 +181,7 @@ export default function ApplicationDetailPage() {
           setCanRollbackMessage(false);
           setMessageSendTime(null);
           // Actually send the message and move to Applied stage
-          if (application && application.stage === 'Message Verification') {
+          if (application && application.stage === 'Message Check') {
             updateApplicationStage(application.id, 'Applied');
             // Actually confirm and send the message via API
             applicationsApi.confirmMessage(application.id)
@@ -257,7 +257,7 @@ export default function ApplicationDetailPage() {
     if (application) {
       updateApplicationStage(application.id, 'Being Applied');
     }
-    console.log('CV Verification skipped');
+    console.log('CV Check skipped');
   };
   
   const handleSkipMessageVerification = () => {
@@ -265,7 +265,7 @@ export default function ApplicationDetailPage() {
     if (application) {
       updateApplicationStage(application.id, 'Applied');
     }
-    console.log('Message Verification skipped');
+    console.log('Message Check skipped');
   };
 
   const handleCustomDocumentUpload = (type) => async (e) => {
@@ -346,7 +346,7 @@ export default function ApplicationDetailPage() {
     const url = documentType === 'resume' ? resumeUrl : coverLetterUrl;
     
     if (!url) {
-      alert(`No ${documentType} available for this application. Please upload one in Settings or during CV Verification.`);
+      alert(`No ${documentType} available for this application. Please upload one in Settings or during CV Check.`);
       return;
     }
     
@@ -380,9 +380,9 @@ export default function ApplicationDetailPage() {
   const getStageColor = (stage) => {
     const colors = {
       'Syncing': 'bg-orange-100 text-orange-700',
-      'CV Verification': 'bg-purple-100 text-purple-700',
+      'CV Check': 'bg-purple-100 text-purple-700',
       'Being Applied': 'bg-amber-100 text-amber-700',
-      'Message Verification': 'bg-indigo-100 text-indigo-700',
+      'Message Check': 'bg-indigo-100 text-indigo-700',
       'Applied': 'bg-blue-100 text-blue-700',
       'Phone Screen': 'bg-purple-100 text-purple-700',
       'Interview': 'bg-yellow-100 text-yellow-700',
@@ -628,8 +628,8 @@ export default function ApplicationDetailPage() {
                 </button>
               </div>
               
-              {/* Edit documents button for CV and Message Verification stages */}
-              {(application.stage === 'CV Verification' || application.stage === 'Message Verification') && (
+              {/* Edit documents button for CV and Message Check stages */}
+              {(application.stage === 'CV Check' || application.stage === 'Message Check') && (
                 <div className="mt-2">
                   <button
                     onClick={() => {
@@ -766,8 +766,8 @@ export default function ApplicationDetailPage() {
               )}
             </div>
 
-            {/* Message Verification Section - for Message Verification stage */}
-            {application.stage === 'Message Verification' && (
+            {/* Message Check Section - for Message Check stage */}
+            {application.stage === 'Message Check' && (
               <div className="mb-3 pb-3 border-b border-gray-200">
                 <h3 className="text-xs font-semibold text-gray-700 mb-2">Recommended Application Message</h3>
                 
@@ -799,7 +799,7 @@ Best regards`}
                       </div>
                     )}
                     
-                    {/* Message Verification Actions */}
+                    {/* Message Check Actions */}
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       {isEditingMessage ? (
                         <div className="grid grid-cols-2 gap-2">

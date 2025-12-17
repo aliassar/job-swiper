@@ -28,15 +28,15 @@ export async function POST(request, { params }) {
     if (action === 'accept') {
       application.cvVerificationStatus = 'accepted';
       application.cvVerificationTime = timestamp || Date.now();
-      application.stage = 'Message Verification'; // Progress to next stage
+      application.stage = 'Message Check'; // Progress to next stage
     } else if (action === 'reject') {
       application.cvVerificationStatus = 'rejected';
       application.cvVerificationTime = null;
-      // Stay in CV Verification stage for user to upload custom documents
+      // Stay in CV Check stage for user to upload custom documents
     } else if (action === 'rollback') {
       application.cvVerificationStatus = 'pending';
       application.cvVerificationTime = null;
-      application.stage = 'CV Verification'; // Go back to verification
+      application.stage = 'CV Check'; // Go back to verification
     }
     
     jobsStorage.applications.set(id, application);

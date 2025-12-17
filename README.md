@@ -33,8 +33,8 @@ A Tinder-style job swiping app built with Next.js, Tailwind CSS, and JavaScript.
 
 ### 📊 Application Tracking
 - **Stage Management**: Track application progress through stages (Applied, Phone Screen, Interview, Offer, etc.)
-- **CV Verification**: Confirm or reupload your CV for each application
-- **Message Verification**: Review and edit application messages before sending
+- **CV Check**: Confirm or reupload your CV for each application
+- **Message Check**: Review and edit application messages before sending
 - **Document Management**: Attach custom resumes and cover letters per application
 - **Auto Status Updates**: Optional automatic status updates via email monitoring
 

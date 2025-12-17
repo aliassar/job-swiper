@@ -16,14 +16,14 @@ export default function ApplicationTimeline({
   const buildStages = () => {
     const stages = [{ name: 'Syncing', short: 'Sync' }];
     
-    // Conditionally add CV Verification stage (only if automation is enabled)
+    // Conditionally add CV Check stage (only if automation is enabled)
     if (hasCVVerification) {
-      stages.push({ name: 'CV Verification', short: 'CV Check' });
+      stages.push({ name: 'CV Check', short: 'CV Check' });
     }
     
-    // Conditionally add Message Verification stage (only if automation is enabled)
+    // Conditionally add Message Check stage (only if automation is enabled)
     if (hasMessageVerification) {
-      stages.push({ name: 'Message Verification', short: 'Message Check' });
+      stages.push({ name: 'Message Check', short: 'Message Check' });
     }
     
     stages.push(
