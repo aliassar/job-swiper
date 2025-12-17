@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 /**
  * Sign Up Page
  * Registration form with name, email, and password fields
@@ -49,7 +51,7 @@ export default function SignUpPage() {
   const handleSignUp = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     const name = e.target.name.value;
     const email = e.target.email.value;
     const password = e.target.password.value;
@@ -71,7 +73,7 @@ export default function SignUpPage() {
 
     try {
       // Call registration API
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
@@ -80,7 +82,7 @@ export default function SignUpPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
+        throw new Error(data.error?.message || data.message || 'Registration failed');
       }
 
       // Show email verification message
@@ -224,7 +226,7 @@ export default function SignUpPage() {
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="••••••••"
             />
-            
+
             {/* Password strength indicator */}
             <div className="mt-2 space-y-1">
               <div className="flex items-center gap-2 text-xs">

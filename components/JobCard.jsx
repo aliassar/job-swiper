@@ -7,17 +7,17 @@ import { useJobs } from '@/context/JobContext';
 
 export default function JobCard({ job, style, onSwipe, onReportClick }) {
   const { reportedJobs, unreportJob } = useJobs();
-  
+
   if (!job) return null;
-  
-  const isReported = reportedJobs.some(report => report.jobId === job.id);
-  
+
+  const isReported = (reportedJobs || []).some(report => report.jobId === job.id);
+
   const getRelativeTime = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInMs = now - date;
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    
+
     if (diffInDays === 0) return 'Posted today';
     if (diffInDays === 1) return 'Posted 1 day ago';
     return `Posted ${diffInDays} days ago`;
@@ -25,7 +25,7 @@ export default function JobCard({ job, style, onSwipe, onReportClick }) {
 
   const handleReportClick = (e) => {
     e.stopPropagation();
-    
+
     // If already reported, unreport it
     if (isReported) {
       unreportJob(job.id);
@@ -38,17 +38,17 @@ export default function JobCard({ job, style, onSwipe, onReportClick }) {
   };
 
   // Get first line of description
-  const descriptionPreview = job.description 
-    ? (job.description.includes('.') 
-        ? job.description.split('.')[0] + '.' 
-        : job.description)
+  const descriptionPreview = job.description
+    ? (job.description.includes('.')
+      ? job.description.split('.')[0] + '.'
+      : job.description)
     : 'No description available';
 
   // Optimization 11: Use provided logo if available, otherwise fallback to ui-avatars
   const logoUrl = job.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=80&background=0D8ABC&color=fff&bold=true`;
 
   return (
-    <div 
+    <div
       className="absolute inset-0 w-full h-full select-none swipeable-card"
       style={style}
     >
@@ -56,7 +56,7 @@ export default function JobCard({ job, style, onSwipe, onReportClick }) {
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 relative overflow-hidden">
           <div className="flex items-center space-x-4">
-            <img 
+            <img
               src={logoUrl}
               alt={`${job.company} logo`}
               className="w-20 h-20 rounded-2xl shadow-lg bg-white"
@@ -73,7 +73,7 @@ export default function JobCard({ job, style, onSwipe, onReportClick }) {
           <h3 className="text-xl font-semibold text-gray-900 mb-3">
             {job.position}
           </h3>
-          
+
           <div className="mb-4">
             <p className="text-sm text-gray-500 mb-3">
               {getRelativeTime(job.postedDate)}

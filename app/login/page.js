@@ -43,7 +43,7 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || data.error || 'Login failed');
+        setError(data.error?.message || data.message || data.error || 'Login failed');
         setIsLoading(false);
         return;
       }
@@ -202,27 +202,7 @@ export default function LoginPage() {
             {isLoading ? 'Signing in...' : 'Continue with Google'}
           </button>
 
-          <button
-            onClick={() => handleOAuthSignIn('yahoo')}
-            disabled={isLoading}
-            className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M16.5 2h-2.26l-3.23 7.74L7.76 2H5.5l5.06 10.95v7.24h2.44v-7.24L16.5 2z" />
-            </svg>
-            {isLoading ? 'Signing in...' : 'Continue with Yahoo'}
-          </button>
 
-          <button
-            onClick={() => handleOAuthSignIn('microsoft')}
-            disabled={isLoading}
-            className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-[#00a1f1] text-white rounded-xl font-medium hover:bg-[#0078d4] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M0 0h11.377v11.372H0V0zm12.623 0H24v11.372H12.623V0zM0 12.628h11.377V24H0V12.628zm12.623 0H24V24H12.623V12.628z" />
-            </svg>
-            {isLoading ? 'Signing in...' : 'Continue with Microsoft'}
-          </button>
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">

@@ -14,35 +14,35 @@ export default function JobDetailPage() {
   const [applicationStatus, setApplicationStatus] = useState(null); // 'accepted' or 'rejected' or null
 
   useEffect(() => {
-    const jobId = parseInt(params.id);
-    
+    const jobId = params.id;
+
     // Check if job has been accepted (exists in applications)
     const app = applications.find(a => a.jobId === jobId);
     if (app) {
       setApplicationStatus('accepted');
     }
-    
+
     let foundJob = savedJobs.find(j => j.id === jobId);
     if (foundJob) {
       setJob(foundJob);
       setSource('saved');
       return;
     }
-    
+
     foundJob = skippedJobs.find(j => j.id === jobId);
     if (foundJob) {
       setJob(foundJob);
       setSource('skipped');
       return;
     }
-    
+
     const report = reportedJobs.find(r => r.jobId === jobId);
     if (report) {
       setJob(report.job);
       setSource('reported');
       return;
     }
-    
+
     if (app) {
       setJob({
         id: app.jobId,
@@ -88,7 +88,7 @@ export default function JobDetailPage() {
     const now = new Date();
     const diffInMs = now - date;
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    
+
     if (diffInDays === 0) return 'Posted today';
     if (diffInDays === 1) return 'Posted 1 day ago';
     return `Posted ${diffInDays} days ago`;
@@ -114,13 +114,13 @@ export default function JobDetailPage() {
 
   const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=120&background=0D8ABC&color=fff&bold=true`;
   const isApplication = source === 'application';
-  
+
   // For saved jobs: show actions if not decided, or if rejected (can re-accept)
   // If accepted (applicationStatus === 'accepted'), navigate to application instead
-  const canActOnJob = (source === 'saved' && applicationStatus !== 'accepted') || 
-                      source === 'skipped' || 
-                      source === 'reported';
-  
+  const canActOnJob = (source === 'saved' && applicationStatus !== 'accepted') ||
+    source === 'skipped' ||
+    source === 'reported';
+
   const isSavedAndAccepted = source === 'saved' && applicationStatus === 'accepted';
   const isSavedAndRejected = source === 'saved' && applicationStatus === 'rejected';
 
@@ -142,7 +142,7 @@ export default function JobDetailPage() {
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-8">
             <div className="flex items-center gap-6">
-              <img 
+              <img
                 src={logoUrl}
                 alt={`${job.company} logo`}
                 className="w-24 h-24 rounded-2xl shadow-lg bg-white"
@@ -164,7 +164,7 @@ export default function JobDetailPage() {
                 {getRelativeTime(job.postedDate)}
               </p>
             )}
-            
+
             {job.salary && (
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg mb-6">
                 <span className="text-xl">💰</span>
@@ -229,7 +229,7 @@ export default function JobDetailPage() {
                 </button>
               </div>
             )}
-            
+
             {isSavedAndAccepted && (
               <div className="mt-8 pt-6 border-t border-gray-200">
                 <div className="bg-green-50 text-green-700 px-4 py-3 rounded-lg text-center mb-4">
@@ -248,7 +248,7 @@ export default function JobDetailPage() {
                 </button>
               </div>
             )}
-            
+
             {isSavedAndRejected && (
               <div className="mt-8 pt-6 border-t border-gray-200">
                 <div className="bg-orange-50 text-orange-700 px-4 py-3 rounded-lg text-center">

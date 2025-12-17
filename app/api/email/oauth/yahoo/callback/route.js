@@ -15,7 +15,7 @@ try {
     tokenUrl: 'https://api.login.yahoo.com/oauth2/get_token',
     clientId: process.env.YAHOO_CLIENT_ID || '',
     clientSecret: process.env.YAHOO_CLIENT_SECRET || '',
-    redirectUri: process.env.NEXTAUTH_URL 
+    redirectUri: process.env.NEXTAUTH_URL
       ? `${process.env.NEXTAUTH_URL}/api/email/oauth/yahoo/callback`
       : 'http://localhost:3000/api/email/oauth/yahoo/callback',
   };
@@ -33,24 +33,24 @@ export async function GET(request) {
     const code = searchParams.get('code');
     const state = searchParams.get('state');
     const error = searchParams.get('error');
-    
+
     const redirectUrl = (path) => `${origin}${path}`;
-    
+
     if (error) {
-      const errorMessage = error === 'access_denied' 
+      const errorMessage = error === 'access_denied'
         ? 'Access denied. Please grant permission to connect your Yahoo account.'
         : 'OAuth authentication failed. Please try again.';
       return NextResponse.redirect(
         redirectUrl('/connect-email?error=' + encodeURIComponent(errorMessage))
       );
     }
-    
+
     if (!code || !state) {
       return NextResponse.redirect(
         redirectUrl('/connect-email?error=' + encodeURIComponent('Invalid OAuth callback parameters'))
       );
     }
-    
+
     // Validate state token
     const stateData = oauthStates.get(state);
     if (!stateData) {
@@ -58,9 +58,9 @@ export async function GET(request) {
         redirectUrl('/connect-email?error=' + encodeURIComponent('Invalid or expired OAuth state'))
       );
     }
-    
+
     oauthStates.delete(state);
-    
+
     // Validate timestamp
     const now = Date.now();
     if (now - stateData.createdAt > 10 * 60 * 1000) {
@@ -68,10 +68,10 @@ export async function GET(request) {
         redirectUrl('/connect-email?error=' + encodeURIComponent('OAuth session expired. Please try again.'))
       );
     }
-    
+
     // Exchange authorization code for tokens
     const authHeader = Buffer.from(`${YAHOO_CONFIG.clientId}:${YAHOO_CONFIG.clientSecret}`).toString('base64');
-    
+
     const tokenResponse = await fetch(YAHOO_CONFIG.tokenUrl, {
       method: 'POST',
       headers: {
@@ -84,7 +84,7 @@ export async function GET(request) {
         grant_type: 'authorization_code',
       }),
     });
-    
+
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.json();
       console.error('Token exchange failed:', errorData);
@@ -92,13 +92,13 @@ export async function GET(request) {
         redirectUrl('/connect-email?error=' + encodeURIComponent('Failed to obtain access tokens. Please try again.'))
       );
     }
-    
+
     const tokens = await tokenResponse.json();
-    
+
     // Get user's email from Yahoo (using ID token or profile endpoint)
     // Yahoo returns user info in the ID token (JWT)
     let email = 'user@yahoo.com'; // Placeholder
-    
+
     if (tokens.id_token) {
       try {
         // Decode JWT to get email (basic decode, no verification for demo)
@@ -108,7 +108,7 @@ export async function GET(request) {
         console.error('Failed to decode ID token:', e);
       }
     }
-    
+
     // Store connection
     const userId = stateData.userId;
     const connectionData = {
@@ -120,9 +120,9 @@ export async function GET(request) {
       connectedAt: new Date().toISOString(),
       status: 'connected',
     };
-    
+
     emailConnections.set(userId, connectionData);
-    
+
     return NextResponse.redirect(
       redirectUrl('/connect-email?success=' + encodeURIComponent('Yahoo Mail connected successfully!'))
     );
