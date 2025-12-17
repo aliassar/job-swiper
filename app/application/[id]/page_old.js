@@ -80,7 +80,7 @@ export default function ApplicationDetailPage() {
     const url = documentType === 'resume' ? resumeUrl : coverLetterUrl;
     
     if (!url) {
-      alert(`No ${documentType} available for this application. Please upload one in Settings or during CV Verification.`);
+      alert(`No ${documentType} available for this application. Please upload one in Settings or during CV Check.`);
       return;
     }
     
