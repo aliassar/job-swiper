@@ -56,7 +56,7 @@ export function JobProvider({ children }) {
 
   const fetchSavedJobs = useCallback(async (search = '') => {
     try {
-      const data = await savedJobsApi.getSaveds(search);
+      const data = await savedJobsApi.getSavedJobs(search);
       // After API unwrapping, data should contain savedJobs or jobs property
       // Try savedJobs first, then fall back to saveds for backward compatibility
       const savedJobsList = data.savedJobs || data.saveds || data.jobs || [];
@@ -106,7 +106,7 @@ export function JobProvider({ children }) {
     try {
       const data = await jobsApi.getSkippedJobs(search);
       // Merge with local skippedJobs, prioritizing local ones
-      const serverSkipped = data.jobs.map(job => ({ ...job, pendingSync: false }));
+      const serverSkipped = (data.items || data.jobs || []).map(job => ({ ...job, pendingSync: false }));
       dispatch({ type: ACTIONS.MERGE_SKIPPED_JOBS, payload: serverSkipped });
     } catch (error) {
       console.error('Error fetching skipped jobs:', error);
