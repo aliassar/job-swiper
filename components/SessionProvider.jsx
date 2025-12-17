@@ -1,74 +1,80 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { isAuthenticated, getAuthToken, getAuthHeaders } from '@/lib/auth';
+import { useRouter, usePathname } from 'next/navigation';
+import { isAuthenticated } from '@/lib/auth';
+import http from '@/lib/http';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const PUBLIC_PATHS = ['/login', '/login/sign-up', '/login/forgot-password', '/auth/callback'];
 
-/**
- * Session wrapper that checks authentication status
- * Updated to work with JWT tokens stored in localStorage
- */
 function SessionWrapper({ children }) {
   const router = useRouter();
-  const [userVerified, setUserVerified] = useState(true);
+  const pathname = usePathname();
   const [isAuth, setIsAuth] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [userVerified, setUserVerified] = useState(true);
 
-  // Check authentication status on mount
   useEffect(() => {
     const checkAuth = async () => {
       const authenticated = await isAuthenticated();
       setIsAuth(authenticated);
-      
+
+      const isPublicPath = PUBLIC_PATHS.some(path => pathname?.startsWith(path));
+
+      if (!authenticated && !isPublicPath) {
+        router.push('/login');
+      } else {
+        setLoading(false);
+      }
+
       if (authenticated) {
         try {
-          // Get token for authenticated requests
-          const token = await getAuthToken();
-          
-          // Check user verification status from backend
-          const response = await fetch(`${API_URL}/api/auth/me`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            
-            if (data.user && !data.user.emailVerified) {
-              setUserVerified(false);
-            } else {
-              setUserVerified(true);
-            }
+          const data = await http.get('/api/auth/me');
+          if (data && data.user && !data.user.emailVerified) {
+            setUserVerified(false);
+          } else {
+            setUserVerified(true);
           }
         } catch (error) {
+          // If 401, interceptor might handle it, but double check
           console.error('Error fetching user data:', error);
         }
       }
     };
 
     checkAuth();
-  }, []);
+  }, [pathname, router]);
 
-  // Show email verification warning if needed
-  if (isAuth && !userVerified) {
+  if (loading) {
     return (
-      <div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Double check protection (render null if not auth and not public)
+  const isPublicPath = PUBLIC_PATHS.some(path => pathname?.startsWith(path));
+  if (!isAuth && !isPublicPath) {
+    return null;
+  }
+
+  return (
+    <>
+      {isAuth && !userVerified && (
         <div className="bg-yellow-50 border-b border-yellow-200 p-3 text-center">
           <p className="text-sm text-yellow-800">
             ⚠️ Please verify your email to access all features.{' '}
             <button
               onClick={async () => {
                 try {
-                  const authHeaders = await getAuthHeaders();
-                  await fetch(`${API_URL}/api/auth/resend-verification`, {
-                    method: 'POST',
-                    headers: authHeaders,
-                  });
+                  await http.post('/api/auth/resend-verification');
                   alert('Verification email resent!');
                 } catch (err) {
                   console.error('Error resending verification:', err);
+                  alert('Failed to resend verification email.');
                 }
               }}
               className="underline font-medium hover:text-yellow-900"
@@ -77,18 +83,12 @@ function SessionWrapper({ children }) {
             </button>
           </p>
         </div>
-        {children}
-      </div>
-    );
-  }
-
-  return children;
+      )}
+      {children}
+    </>
+  );
 }
 
-/**
- * Client-side SessionProvider wrapper
- * Replaces NextAuth SessionProvider with JWT-based authentication
- */
 export default function SessionProvider({ children }) {
   return (
     <SessionWrapper>
@@ -96,4 +96,3 @@ export default function SessionProvider({ children }) {
     </SessionWrapper>
   );
 }
-
