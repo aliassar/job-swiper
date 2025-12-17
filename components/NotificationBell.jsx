@@ -33,7 +33,7 @@ export default function NotificationBell({ pollingInterval = NOTIFICATION_POLL_I
 
   const handleNotificationClick = (notification) => {
     // Mark as read
-    if (!notification.read) {
+    if (!notification.isRead) {
       markAsRead(notification.id);
     }
     
@@ -135,7 +135,7 @@ export default function NotificationBell({ pollingInterval = NOTIFICATION_POLL_I
                       key={notification.id}
                       onClick={() => handleNotificationClick(notification)}
                       className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${
-                        !notification.read ? 'bg-blue-50' : ''
+                        !notification.isRead ? 'bg-blue-50' : ''
                       }`}
                     >
                       <div className="flex items-start gap-3">
@@ -150,7 +150,7 @@ export default function NotificationBell({ pollingInterval = NOTIFICATION_POLL_I
                             <p className="text-sm font-medium text-gray-900 line-clamp-1">
                               {notification.title}
                             </p>
-                            {!notification.read && (
+                            {!notification.isRead && (
                               <div className="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-1" />
                             )}
                           </div>
