@@ -236,8 +236,8 @@ export function JobProvider({ children }) {
         type: 'accept',
         id: job.id,
         payload: { jobId: job.id, metadata },
-        apiCall: async (payload) => {
-          const result = await jobsApi.acceptJob(payload.jobId, payload.metadata);
+        apiCall: async (payload, options) => {
+          const result = await jobsApi.acceptJob(payload.jobId, payload.metadata, options);
           
           // Update applications on success - use server response for stage and real ID
           if (result.application) {
@@ -281,8 +281,8 @@ export function JobProvider({ children }) {
         type: 'reject',
         id: job.id,
         payload: { jobId: job.id },
-        apiCall: async (payload) => {
-          await jobsApi.rejectJob(payload.jobId);
+        apiCall: async (payload, options) => {
+          await jobsApi.rejectJob(payload.jobId, options);
           
           // Mark as synced
           dispatch({ type: ACTIONS.MARK_SESSION_ACTION_SYNCED, payload: {
@@ -323,8 +323,8 @@ export function JobProvider({ children }) {
         type: 'skip',
         id: job.id,
         payload: { jobId: job.id },
-        apiCall: async (payload) => {
-          await jobsApi.skipJob(payload.jobId);
+        apiCall: async (payload, options) => {
+          await jobsApi.skipJob(payload.jobId, options);
           
           // Mark as synced in both places
           dispatch({ type: ACTIONS.MARK_SESSION_ACTION_SYNCED, payload: {
@@ -363,8 +363,8 @@ export function JobProvider({ children }) {
         type: 'saveJob',
         id: job.id,
         payload: { jobId: job.id, saved: newSavedState },
-        apiCall: async (payload) => {
-          await jobsApi.toggleSaveJob(payload.jobId, payload.saved);
+        apiCall: async (payload, options) => {
+          await jobsApi.toggleSaveJob(payload.jobId, payload.saved, options);
           
           // Mark as synced
           if (payload.saved) {
@@ -398,10 +398,10 @@ export function JobProvider({ children }) {
         type: 'rollback',
         id: lastAction.jobId,
         payload: { jobId: lastAction.jobId },
-        apiCall: async (payload) => {
+        apiCall: async (payload, options) => {
           // Retry logic is built into the offline queue
           // The queue will automatically retry with exponential backoff on failure
-          await jobsApi.rollbackJob(payload.jobId);
+          await jobsApi.rollbackJob(payload.jobId, options);
           // Rollback synced successfully - no UI update needed
           console.log('Rollback synced to server successfully');
         },
@@ -426,8 +426,8 @@ export function JobProvider({ children }) {
         type: 'updateStage',
         id: applicationId,
         payload: { applicationId, stage },
-        apiCall: async (payload) => {
-          const result = await applicationsApi.updateStage(payload.applicationId, payload.stage);
+        apiCall: async (payload, options) => {
+          const result = await applicationsApi.updateStage(payload.applicationId, payload.stage, options);
           
           // Mark as synced
           dispatch({ type: ACTIONS.UPDATE_APPLICATION, payload: {
@@ -472,8 +472,8 @@ export function JobProvider({ children }) {
         type: 'report',
         id: `report-${job.id}`, // Use consistent ID to prevent duplicates
         payload: { jobId: job.id, reason },
-        apiCall: async (payload) => {
-          await reportedApi.reportJob(payload.jobId, payload.reason);
+        apiCall: async (payload, options) => {
+          await reportedApi.reportJob(payload.jobId, payload.reason, options);
           
           // Mark as synced on success
           dispatch({ type: ACTIONS.MARK_REPORTED_JOB_SYNCED, payload: {
@@ -510,8 +510,8 @@ export function JobProvider({ children }) {
         type: 'unreport',
         id: `report-${jobId}`, // Use same ID as report for proper cancellation
         payload: { jobId },
-        apiCall: async (payload) => {
-          await reportedApi.unreportJob(payload.jobId);
+        apiCall: async (payload, options) => {
+          await reportedApi.unreportJob(payload.jobId, options);
           // Successfully unreported - UI already updated
         },
       });
