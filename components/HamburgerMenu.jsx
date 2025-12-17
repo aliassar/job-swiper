@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth, signOut } from '@/lib/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
+import { notificationsApi } from '@/lib/api';
 import { 
   BriefcaseIcon, 
   BookmarkIcon, 
@@ -28,9 +29,8 @@ export default function HamburgerMenu() {
   useEffect(() => {
     const fetchUnreadCount = async () => {
       try {
-        const response = await fetch('/api/notifications');
-        const data = await response.json();
-        setUnreadCount(data.unreadCount || 0);
+        const data = await notificationsApi.getUnreadCount();
+        setUnreadCount(data.count || 0);
       } catch (error) {
         console.error('Error fetching unread count:', error);
       }

@@ -38,9 +38,11 @@ export default function JobCard({ job, style, onSwipe, onReportClick }) {
   };
 
   // Get first line of description
-  const descriptionPreview = job.description.includes('.') 
-    ? job.description.split('.')[0] + '.' 
-    : job.description;
+  const descriptionPreview = job.description 
+    ? (job.description.includes('.') 
+        ? job.description.split('.')[0] + '.' 
+        : job.description)
+    : 'No description available';
 
   // Optimization 11: Use provided logo if available, otherwise fallback to ui-avatars
   const logoUrl = job.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=80&background=0D8ABC&color=fff&bold=true`;
