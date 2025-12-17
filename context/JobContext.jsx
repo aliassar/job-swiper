@@ -28,7 +28,7 @@ export function JobProvider({ children }) {
   const fetchJobs = useCallback(async (retryAttempt = 0, search = '') => {
     dispatch({ type: ACTIONS.SET_LOADING, payload: true });
     dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: null });
-    
+
     try {
       const data = await jobsApi.getJobs(search);
       dispatch({ type: ACTIONS.SET_JOBS, payload: data.jobs });
@@ -37,23 +37,25 @@ export function JobProvider({ children }) {
       dispatch({ type: ACTIONS.SET_LOADING, payload: false });
     } catch (error) {
       console.error(`Error fetching jobs (attempt ${retryAttempt + 1}):`, error);
-      
+
       if (retryAttempt < MAX_FETCH_RETRIES) {
         // Exponential backoff: 1s, 2s, 4s, 8s, 16s
         const delay = Math.pow(2, retryAttempt) * 1000;
         console.log(`Retrying in ${delay / 1000}s...`);
         dispatch({ type: ACTIONS.SET_RETRY_COUNT, payload: retryAttempt + 1 });
-        
+
         // Bug Fix 3: Store timeout reference for cleanup
         retryTimeoutRef.current = setTimeout(() => {
           fetchJobs(retryAttempt + 1, search);
         }, delay);
       } else {
         // Max retries reached
-        dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: {
-          message: 'Unable to load jobs. Please check your connection and try again.',
-          canRetry: true,
-        }});
+        dispatch({
+          type: ACTIONS.SET_FETCH_ERROR, payload: {
+            message: 'Unable to load jobs. Please check your connection and try again.',
+            canRetry: true,
+          }
+        });
         dispatch({ type: ACTIONS.SET_LOADING, payload: false });
       }
     }
@@ -69,11 +71,13 @@ export function JobProvider({ children }) {
     } catch (error) {
       console.error('Error fetching saved jobs:', error);
       // Set error state for saved jobs
-      dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: {
-        message: 'Unable to load saved jobs. Please try again later.',
-        type: 'savedJobs',
-        canRetry: true,
-      }});
+      dispatch({
+        type: ACTIONS.SET_FETCH_ERROR, payload: {
+          message: 'Unable to load saved jobs. Please try again later.',
+          type: 'savedJobs',
+          canRetry: true,
+        }
+      });
     }
   }, []);
 
@@ -84,11 +88,13 @@ export function JobProvider({ children }) {
     } catch (error) {
       console.error('Error fetching applications:', error);
       // Set error state for applications
-      dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: {
-        message: 'Unable to load applications. Please try again later.',
-        type: 'applications',
-        canRetry: true,
-      }});
+      dispatch({
+        type: ACTIONS.SET_FETCH_ERROR, payload: {
+          message: 'Unable to load applications. Please try again later.',
+          type: 'applications',
+          canRetry: true,
+        }
+      });
     }
   }, []);
 
@@ -99,11 +105,13 @@ export function JobProvider({ children }) {
     } catch (error) {
       console.error('Error fetching reported jobs:', error);
       // Set error state for reported jobs
-      dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: {
-        message: 'Unable to load reported jobs. Please try again later.',
-        type: 'reportedJobs',
-        canRetry: true,
-      }});
+      dispatch({
+        type: ACTIONS.SET_FETCH_ERROR, payload: {
+          message: 'Unable to load reported jobs. Please try again later.',
+          type: 'reportedJobs',
+          canRetry: true,
+        }
+      });
     }
   }, []);
 
@@ -116,11 +124,13 @@ export function JobProvider({ children }) {
     } catch (error) {
       console.error('Error fetching skipped jobs:', error);
       // Set error state for skipped jobs
-      dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: {
-        message: 'Unable to load skipped jobs. Please try again later.',
-        type: 'skippedJobs',
-        canRetry: true,
-      }});
+      dispatch({
+        type: ACTIONS.SET_FETCH_ERROR, payload: {
+          message: 'Unable to load skipped jobs. Please try again later.',
+          type: 'skippedJobs',
+          canRetry: true,
+        }
+      });
     }
   }, []);
 
@@ -128,7 +138,7 @@ export function JobProvider({ children }) {
   useEffect(() => {
     const loadPersistedState = async () => {
       if (!userId) return; // Don't load if not authenticated
-      
+
       try {
         const persistedState = await loadAppState(userId);
         if (persistedState && persistedState.timestamp) {
@@ -151,23 +161,28 @@ export function JobProvider({ children }) {
     loadPersistedState();
   }, [userId]);
 
-  // Fetch jobs and saved jobs on mount
+  // Fetch jobs and saved jobs on mount - ONLY when authenticated
   useEffect(() => {
+    // Don't fetch anything if not authenticated
+    if (!session) {
+      return;
+    }
+
     fetchJobs();
     fetchSavedJobs();
     fetchApplications();
     fetchReportedJobs();
     fetchSkippedJobs();
-    
+
     // Subscribe to queue updates
     const unsubscribe = offlineQueue.subscribe((event, data) => {
       dispatch({ type: ACTIONS.SET_QUEUE_STATUS, payload: offlineQueue.getQueueStatus() });
-      
+
       if (event === 'failed') {
         // Handle failed operation - dispatch error for user notification
         console.error('Operation failed:', data);
-        dispatch({ 
-          type: ACTIONS.SET_OPERATION_ERROR, 
+        dispatch({
+          type: ACTIONS.SET_OPERATION_ERROR,
           payload: {
             message: `Failed to sync operation: ${data.type || 'unknown'}`,
             details: data,
@@ -184,12 +199,12 @@ export function JobProvider({ children }) {
         clearTimeout(retryTimeoutRef.current);
       }
     };
-  }, [offlineQueue, fetchJobs, fetchSavedJobs, fetchApplications, fetchReportedJobs, fetchSkippedJobs]);
+  }, [session, offlineQueue, fetchJobs, fetchSavedJobs, fetchApplications, fetchReportedJobs, fetchSkippedJobs]);
 
   // Feature 19: Persist state to IndexedDB when it changes
   useEffect(() => {
     if (!userId) return; // Don't persist if not authenticated
-    
+
     const persistState = async () => {
       try {
         await saveAppState({
@@ -224,21 +239,23 @@ export function JobProvider({ children }) {
       updatedAt: new Date().toISOString(),
       pendingSync: true,
     };
-    
+
     // Optimistic UI update
     dispatch({ type: ACTIONS.ADD_APPLICATION, payload: tempApplication });
-    
-    dispatch({ type: ACTIONS.ADD_SESSION_ACTION, payload: { 
-      jobId: job.id, 
-      action: 'accepted', 
-      timestamp: new Date().toISOString(),
-      job: job,
-      pendingSync: true,
-    }});
-    
+
+    dispatch({
+      type: ACTIONS.ADD_SESSION_ACTION, payload: {
+        jobId: job.id,
+        action: 'accepted',
+        timestamp: new Date().toISOString(),
+        job: job,
+        pendingSync: true,
+      }
+    });
+
     // Move to next job immediately
     dispatch({ type: ACTIONS.INCREMENT_INDEX });
-    
+
     // Add to offline queue
     try {
       await offlineQueue.addOperation({
@@ -247,43 +264,49 @@ export function JobProvider({ children }) {
         payload: { jobId: job.id, metadata },
         apiCall: async (payload, options) => {
           const result = await jobsApi.acceptJob(payload.jobId, payload.metadata, options);
-          
+
           // Update applications on success - use server response for stage and real ID
           if (result.application) {
-            dispatch({ type: ACTIONS.UPDATE_APPLICATION_WITH_RESULT, payload: {
-              jobId: payload.jobId,
-              application: result.application
-            }});
+            dispatch({
+              type: ACTIONS.UPDATE_APPLICATION_WITH_RESULT, payload: {
+                jobId: payload.jobId,
+                application: result.application
+              }
+            });
           }
-          
+
           // Mark as synced
-          dispatch({ type: ACTIONS.MARK_SESSION_ACTION_SYNCED, payload: {
-            jobId: payload.jobId,
-            action: 'accepted'
-          }});
+          dispatch({
+            type: ACTIONS.MARK_SESSION_ACTION_SYNCED, payload: {
+              jobId: payload.jobId,
+              action: 'accepted'
+            }
+          });
         },
       });
     } catch (error) {
       console.error('Error queuing accept:', error);
     }
-    
+
     // Return the temporary application ID for navigation
     return tempApplication.id;
   };
 
   const rejectJob = async (job) => {
     // Optimistic UI update
-    dispatch({ type: ACTIONS.ADD_SESSION_ACTION, payload: { 
-      jobId: job.id, 
-      action: 'rejected', 
-      timestamp: new Date().toISOString(),
-      job: job,
-      pendingSync: true,
-    }});
-    
+    dispatch({
+      type: ACTIONS.ADD_SESSION_ACTION, payload: {
+        jobId: job.id,
+        action: 'rejected',
+        timestamp: new Date().toISOString(),
+        job: job,
+        pendingSync: true,
+      }
+    });
+
     // Move to next job immediately
     dispatch({ type: ACTIONS.INCREMENT_INDEX });
-    
+
     // Add to offline queue
     try {
       await offlineQueue.addOperation({
@@ -292,12 +315,14 @@ export function JobProvider({ children }) {
         payload: { jobId: job.id },
         apiCall: async (payload, options) => {
           await jobsApi.rejectJob(payload.jobId, options);
-          
+
           // Mark as synced
-          dispatch({ type: ACTIONS.MARK_SESSION_ACTION_SYNCED, payload: {
-            jobId: payload.jobId,
-            action: 'rejected'
-          }});
+          dispatch({
+            type: ACTIONS.MARK_SESSION_ACTION_SYNCED, payload: {
+              jobId: payload.jobId,
+              action: 'rejected'
+            }
+          });
         },
       });
     } catch (error) {
@@ -312,20 +337,22 @@ export function JobProvider({ children }) {
       skippedAt: new Date().toISOString(),
       pendingSync: true,
     };
-    
+
     dispatch({ type: ACTIONS.ADD_SKIPPED_JOB, payload: skippedItem });
-    
-    dispatch({ type: ACTIONS.ADD_SESSION_ACTION, payload: { 
-      jobId: job.id, 
-      action: 'skipped', 
-      timestamp: new Date().toISOString(),
-      job: job,
-      pendingSync: true,
-    }});
-    
+
+    dispatch({
+      type: ACTIONS.ADD_SESSION_ACTION, payload: {
+        jobId: job.id,
+        action: 'skipped',
+        timestamp: new Date().toISOString(),
+        job: job,
+        pendingSync: true,
+      }
+    });
+
     // Move to next job immediately
     dispatch({ type: ACTIONS.INCREMENT_INDEX });
-    
+
     // Add to offline queue
     try {
       await offlineQueue.addOperation({
@@ -334,16 +361,20 @@ export function JobProvider({ children }) {
         payload: { jobId: job.id },
         apiCall: async (payload, options) => {
           await jobsApi.skipJob(payload.jobId, options);
-          
+
           // Mark as synced in both places
-          dispatch({ type: ACTIONS.MARK_SESSION_ACTION_SYNCED, payload: {
-            jobId: payload.jobId,
-            action: 'skipped'
-          }});
-          
-          dispatch({ type: ACTIONS.MARK_SKIPPED_JOB_SYNCED, payload: {
-            jobId: payload.jobId
-          }});
+          dispatch({
+            type: ACTIONS.MARK_SESSION_ACTION_SYNCED, payload: {
+              jobId: payload.jobId,
+              action: 'skipped'
+            }
+          });
+
+          dispatch({
+            type: ACTIONS.MARK_SKIPPED_JOB_SYNCED, payload: {
+              jobId: payload.jobId
+            }
+          });
         },
       });
     } catch (error) {
@@ -354,10 +385,10 @@ export function JobProvider({ children }) {
   const toggleSaveJob = async (job) => {
     const isSaved = state.savedJobs.some(saved => saved.id === job.id);
     const newSavedState = !isSaved;
-    
+
     // Set loading state
     dispatch({ type: ACTIONS.SET_SAVING_JOB, payload: job.id });
-    
+
     // Optimistically update UI
     if (isSaved) {
       dispatch({ type: ACTIONS.TOGGLE_SAVED_JOB, payload: job });
@@ -365,7 +396,7 @@ export function JobProvider({ children }) {
       const savedItem = { ...job, pendingSync: true };
       dispatch({ type: ACTIONS.TOGGLE_SAVED_JOB, payload: savedItem });
     }
-    
+
     // Add to offline queue for background sync
     try {
       await offlineQueue.addOperation({
@@ -374,14 +405,16 @@ export function JobProvider({ children }) {
         payload: { jobId: job.id, saved: newSavedState },
         apiCall: async (payload, options) => {
           await jobsApi.toggleSaveJob(payload.jobId, payload.saved, options);
-          
+
           // Mark as synced
           if (payload.saved) {
-            dispatch({ type: ACTIONS.MARK_SAVED_JOB_SYNCED, payload: {
-              jobId: payload.jobId
-            }});
+            dispatch({
+              type: ACTIONS.MARK_SAVED_JOB_SYNCED, payload: {
+                jobId: payload.jobId
+              }
+            });
           }
-          
+
           // Clear loading state
           dispatch({ type: ACTIONS.SET_SAVING_JOB, payload: null });
         },
@@ -395,12 +428,12 @@ export function JobProvider({ children }) {
 
   const rollbackLastAction = async () => {
     if (state.sessionActions.length === 0) return;
-    
+
     const lastAction = state.sessionActions[state.sessionActions.length - 1];
-    
+
     // Use reducer's ROLLBACK_JOB action which handles all state updates atomically
     dispatch({ type: ACTIONS.ROLLBACK_JOB, payload: { job: lastAction.job, lastAction } });
-    
+
     // Add to offline queue for background sync with retry capability
     try {
       await offlineQueue.addOperation({
@@ -424,11 +457,13 @@ export function JobProvider({ children }) {
 
   const updateApplicationStage = async (applicationId, stage) => {
     // Optimistic UI update
-    dispatch({ type: ACTIONS.UPDATE_APPLICATION, payload: {
-      id: applicationId,
-      updates: { stage, updatedAt: new Date().toISOString(), pendingSync: true }
-    }});
-    
+    dispatch({
+      type: ACTIONS.UPDATE_APPLICATION, payload: {
+        id: applicationId,
+        updates: { stage, updatedAt: new Date().toISOString(), pendingSync: true }
+      }
+    });
+
     // Add to offline queue for background sync
     try {
       await offlineQueue.addOperation({
@@ -437,12 +472,14 @@ export function JobProvider({ children }) {
         payload: { applicationId, stage },
         apiCall: async (payload, options) => {
           const result = await applicationsApi.updateStage(payload.applicationId, payload.stage, options);
-          
+
           // Mark as synced
-          dispatch({ type: ACTIONS.UPDATE_APPLICATION, payload: {
-            id: payload.applicationId,
-            updates: { updatedAt: result.application.updatedAt, pendingSync: false }
-          }});
+          dispatch({
+            type: ACTIONS.UPDATE_APPLICATION, payload: {
+              id: payload.applicationId,
+              updates: { updatedAt: result.application.updatedAt, pendingSync: false }
+            }
+          });
         },
       });
     } catch (error) {
@@ -457,10 +494,10 @@ export function JobProvider({ children }) {
       console.log(`Job ${job.id} already reported, skipping`);
       return;
     }
-    
+
     // Set loading state
     dispatch({ type: ACTIONS.SET_REPORTING_JOB, payload: job.id });
-    
+
     // Optimistic UI update
     const reportId = `report-${job.id}-${Date.now()}`;
     const newReport = {
@@ -471,10 +508,10 @@ export function JobProvider({ children }) {
       reason: reason,
       pendingSync: true,
     };
-    
+
     dispatch({ type: ACTIONS.ADD_REPORTED_JOB, payload: newReport });
     console.log(`Job reported: ${reason}`);
-    
+
     // Add to offline queue with retry capability
     try {
       const operation = await offlineQueue.addOperation({
@@ -483,17 +520,19 @@ export function JobProvider({ children }) {
         payload: { jobId: job.id, reason },
         apiCall: async (payload, options) => {
           await reportedApi.reportJob(payload.jobId, payload.reason, options);
-          
+
           // Mark as synced on success
-          dispatch({ type: ACTIONS.MARK_REPORTED_JOB_SYNCED, payload: {
-            jobId: payload.jobId
-          }});
-          
+          dispatch({
+            type: ACTIONS.MARK_REPORTED_JOB_SYNCED, payload: {
+              jobId: payload.jobId
+            }
+          });
+
           // Clear loading state
           dispatch({ type: ACTIONS.SET_REPORTING_JOB, payload: null });
         },
       });
-      
+
       // If operation is null, it means it cancelled a pending unreport
       // This is expected when user toggles report/unreport quickly
       if (operation === null) {
@@ -512,7 +551,7 @@ export function JobProvider({ children }) {
   const unreportJob = async (jobId) => {
     // Optimistic UI update - remove from reported jobs immediately
     dispatch({ type: ACTIONS.REMOVE_REPORTED_JOB, payload: jobId });
-    
+
     // Try to add unreport operation (will cancel pending report if it exists)
     try {
       const operation = await offlineQueue.addOperation({
@@ -524,7 +563,7 @@ export function JobProvider({ children }) {
           // Successfully unreported - UI already updated
         },
       });
-      
+
       // If operation is null, it means it cancelled a pending report
       // In that case, we're done - no need to unreport from server since it was never reported
       if (operation === null) {

@@ -14,6 +14,10 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordLogin, setShowPasswordLogin] = useState(false);
   const [error, setError] = useState('');
+  const [showResendVerification, setShowResendVerification] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
   const router = useRouter();
 
   const handleOAuthSignIn = (provider) => {
@@ -22,10 +26,42 @@ export default function LoginPage() {
     window.location.href = `${API_URL}/api/auth/${provider}`;
   };
 
+  const handleResendVerification = async () => {
+    if (!unverifiedEmail) return;
+
+    setResendLoading(true);
+    setResendMessage('');
+
+    try {
+      const response = await fetch(`${API_URL}/api/auth/resend-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: unverifiedEmail }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setResendMessage('Verification email sent! Please check your inbox.');
+      } else {
+        setResendMessage(data.error?.message || data.message || data.error || 'Failed to resend verification email.');
+      }
+    } catch (error) {
+      console.error('Error resending verification:', error);
+      setResendMessage('An error occurred. Please try again.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setShowResendVerification(false);
+    setResendMessage('');
 
     const email = e.target.email.value;
     const password = e.target.password.value;
@@ -43,7 +79,19 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error?.message || data.message || data.error || 'Login failed');
+        const errorMessage = data.error?.message || data.message || data.error || 'Login failed';
+
+        // Check if error is about unverified email
+        if (errorMessage.toLowerCase().includes('verify') ||
+          errorMessage.toLowerCase().includes('verification') ||
+          errorMessage.toLowerCase().includes('not verified') ||
+          data.error?.code === 'EMAIL_NOT_VERIFIED') {
+          setUnverifiedEmail(email);
+          setShowResendVerification(true);
+          setError('Your email is not verified. Please verify your email before logging in.');
+        } else {
+          setError(errorMessage);
+        }
         setIsLoading(false);
         return;
       }
@@ -90,6 +138,24 @@ export default function LoginPage() {
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
               {error}
+
+              {/* Resend verification section */}
+              {showResendVerification && (
+                <div className="mt-3 pt-3 border-t border-red-200">
+                  <button
+                    onClick={handleResendVerification}
+                    disabled={resendLoading}
+                    className="w-full px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition-colors disabled:opacity-50"
+                  >
+                    {resendLoading ? 'Sending...' : 'Resend Verification Email'}
+                  </button>
+                  {resendMessage && (
+                    <p className={`mt-2 text-sm ${resendMessage.includes('sent') ? 'text-green-600' : 'text-red-600'}`}>
+                      {resendMessage}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
