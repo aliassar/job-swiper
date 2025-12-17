@@ -104,6 +104,9 @@ export default function SwipeContainer() {
   // Track navigation timeouts to prevent memory leaks
   const navigationTimeoutRef = useRef(null);
   
+  // Track if navigation has been triggered to prevent multiple navigations
+  const hasNavigatedRef = useRef(false);
+  
   // Filter state with localStorage persistence
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState(() => {
@@ -144,6 +147,7 @@ export default function SwipeContainer() {
   
   // Reset animation state when current job changes
   useEffect(() => {
+    hasNavigatedRef.current = false;
     x.set(0);
     setExitDirection({ x: 0, y: 0 });
     setSwipeDirection('');
@@ -247,7 +251,8 @@ export default function SwipeContainer() {
       // Pass auto-apply metadata to the API
       try {
         const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
-        if (applicationId) {
+        if (applicationId && !hasNavigatedRef.current) {
+          hasNavigatedRef.current = true;
           // Provide user feedback when auto-apply is triggered
           if (autoApplyMetadataRef.current.automaticApply) {
             console.log('Auto-apply workflow started for application:', applicationId);
@@ -305,7 +310,8 @@ export default function SwipeContainer() {
     // Pass auto-apply metadata to the API
     try {
       const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
-      if (applicationId) {
+     if (applicationId && !hasNavigatedRef.current) {
+        hasNavigatedRef.current = true;
         // Provide user feedback when auto-apply is triggered
         if (autoApplyMetadataRef.current.automaticApply) {
           console.log('Auto-apply workflow started for application:', applicationId);
