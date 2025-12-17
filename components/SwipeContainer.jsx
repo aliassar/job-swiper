@@ -37,10 +37,9 @@ import { useJobs } from '@/context/JobContext';
 /**
  * NOTE: Auto-apply feature
  * The UI for auto-apply toggle is implemented below. When enabled, the autoApplyMetadataRef
- * is set to { automaticApply: true }. This metadata should be passed to the backend API
- * when the accept action is performed. Currently, the state machine doesn't support passing
- * metadata through the swipe action, so this will need to be implemented in the backend
- * API handler at /api/jobs/[id]/accept to receive and process the automaticApply flag.
+ * is set to { automaticApply: true }. This metadata is passed to the backend API through
+ * the acceptJob function, which sends it to /api/jobs/[id]/accept where it is processed
+ * and stored with the application.
  */
 
 // Dynamic exit distance based on screen width
@@ -254,6 +253,10 @@ export default function SwipeContainer() {
         const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
         if (applicationId && !hasNavigatedRef.current) {
           hasNavigatedRef.current = true;
+          // Provide user feedback when auto-apply is triggered
+          if (autoApplyMetadataRef.current.automaticApply) {
+            console.log('Auto-apply workflow started for application:', applicationId);
+          }
           // Small delay to allow swipe animation to start
           // Track timeout to prevent memory leak
           if (navigationTimeoutRef.current) {
@@ -307,8 +310,12 @@ export default function SwipeContainer() {
     // Pass auto-apply metadata to the API
     try {
       const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
-      if (applicationId && !hasNavigatedRef.current) {
+     if (applicationId && !hasNavigatedRef.current) {
         hasNavigatedRef.current = true;
+        // Provide user feedback when auto-apply is triggered
+        if (autoApplyMetadataRef.current.automaticApply) {
+          console.log('Auto-apply workflow started for application:', applicationId);
+        }
         // Small delay to allow swipe animation to start
         // Track timeout to prevent memory leak
         if (navigationTimeoutRef.current) {

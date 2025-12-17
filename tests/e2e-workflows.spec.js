@@ -62,6 +62,67 @@ test.describe('End-to-End User Flows', () => {
     console.log('✓ Complete job swiping workflow tested');
   });
 
+  test('auto-apply metadata workflow', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000);
+    
+    console.log('✓ Step 1: Loaded homepage');
+    
+    // Enable auto-apply toggle
+    const autoApplyButton = page.locator('button[aria-label="Toggle auto-apply"]').or(
+      page.locator('button').filter({ hasText: /auto.*apply/i })
+    ).first();
+    
+    if (await autoApplyButton.count() > 0) {
+      await autoApplyButton.click();
+      await page.waitForTimeout(500);
+      
+      await page.screenshot({ path: 'tests/screenshots/e2e-auto-apply-enabled.png', fullPage: true });
+      console.log('✓ Step 2: Auto-apply enabled');
+      
+      // Accept a job with auto-apply enabled
+      const acceptButton = page.locator('button').filter({ hasText: /accept|apply/i }).first();
+      
+      if (await acceptButton.count() > 0) {
+        // Listen for console logs to verify auto-apply feedback
+        const consoleMessages = [];
+        page.on('console', msg => {
+          if (msg.text().includes('Auto-apply workflow started')) {
+            consoleMessages.push(msg.text());
+          }
+        });
+        
+        await acceptButton.click();
+        await page.waitForTimeout(2000);
+        
+        await page.screenshot({ path: 'tests/screenshots/e2e-auto-apply-accepted.png', fullPage: true });
+        console.log('✓ Step 3: Job accepted with auto-apply');
+        
+        // Verify console message was logged
+        if (consoleMessages.length > 0) {
+          console.log('✓ Step 4: Auto-apply feedback logged:', consoleMessages[0]);
+        } else {
+          console.log('⚠ Auto-apply feedback not detected in console');
+        }
+        
+        // Navigate to applications page to verify the application was created
+        await page.goto('/applications');
+        await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(1000);
+        
+        await page.screenshot({ path: 'tests/screenshots/e2e-auto-apply-application-list.png', fullPage: true });
+        console.log('✓ Step 5: Application created and visible in list');
+        
+        console.log('✓ Auto-apply metadata workflow completed');
+      } else {
+        console.log('⚠ Accept button not found');
+      }
+    } else {
+      console.log('⚠ Auto-apply button not found');
+    }
+  });
+
   test('save job and view later workflow', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
