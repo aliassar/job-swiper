@@ -79,50 +79,73 @@ A Tinder-style job swiping app built with Next.js, Tailwind CSS, and JavaScript.
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+ installed
-- npm or yarn package manager
-- Backend server (job-swipper-server) running
+- Node.js 18+ 
+- npm or yarn
+- PostgreSQL database (for the backend)
 
-### Installation
+### Environment Setup
 
-1. Clone the repository:
+1. Clone both repositories:
 ```bash
 git clone https://github.com/aliassar/job-swiper.git
-cd job-swiper
+git clone https://github.com/aliassar/job-swiper-server.git
 ```
 
-2. Install dependencies:
+2. Set up the backend server first:
 ```bash
+cd job-swiper-server
+cp .env.example .env
+# Edit .env with your database credentials and JWT secret
 npm install
-```
-
-3. Set up environment variables:
-```bash
-cp .env.example .env.local
-# Edit .env.local with your configuration
-```
-
-4. Run the development server:
-```bash
+npm run db:migrate
 npm run dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
-
-### Connecting to the Backend Server
-
-This frontend app requires the [job-swipper-server](https://github.com/aliassar/job-swipper-server) backend to be running.
-
-1. Clone and set up the backend server following its README
-2. Start the backend server (typically runs on port 5000)
-3. Configure `NEXT_PUBLIC_API_URL` in your `.env.local`:
-```
-NEXT_PUBLIC_API_URL=http://localhost:5000
+3. Set up the frontend:
+```bash
+cd job-swiper
+cp .env.example .env.local
+# Edit .env.local and set NEXT_PUBLIC_API_URL to your backend URL
+# Example: NEXT_PUBLIC_API_URL=http://localhost:3001
+npm install
+npm run dev
 ```
 
-For production deployment:
+### Connecting Frontend to Backend
+
+The frontend communicates with the backend via the `NEXT_PUBLIC_API_URL` environment variable.
+
+| Environment | Frontend URL | Backend URL | NEXT_PUBLIC_API_URL |
+|-------------|--------------|-------------|---------------------|
+| Development | http://localhost:3000 | http://localhost:3001 | http://localhost:3001 |
+| Production | https://job-swiper.vercel.app | https://job-swiper-server.vercel.app | https://job-swiper-server.vercel.app |
+
+### Related Repositories
+
+- **Frontend (this repo):** [aliassar/job-swiper](https://github.com/aliassar/job-swiper) - Next.js frontend application
+- **Backend:** [aliassar/job-swiper-server](https://github.com/aliassar/job-swiper-server) - Hono.js API server
+
+### Architecture Overview
+
 ```
-NEXT_PUBLIC_API_URL=https://api.jobswiper.app
+┌─────────────────────┐     HTTP/REST      ┌─────────────────────┐
+│                     │ ◄───────────────── │                     │
+│   job-swiper        │                    │  job-swiper-server  │
+│   (Next.js)         │ ──────────────────►│  (Hono.js)          │
+│                     │    JSON + JWT      │                     │
+└─────────────────────┘                    └─────────────────────┘
+        │                                           │
+        │                                           │
+        ▼                                           ▼
+   localStorage                              PostgreSQL
+   (JWT tokens)                              (Drizzle ORM)
+```
+
+### API Authentication
+
+All API requests (except auth endpoints) require a JWT token in the Authorization header:
+```
+Authorization: Bearer <your-jwt-token>
 ```
 
 ## Project Structure
