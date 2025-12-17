@@ -165,15 +165,12 @@ export function jobReducer(state, action) {
       };
       
     case ACTIONS.MERGE_SKIPPED_JOBS:
-      const merged = [...state.skippedJobs];
-      action.payload.forEach(serverJob => {
-        if (!merged.some(local => local.id === serverJob.id)) {
-          merged.push(serverJob);
-        }
-      });
+      // Merge server skipped jobs with local, prioritizing local pending ones
+      const existingIds = new Set(state.skippedJobs.filter(j => j.pendingSync).map(j => j.id));
+      const newServerJobs = action.payload.filter(job => !existingIds.has(job.id));
       return {
         ...state,
-        skippedJobs: merged,
+        skippedJobs: [...state.skippedJobs.filter(j => j.pendingSync), ...newServerJobs],
       };
       
     case ACTIONS.ADD_REPORTED_JOB:
