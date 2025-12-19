@@ -6,6 +6,7 @@
 // Action types
 export const ACTIONS = {
   SET_JOBS: 'SET_JOBS',
+  APPEND_JOBS: 'APPEND_JOBS', // For pagination - append more jobs to existing list
   SET_TOTAL_COUNT: 'SET_TOTAL_COUNT',
   SET_CURRENT_INDEX: 'SET_CURRENT_INDEX',
   SET_SAVED_JOBS: 'SET_SAVED_JOBS',
@@ -64,13 +65,28 @@ export const initialState = {
   retryCount: 0,
   savingJob: null, // ID of job currently being saved/unsaved, or null
   reportingJob: null, // ID of job currently being reported, or null
+  // Pagination state
+  hasMore: true, // Whether more jobs are available from server
+  currentPage: 1, // Current page for pagination
 };
 
 // Reducer function
 export function jobReducer(state, action) {
   switch (action.type) {
     case ACTIONS.SET_JOBS:
-      return { ...state, jobs: action.payload };
+      return { ...state, jobs: action.payload, currentPage: 1 };
+
+    case ACTIONS.APPEND_JOBS: {
+      // Append new jobs for pagination, avoiding duplicates
+      const existingIds = new Set(state.jobs.map(j => j.id));
+      const newJobs = (action.payload.jobs || []).filter(j => !existingIds.has(j.id));
+      return {
+        ...state,
+        jobs: [...state.jobs, ...newJobs],
+        hasMore: action.payload.hasMore,
+        currentPage: action.payload.page,
+      };
+    }
 
     case ACTIONS.SET_TOTAL_COUNT:
       return { ...state, totalJobCount: action.payload };
@@ -115,9 +131,11 @@ export function jobReducer(state, action) {
       return { ...state, reportingJob: action.payload };
 
     case ACTIONS.ADD_SESSION_ACTION:
+      const MAX_SESSION_ACTIONS = 100; // Prevent unbounded memory growth
+      const updatedActions = [...(state.sessionActions || []), action.payload];
       return {
         ...state,
-        sessionActions: [...(state.sessionActions || []), action.payload],
+        sessionActions: updatedActions.slice(-MAX_SESSION_ACTIONS),
       };
 
     case ACTIONS.REMOVE_LAST_SESSION_ACTION:
@@ -170,12 +188,13 @@ export function jobReducer(state, action) {
       };
 
     case ACTIONS.MERGE_SKIPPED_JOBS:
-      // Merge server skipped jobs with local, prioritizing local pending ones
-      const existingIds = new Set((state.skippedJobs || []).filter(j => j.pendingSync).map(j => j.id));
-      const newServerJobs = (action.payload || []).filter(job => !existingIds.has(job.id));
+      // Issue #10 fix: Merge server skipped jobs with ALL local jobs (not just pending)
+      // Keep all local jobs, add server jobs that aren't already local
+      const localSkippedIds = new Set((state.skippedJobs || []).map(j => j.id));
+      const newServerSkipped = (action.payload || []).filter(job => !localSkippedIds.has(job.id));
       return {
         ...state,
-        skippedJobs: [...(state.skippedJobs || []).filter(j => j.pendingSync), ...newServerJobs],
+        skippedJobs: [...(state.skippedJobs || []), ...newServerSkipped],
       };
 
     case ACTIONS.ADD_REPORTED_JOB:
@@ -190,8 +209,24 @@ export function jobReducer(state, action) {
         reportedJobs: (state.reportedJobs || []).filter(r => r.jobId !== action.payload),
       };
 
-    case ACTIONS.ROLLBACK_JOB:
+    case ACTIONS.ROLLBACK_JOB: {
       const { job, lastAction } = action.payload;
+
+      // Prevent duplicate job insertion (e.g., from double-tap on undo)
+      if (state.jobs.some(j => j.id === job.id)) {
+        console.warn('Rollback: Job already exists in list, preventing duplicate');
+        return {
+          ...state,
+          sessionActions: state.sessionActions.slice(0, -1),
+          applications: lastAction.action === 'accepted'
+            ? state.applications.filter(app => app.jobId !== lastAction.jobId)
+            : state.applications,
+          skippedJobs: lastAction.action === 'skipped'
+            ? state.skippedJobs.filter(s => s.id !== lastAction.jobId)
+            : state.skippedJobs,
+        };
+      }
+
       const currentJobIndex = state.jobs.findIndex(j => j.id === state.jobs[state.currentIndex]?.id);
       const insertIndex = currentJobIndex >= 0 ? currentJobIndex : state.currentIndex;
       const newJobs = [...state.jobs];
@@ -209,6 +244,7 @@ export function jobReducer(state, action) {
           ? state.skippedJobs.filter(s => s.id !== lastAction.jobId)
           : state.skippedJobs,
       };
+    }
 
     case ACTIONS.INCREMENT_INDEX:
       return {
