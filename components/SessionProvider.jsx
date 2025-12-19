@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
 import http from '@/lib/http';
 
-const PUBLIC_PATHS = ['/login', '/login/sign-up', '/login/forgot-password', '/auth/callback', '/auth/verify-email'];
+const PUBLIC_PATHS = ['/login', '/login/sign-up', '/login/forgot-password', '/auth/callback', '/auth/verify-email', '/auth/reset-password'];
 
 function SessionWrapper({ children }) {
   const router = useRouter();
@@ -30,7 +30,7 @@ function SessionWrapper({ children }) {
       if (authenticated) {
         try {
           const data = await http.get('/api/auth/me');
-          if (data && data.user && !data.user.emailVerified) {
+          if (data && data.data?.user && !data.data.user.emailVerified) {
             setUserVerified(false);
           } else {
             setUserVerified(true);

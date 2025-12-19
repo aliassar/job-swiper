@@ -6,6 +6,7 @@
 // Action types
 export const ACTIONS = {
   SET_JOBS: 'SET_JOBS',
+  SET_TOTAL_COUNT: 'SET_TOTAL_COUNT',
   SET_CURRENT_INDEX: 'SET_CURRENT_INDEX',
   SET_SAVED_JOBS: 'SET_SAVED_JOBS',
   SET_APPLICATIONS: 'SET_APPLICATIONS',
@@ -50,6 +51,7 @@ export const ACTIONS = {
 export const initialState = {
   jobs: [],
   currentIndex: 0,
+  totalJobCount: 0, // Server's total count of remaining jobs
   savedJobs: [],
   applications: [],
   reportedJobs: [],
@@ -69,6 +71,9 @@ export function jobReducer(state, action) {
   switch (action.type) {
     case ACTIONS.SET_JOBS:
       return { ...state, jobs: action.payload };
+
+    case ACTIONS.SET_TOTAL_COUNT:
+      return { ...state, totalJobCount: action.payload };
 
     case ACTIONS.SET_CURRENT_INDEX:
       return { ...state, currentIndex: action.payload };
