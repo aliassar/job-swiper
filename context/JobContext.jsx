@@ -438,8 +438,6 @@ export function JobProvider({ children }) {
     // Use reducer's ROLLBACK_JOB action which handles all state updates atomically
     dispatch({ type: ACTIONS.ROLLBACK_JOB, payload: { job: lastAction.job, lastAction } });
 
-<<<<<<< HEAD
-=======
     // If action was never synced to server, just remove from offline queue - no API call needed
     if (lastAction.pendingSync) {
       const actionType = lastAction.action === 'accepted' ? 'accept' :
@@ -452,7 +450,7 @@ export function JobProvider({ children }) {
       // If not found in queue, it may have been synced already - continue to API call
     }
 
->>>>>>> 89b08c122c78573e3ddab0e978e56ceb0df9f5d1
+
     // Add to offline queue for background sync with retry capability
     try {
       await offlineQueue.addOperation({
