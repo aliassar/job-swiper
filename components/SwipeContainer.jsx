@@ -19,14 +19,14 @@ import FloatingActions from './FloatingActions';
 import ReportModal from './ReportModal';
 import { ArrowUturnLeftIcon, WifiIcon } from '@heroicons/react/24/outline';
 import { BoltIcon } from '@heroicons/react/24/solid';
-import { 
-  SWIPE_THRESHOLD, 
-  VELOCITY_THRESHOLD, 
-  EXIT_ROTATION, 
-  EXIT_PADDING, 
-  EXIT_FALLBACK, 
+import {
+  SWIPE_THRESHOLD,
+  VELOCITY_THRESHOLD,
+  EXIT_ROTATION,
+  EXIT_PADDING,
+  EXIT_FALLBACK,
   DRAG_CONSTRAINTS,
-  NAVIGATION_DELAY 
+  NAVIGATION_DELAY
 } from '@/lib/constants';
 import { useSwipeStateMachine } from '@/context/useSwipeStateMachine';
 import { SwipeActionType } from '@/context/swipeStateMachine';
@@ -69,44 +69,44 @@ export default function SwipeContainer() {
     rollback,
     unlock,
   } = useSwipeStateMachine();
-  
-  const { 
-    toggleSaveJob, 
-    reportJob, 
-    savedJobs, 
+
+  const {
+    toggleSaveJob,
+    reportJob,
+    savedJobs,
     acceptJob: createApplication,
     rejectJob,
     skipJob,
     rollbackLastAction,
     manualRetry
   } = useJobs();
-  
+
   // Animation state (local to UI only)
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-300, 300], [-EXIT_ROTATION, EXIT_ROTATION]);
   const [exitDirection, setExitDirection] = useState({ x: 0, y: 0 });
   const [swipeDirection, setSwipeDirection] = useState('');
-  
+
   // Report modal state
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [jobToReport, setJobToReport] = useState(null);
-  
+
   // Auto-apply state
   const [autoApplyEnabled, setAutoApplyEnabled] = useState(false);
   const [showAutoApplyTooltip, setShowAutoApplyTooltip] = useState(false);
   // Store auto-apply metadata for the next accept action
   // Note: This ref is updated in handleToggleAutoApply to match autoApplyEnabled state
   const autoApplyMetadataRef = useRef({ automaticApply: false });
-  
+
   // Track timeout for rollback unlock to prevent memory leak
   const rollbackTimeoutRef = useRef(null);
-  
+
   // Track navigation timeouts to prevent memory leaks
   const navigationTimeoutRef = useRef(null);
-  
+
   // Track if navigation has been triggered to prevent multiple navigations
   const hasNavigatedRef = useRef(false);
-  
+
   // Filter state with localStorage persistence
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState(() => {
@@ -127,13 +127,13 @@ export default function SwipeContainer() {
       maxSalary: '',
     };
   });
-  
+
   // Online status
   const [isOnline, setIsOnline] = useState(true);
-  
+
   // Memoize exit distance
   const exitDistance = useMemo(() => getExitDistance(), []);
-  
+
   // Track swipe direction for CSS classes
   useMotionValueEvent(x, "change", (latest) => {
     if (latest > 20) {
@@ -144,7 +144,7 @@ export default function SwipeContainer() {
       setSwipeDirection('');
     }
   });
-  
+
   // Reset animation state when current job changes
   useEffect(() => {
     hasNavigatedRef.current = false;
@@ -152,37 +152,37 @@ export default function SwipeContainer() {
     setExitDirection({ x: 0, y: 0 });
     setSwipeDirection('');
   }, [currentJob, x]);
-  
+
   // Monitor online/offline status
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-    
+
     setIsOnline(navigator.onLine);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      
+
       // Cleanup rollback timeout on unmount
       if (rollbackTimeoutRef.current) {
         clearTimeout(rollbackTimeoutRef.current);
       }
-      
+
       // Cleanup navigation timeout on unmount
       if (navigationTimeoutRef.current) {
         clearTimeout(navigationTimeoutRef.current);
       }
     };
   }, []);
-  
+
   // Load jobs on mount and when filters change
   useEffect(() => {
     // Create AbortController to handle race conditions when filters change rapidly
     const abortController = new AbortController();
-    
+
     const loadJobs = async () => {
       setLoading(true);
       try {
@@ -193,9 +193,9 @@ export default function SwipeContainer() {
         if (filters.location) options.location = filters.location;
         if (filters.minSalary) options.salaryMin = filters.minSalary;
         if (filters.maxSalary) options.salaryMax = filters.maxSalary;
-        
+
         const data = await jobsApi.getJobs(options);
-        
+
         // Only update state if request wasn't aborted
         if (!abortController.signal.aborted) {
           initializeJobs(data.jobs);
@@ -204,68 +204,58 @@ export default function SwipeContainer() {
         // Ignore abort errors - they're expected when filters change rapidly
         // Check both error name and DOMException for better cross-browser compatibility
         // DOMException.ABORT_ERR is not available in all environments, so we check the code
-        const isAbortError = err.name === 'AbortError' || 
-                           (err instanceof DOMException && err.code === DOMException.ABORT_ERR);
+        const isAbortError = err.name === 'AbortError' ||
+          (err instanceof DOMException && err.code === DOMException.ABORT_ERR);
         if (isAbortError) {
           console.log('Job fetch aborted - filters changed');
           return;
         }
-        
+
         setError({
           message: 'Unable to load jobs. Please check your connection and try again.',
           canRetry: true,
         });
       }
     };
-    
+
     loadJobs();
-    
+
     // Cleanup: abort pending request if filters change or component unmounts
     return () => {
       abortController.abort();
     };
   }, [initializeJobs, setLoading, setError, filters]);
-  
+
   /**
    * Handle drag end - determines swipe action
    * This is the ONLY place where swipes are triggered
    */
   const handleDragEnd = useCallback(async (_event, info) => {
     if (!currentJob || isLocked) return;
-    
+
     // Determine swipe type from velocity or position
     const flickedRight = info.velocity.x > VELOCITY_THRESHOLD;
     const flickedLeft = info.velocity.x < -VELOCITY_THRESHOLD;
     const flickedUp = info.velocity.y < -VELOCITY_THRESHOLD;
-    
+
     const draggedRight = info.offset.x > SWIPE_THRESHOLD;
     const draggedLeft = info.offset.x < -SWIPE_THRESHOLD;
     const draggedUp = info.offset.y < -SWIPE_THRESHOLD;
-    
+
     if (draggedRight || flickedRight) {
       setExitDirection({ x: exitDistance, y: 0 });
       // Update UI state in state machine
       swipe(currentJob.id, SwipeActionType.ACCEPT);
-      
+
       // Create application through JobContext (handles API and persistence)
       // Pass auto-apply metadata to the API
       try {
         const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
-        if (applicationId && !hasNavigatedRef.current) {
-          hasNavigatedRef.current = true;
-          // Provide user feedback when auto-apply is triggered
-          if (autoApplyMetadataRef.current.automaticApply) {
-            console.log('Auto-apply workflow started for application:', applicationId);
-          }
-          // Small delay to allow swipe animation to start
-          // Track timeout to prevent memory leak
-          if (navigationTimeoutRef.current) {
-            clearTimeout(navigationTimeoutRef.current);
-          }
-          navigationTimeoutRef.current = setTimeout(() => {
-            router.push(`/application/${applicationId}`);
-          }, NAVIGATION_DELAY);
+        // Provide user feedback when auto-apply is triggered
+        if (applicationId && autoApplyMetadataRef.current.automaticApply) {
+          console.log('Auto-apply workflow started for application:', applicationId);
         }
+        // Note: User stays on swipe page to continue swiping
       } catch (error) {
         console.error('Error creating application:', error);
         // The operation is queued offline and will be retried
@@ -273,7 +263,7 @@ export default function SwipeContainer() {
       }
       return;
     }
-    
+
     if (draggedLeft || flickedLeft) {
       setExitDirection({ x: -exitDistance, y: 0 });
       // Update UI state in state machine
@@ -282,7 +272,7 @@ export default function SwipeContainer() {
       rejectJob(currentJob);
       return;
     }
-    
+
     if (draggedUp || flickedUp) {
       setExitDirection({ x: 0, y: -exitDistance });
       // Update UI state in state machine
@@ -291,12 +281,12 @@ export default function SwipeContainer() {
       skipJob(currentJob);
       return;
     }
-    
+
     // Reset if threshold not met
     setExitDirection({ x: 0, y: 0 });
     setSwipeDirection('');
   }, [currentJob, isLocked, exitDistance, swipe, createApplication, rejectJob, skipJob, router]);
-  
+
   /**
    * Handle accept button click
    */
@@ -305,33 +295,23 @@ export default function SwipeContainer() {
     setExitDirection({ x: exitDistance, y: 0 });
     // Update UI state in state machine
     swipe(currentJob.id, SwipeActionType.ACCEPT);
-    
+
     // Create application through JobContext (handles API and persistence)
     // Pass auto-apply metadata to the API
     try {
       const applicationId = await createApplication(currentJob, autoApplyMetadataRef.current);
-     if (applicationId && !hasNavigatedRef.current) {
-        hasNavigatedRef.current = true;
-        // Provide user feedback when auto-apply is triggered
-        if (autoApplyMetadataRef.current.automaticApply) {
-          console.log('Auto-apply workflow started for application:', applicationId);
-        }
-        // Small delay to allow swipe animation to start
-        // Track timeout to prevent memory leak
-        if (navigationTimeoutRef.current) {
-          clearTimeout(navigationTimeoutRef.current);
-        }
-        navigationTimeoutRef.current = setTimeout(() => {
-          router.push(`/application/${applicationId}`);
-        }, NAVIGATION_DELAY);
+      // Provide user feedback when auto-apply is triggered
+      if (applicationId && autoApplyMetadataRef.current.automaticApply) {
+        console.log('Auto-apply workflow started for application:', applicationId);
       }
+      // Note: User stays on swipe page to continue swiping
     } catch (error) {
       console.error('Error creating application:', error);
       // The operation is queued offline and will be retried
       // User can check Applications page to see sync status
     }
-  }, [currentJob, isLocked, exitDistance, swipe, createApplication, router]);
-  
+  }, [currentJob, isLocked, exitDistance, swipe, createApplication]);
+
   /**
    * Handle reject button click
    */
@@ -343,7 +323,7 @@ export default function SwipeContainer() {
     // Handle API call through JobContext
     rejectJob(currentJob);
   }, [currentJob, isLocked, exitDistance, swipe, rejectJob]);
-  
+
   /**
    * Handle skip button click
    */
@@ -355,7 +335,7 @@ export default function SwipeContainer() {
     // Handle API call through JobContext
     skipJob(currentJob);
   }, [currentJob, isLocked, exitDistance, swipe, skipJob]);
-  
+
   /**
    * Handle rollback button click
    * This is a pure synchronous operation
@@ -367,16 +347,16 @@ export default function SwipeContainer() {
    */
   const handleRollback = useCallback(() => {
     if (!canPerformRollback) return;
-    
+
     // Set exit direction for the current card to animate back in
     setExitDirection({ x: 0, y: 0 });
-    
+
     // Update UI state in state machine
     rollback();
-    
+
     // Also rollback in JobContext to sync sessionActions
     rollbackLastAction();
-    
+
     // Unlock immediately - rollback has no exit animation to trigger onExitComplete
     // The rolled-back job just appears, it doesn't exit
     // Track timeout to prevent memory leak
@@ -385,7 +365,7 @@ export default function SwipeContainer() {
     }
     rollbackTimeoutRef.current = setTimeout(() => unlock(), 0);
   }, [canPerformRollback, rollback, rollbackLastAction, unlock]);
-  
+
   /**
    * Animation completion handler
    * This is where we unlock the state machine
@@ -393,7 +373,7 @@ export default function SwipeContainer() {
   const handleAnimationComplete = useCallback(() => {
     unlock();
   }, [unlock]);
-  
+
   /**
    * Handle report modal
    */
@@ -401,7 +381,7 @@ export default function SwipeContainer() {
     setJobToReport(job);
     setReportModalOpen(true);
   }, []);
-  
+
   const handleReport = useCallback((reason) => {
     if (jobToReport) {
       // Call the actual report API
@@ -410,7 +390,7 @@ export default function SwipeContainer() {
       setJobToReport(null);
     }
   }, [jobToReport, reportJob]);
-  
+
   /**
    * Toggle auto-apply mode
    */
@@ -425,14 +405,14 @@ export default function SwipeContainer() {
       return newValue;
     });
   }, []);
-  
+
   /**
    * Toggle filters panel
    */
   const handleToggleFilters = useCallback(() => {
     setShowFilters(prev => !prev);
   }, []);
-  
+
   /**
    * Apply filters
    */
@@ -444,7 +424,7 @@ export default function SwipeContainer() {
     setShowFilters(false);
     // Note: The useEffect will automatically reload jobs when filters change
   }, [filters]);
-  
+
   /**
    * Clear filters
    */
@@ -460,7 +440,7 @@ export default function SwipeContainer() {
       localStorage.setItem('jobFilters', JSON.stringify(clearedFilters));
     }
   }, []);
-  
+
   // Keep tooltip visible when auto-apply is on
   useEffect(() => {
     if (autoApplyEnabled) {
@@ -473,13 +453,13 @@ export default function SwipeContainer() {
     if (!currentJob || isLocked) return;
     toggleSaveJob(currentJob);
   }, [currentJob, isLocked, toggleSaveJob]);
-  
+
   // Check if current job is saved
   const isCurrentJobSaved = useMemo(() => {
     if (!currentJob) return false;
     return savedJobs.some(saved => saved.id === currentJob.id);
   }, [currentJob, savedJobs]);
-  
+
   // Unlock when entering empty state (no animation to unlock otherwise)
   // This must be before any conditional returns to follow Rules of Hooks
   const shouldShowEmpty = !loading && !currentJob && remainingJobs === 0;
@@ -490,7 +470,7 @@ export default function SwipeContainer() {
       unlock();
     }
   }, [shouldShowEmpty, isLocked, unlock]);
-  
+
   // Show error state
   if (error && !loading) {
     return (
@@ -499,7 +479,7 @@ export default function SwipeContainer() {
           <div className="text-6xl mb-4">😕</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Unable to Load Jobs</h2>
           <p className="text-gray-600 mb-6">{error.message}</p>
-          
+
           {error.canRetry && (
             <button
               onClick={() => manualRetry()}
@@ -508,7 +488,7 @@ export default function SwipeContainer() {
               Try Again
             </button>
           )}
-          
+
           {!isOnline && (
             <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-sm">
               <WifiIcon className="h-4 w-4" />
@@ -519,7 +499,7 @@ export default function SwipeContainer() {
       </div>
     );
   }
-  
+
   // Show loading state
   if (loading) {
     return (
@@ -535,7 +515,7 @@ export default function SwipeContainer() {
       </div>
     );
   }
-  
+
   // Show empty state - only when truly at the end
   // Guard against premature empty state during transitions
   if (shouldShowEmpty) {
@@ -549,7 +529,7 @@ export default function SwipeContainer() {
             <p className="text-sm text-gray-500 mt-2">Check back later for more opportunities!</p>
           </div>
         </div>
-        
+
         {/* Rollback button still available in empty state */}
         {history.length > 0 && (
           <button
@@ -565,7 +545,7 @@ export default function SwipeContainer() {
       </div>
     );
   }
-  
+
   // If still loading or in transition, show loading indicator
   if (!currentJob) {
     return (
@@ -580,10 +560,10 @@ export default function SwipeContainer() {
       </div>
     );
   }
-  
+
   // Prepare visible jobs for rendering (current + preview)
   const visibleJobs = [currentJob, nextJob].filter(Boolean);
-  
+
   return (
     <div className="relative h-full w-full overflow-hidden">
       <div className="relative h-full max-w-md mx-auto">
@@ -593,7 +573,7 @@ export default function SwipeContainer() {
             {remainingJobs} {remainingJobs === 1 ? 'job' : 'jobs'}
           </div>
         </div>
-        
+
         {/* Offline indicator */}
         {!isOnline && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
@@ -603,7 +583,7 @@ export default function SwipeContainer() {
             </div>
           </div>
         )}
-        
+
         {/* Card stack */}
         <div className="relative h-full px-4 pt-4 pb-28">
           <AnimatePresence mode="popLayout" onExitComplete={handleAnimationComplete}>
@@ -611,7 +591,7 @@ export default function SwipeContainer() {
               const isTopCard = index === 0;
               const scale = 1 - index * 0.05;
               const yOffset = index * 12;
-              
+
               return (
                 <motion.div
                   key={job.id}
@@ -619,18 +599,18 @@ export default function SwipeContainer() {
                   style={
                     isTopCard
                       ? {
-                          x,
-                          rotate,
-                          zIndex: 10,
-                          touchAction: 'none',
-                          willChange: 'transform'
-                        }
+                        x,
+                        rotate,
+                        zIndex: 10,
+                        touchAction: 'none',
+                        willChange: 'transform'
+                      }
                       : {
-                          scale,
-                          y: yOffset,
-                          pointerEvents: 'none',
-                          zIndex: 10 - index,
-                        }
+                        scale,
+                        y: yOffset,
+                        pointerEvents: 'none',
+                        zIndex: 10 - index,
+                      }
                   }
                   drag={isTopCard}
                   dragElastic={0.8}
@@ -645,8 +625,8 @@ export default function SwipeContainer() {
                     transition: { duration: 0.3, ease: 'easeOut' }
                   }}
                 >
-                  <JobCard 
-                    job={job} 
+                  <JobCard
+                    job={job}
                     onReportClick={() => handleOpenReportModal(job)}
                   />
                 </motion.div>
@@ -654,7 +634,7 @@ export default function SwipeContainer() {
             })}
           </AnimatePresence>
         </div>
-        
+
         {/* Floating action buttons */}
         <FloatingActions
           onReject={handleReject}
@@ -664,7 +644,7 @@ export default function SwipeContainer() {
           isSaved={isCurrentJobSaved}
           disabled={!canPerformSwipe || isLocked}
         />
-        
+
         {/* Rollback button */}
         {history.length > 0 && (
           <button
@@ -677,37 +657,35 @@ export default function SwipeContainer() {
             <span className="text-sm font-medium pr-1">{history.length}</span>
           </button>
         )}
-        
+
         {/* Auto-apply toggle button - minimal design */}
         <div className="fixed bottom-24 left-6 z-50 flex flex-col gap-2">
           {/* Filter button - above auto-apply */}
           <button
             onClick={handleToggleFilters}
-            className={`rounded-full p-2 shadow-lg hover:scale-110 transition-all active:scale-95 ${
-              filters.location || filters.minSalary || filters.maxSalary
-                ? 'bg-blue-500 text-white' 
+            className={`rounded-full p-2 shadow-lg hover:scale-110 transition-all active:scale-95 ${filters.location || filters.minSalary || filters.maxSalary
+                ? 'bg-blue-500 text-white'
                 : 'bg-white text-gray-700 border border-gray-300'
-            }`}
+              }`}
             aria-label="Toggle filters"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
             </svg>
           </button>
-          
+
           {/* Auto-apply button */}
           <button
             onClick={handleToggleAutoApply}
-            className={`rounded-full p-2 shadow-lg hover:scale-110 transition-all active:scale-95 ${
-              autoApplyEnabled 
-                ? 'bg-blue-500 text-white' 
+            className={`rounded-full p-2 shadow-lg hover:scale-110 transition-all active:scale-95 ${autoApplyEnabled
+                ? 'bg-blue-500 text-white'
                 : 'bg-white text-gray-700 border border-gray-300'
-            }`}
+              }`}
             aria-label="Toggle auto-apply"
           >
             <BoltIcon className="h-4 w-4" />
           </button>
-          
+
           {/* Tooltip - only shown when auto-apply is ON, positioned to not block content */}
           {autoApplyEnabled && showAutoApplyTooltip && (
             <div className="absolute bottom-0 left-full ml-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap shadow-lg">
@@ -716,7 +694,7 @@ export default function SwipeContainer() {
             </div>
           )}
         </div>
-        
+
         {/* Filter modal */}
         {showFilters && (
           <div className="fixed inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center p-4" onClick={() => setShowFilters(false)}>
@@ -733,7 +711,7 @@ export default function SwipeContainer() {
                   </svg>
                 </button>
               </div>
-              
+
               <div className="space-y-4">
                 {/* Location filter */}
                 <div>
@@ -749,7 +727,7 @@ export default function SwipeContainer() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                   />
                 </div>
-                
+
                 {/* Salary range filter */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -779,7 +757,7 @@ export default function SwipeContainer() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Actions */}
               <div className="flex items-center gap-3 mt-6">
                 <button
@@ -798,7 +776,7 @@ export default function SwipeContainer() {
             </div>
           </div>
         )}
-        
+
         {/* Report Modal */}
         <ReportModal
           isOpen={reportModalOpen}
