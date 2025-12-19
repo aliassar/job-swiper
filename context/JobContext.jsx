@@ -21,6 +21,13 @@ export function JobProvider({ children }) {
   // Bug Fix 3: Track retry timeout for cleanup
   const retryTimeoutRef = useRef(null);
 
+  // Bug Fix: Prevent double-tap on rollback button
+  const rollbackInProgressRef = useRef(false);
+
+  // Bug Fix (Issue #2): Track processed jobs to prevent rapid swipe race conditions
+  // Jobs added to this set have already been acted upon in this session
+  const processedJobsRef = useRef(new Set());
+
   // Bug Fix 1 & Optimization 5: Memoize offlineQueue to prevent recreation
   const offlineQueue = useMemo(() => getOfflineQueue(), []);
 
@@ -30,11 +37,21 @@ export function JobProvider({ children }) {
     dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: null });
 
     try {
-      const data = await jobsApi.getJobs(search);
+      const data = await jobsApi.getJobs({ search, page: 1, limit: 20 });
       dispatch({ type: ACTIONS.SET_JOBS, payload: data.jobs });
       // Store server's total count for accurate tracking
       if (typeof data.total === 'number') {
         dispatch({ type: ACTIONS.SET_TOTAL_COUNT, payload: data.total });
+      }
+      // Handle pagination metadata
+      if (data.pagination) {
+        dispatch({
+          type: ACTIONS.APPEND_JOBS, payload: {
+            jobs: [], // No appending for initial fetch, just set hasMore
+            hasMore: data.pagination.hasMore,
+            page: 1
+          }
+        });
       }
       dispatch({ type: ACTIONS.SET_RETRY_COUNT, payload: 0 });
       dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: null });
@@ -64,6 +81,40 @@ export function JobProvider({ children }) {
       }
     }
   }, []); // Empty deps - uses dispatch
+
+  // Ref to prevent concurrent fetchMore calls
+  const fetchingMoreRef = useRef(false);
+
+  // Fetch more jobs for pagination (append to existing)
+  const fetchMoreJobs = useCallback(async () => {
+    // Prevent concurrent fetches and don't fetch if no more jobs
+    if (fetchingMoreRef.current || !state.hasMore) {
+      return;
+    }
+
+    fetchingMoreRef.current = true;
+    const nextPage = state.currentPage + 1;
+
+    try {
+      const data = await jobsApi.getJobs({ page: nextPage, limit: 20 });
+      dispatch({
+        type: ACTIONS.APPEND_JOBS,
+        payload: {
+          jobs: data.jobs,
+          hasMore: data.pagination?.hasMore ?? data.jobs.length === 20,
+          page: nextPage
+        }
+      });
+      // Update total if provided
+      if (typeof data.total === 'number') {
+        dispatch({ type: ACTIONS.SET_TOTAL_COUNT, payload: data.total });
+      }
+    } catch (error) {
+      console.error('Error fetching more jobs:', error);
+    } finally {
+      fetchingMoreRef.current = false;
+    }
+  }, [state.hasMore, state.currentPage]);
 
   const fetchSavedJobs = useCallback(async (search = '') => {
     try {
@@ -152,6 +203,11 @@ export function JobProvider({ children }) {
             console.log('Restoring persisted state from IndexedDB');
             if (persistedState.applications) dispatch({ type: ACTIONS.SET_APPLICATIONS, payload: persistedState.applications });
             if (persistedState.savedJobs) dispatch({ type: ACTIONS.SET_SAVED_JOBS, payload: persistedState.savedJobs });
+            // Issue #4 fix: Load persisted jobs for offline first load
+            if (persistedState.jobs && persistedState.jobs.length > 0) {
+              dispatch({ type: ACTIONS.SET_JOBS, payload: persistedState.jobs });
+              console.log(`Restored ${persistedState.jobs.length} jobs from IndexedDB`);
+            }
             if (persistedState.reportedJobs) dispatch({ type: ACTIONS.SET_REPORTED_JOBS, payload: persistedState.reportedJobs });
             if (persistedState.skippedJobs) dispatch({ type: ACTIONS.SET_SKIPPED_JOBS, payload: persistedState.skippedJobs });
             if (typeof persistedState.currentIndex === 'number') dispatch({ type: ACTIONS.SET_CURRENT_INDEX, payload: persistedState.currentIndex });
@@ -212,11 +268,13 @@ export function JobProvider({ children }) {
     const persistState = async () => {
       try {
         await saveAppState({
+          // Issue #4 fix: Persist jobs for offline first load (limit to avoid storage bloat)
+          jobs: state.jobs.slice(state.currentIndex, state.currentIndex + 50),
           applications: state.applications,
           savedJobs: state.savedJobs,
           reportedJobs: state.reportedJobs,
           skippedJobs: state.skippedJobs,
-          currentIndex: state.currentIndex,
+          currentIndex: 0, // Reset to 0 since we're only storing from currentIndex
           timestamp: Date.now(),
         }, userId);
       } catch (error) {
@@ -227,9 +285,16 @@ export function JobProvider({ children }) {
     // Debounce the save operation
     const timeoutId = setTimeout(persistState, STATE_PERSISTENCE_DEBOUNCE);
     return () => clearTimeout(timeoutId);
-  }, [state.applications, state.savedJobs, state.reportedJobs, state.skippedJobs, state.currentIndex, userId]);
+  }, [state.jobs, state.applications, state.savedJobs, state.reportedJobs, state.skippedJobs, state.currentIndex, userId]);
 
   const acceptJob = async (job, metadata = {}) => {
+    // Issue #2 fix: Prevent rapid swipe race condition
+    if (processedJobsRef.current.has(job.id)) {
+      console.log(`Job ${job.id} already processed in this session, skipping accept`);
+      return;
+    }
+    processedJobsRef.current.add(job.id);
+
     // Create initial application with "Syncing" stage
     const tempApplication = {
       id: `temp-${job.id}-${Date.now()}`,
@@ -297,6 +362,13 @@ export function JobProvider({ children }) {
   };
 
   const rejectJob = async (job) => {
+    // Issue #2 fix: Prevent rapid swipe race condition
+    if (processedJobsRef.current.has(job.id)) {
+      console.log(`Job ${job.id} already processed in this session, skipping reject`);
+      return;
+    }
+    processedJobsRef.current.add(job.id);
+
     // Optimistic UI update
     dispatch({
       type: ACTIONS.ADD_SESSION_ACTION, payload: {
@@ -335,6 +407,13 @@ export function JobProvider({ children }) {
   };
 
   const skipJob = async (job) => {
+    // Issue #2 fix: Prevent rapid swipe race condition
+    if (processedJobsRef.current.has(job.id)) {
+      console.log(`Job ${job.id} already processed in this session, skipping skip action`);
+      return;
+    }
+    processedJobsRef.current.add(job.id);
+
     // Optimistic UI update - add to skippedJobs immediately
     const skippedItem = {
       ...job,
@@ -431,28 +510,38 @@ export function JobProvider({ children }) {
   };
 
   const rollbackLastAction = async () => {
-    if (state.sessionActions.length === 0) return;
-
-    const lastAction = state.sessionActions[state.sessionActions.length - 1];
-
-    // Use reducer's ROLLBACK_JOB action which handles all state updates atomically
-    dispatch({ type: ACTIONS.ROLLBACK_JOB, payload: { job: lastAction.job, lastAction } });
-
-    // If action was never synced to server, just remove from offline queue - no API call needed
-    if (lastAction.pendingSync) {
-      const actionType = lastAction.action === 'accepted' ? 'accept' :
-        lastAction.action === 'rejected' ? 'reject' : 'skip';
-      const wasRemoved = offlineQueue.rollbackUnsyncedAction(actionType, lastAction.jobId);
-      if (wasRemoved) {
-        console.log(`Rolled back unsynced ${lastAction.action} action for job ${lastAction.jobId}`);
-        return;
-      }
-      // If not found in queue, it may have been synced already - continue to API call
+    // Prevent concurrent rollbacks (e.g., double-tap on undo button)
+    if (rollbackInProgressRef.current) {
+      console.log('Rollback already in progress, ignoring');
+      return;
     }
 
+    if (state.sessionActions.length === 0) return;
 
-    // Add to offline queue for background sync with retry capability
+    rollbackInProgressRef.current = true;
+
     try {
+      const lastAction = state.sessionActions[state.sessionActions.length - 1];
+
+      // Issue #2 fix: Allow re-swiping on this job after rollback
+      processedJobsRef.current.delete(lastAction.jobId);
+
+      // Use reducer's ROLLBACK_JOB action which handles all state updates atomically
+      dispatch({ type: ACTIONS.ROLLBACK_JOB, payload: { job: lastAction.job, lastAction } });
+
+      // If action was never synced to server, just remove from offline queue - no API call needed
+      if (lastAction.pendingSync) {
+        const actionType = lastAction.action === 'accepted' ? 'accept' :
+          lastAction.action === 'rejected' ? 'reject' : 'skip';
+        const wasRemoved = offlineQueue.rollbackUnsyncedAction(actionType, lastAction.jobId);
+        if (wasRemoved) {
+          console.log(`Rolled back unsynced ${lastAction.action} action for job ${lastAction.jobId}`);
+          return;
+        }
+        // If not found in queue, it may have been synced already - continue to API call
+      }
+
+      // Add to offline queue for background sync with retry capability
       await offlineQueue.addOperation({
         type: 'rollback',
         id: lastAction.jobId,
@@ -466,9 +555,11 @@ export function JobProvider({ children }) {
         },
       });
     } catch (error) {
-      console.error('Error queuing rollback:', error);
+      console.error('Error in rollback:', error);
       // The operation is still in the queue and will be retried
       // The offline queue handles retries automatically
+    } finally {
+      rollbackInProgressRef.current = false;
     }
   };
 
@@ -603,6 +694,15 @@ export function JobProvider({ children }) {
     fetchJobs(0);
   };
 
+  // Auto-fetch more jobs when approaching end of current batch (Issue #1 fix)
+  useEffect(() => {
+    // Only auto-fetch if there are more jobs and we're within 5 of the end
+    const jobsRemaining = state.jobs.length - state.currentIndex;
+    if (jobsRemaining <= 5 && state.hasMore && !state.loading) {
+      fetchMoreJobs();
+    }
+  }, [state.currentIndex, state.jobs.length, state.hasMore, state.loading, fetchMoreJobs]);
+
   return (
     <JobContext.Provider
       value={{
@@ -637,6 +737,9 @@ export function JobProvider({ children }) {
         fetchSkippedJobs,
         fetchSavedJobs,
         manualRetry,
+        // Pagination
+        fetchMoreJobs,
+        hasMore: state.hasMore,
       }}
     >
       {children}
