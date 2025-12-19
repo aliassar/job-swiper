@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth, signOut } from '@/lib/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
-import { notificationsApi } from '@/lib/api';
+import { useNotifications } from '@/lib/hooks/useNotifications';
 import {
   BriefcaseIcon,
   BookmarkIcon,
@@ -23,29 +23,9 @@ export default function HamburgerMenu() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session, status } = useAuth();
-  const [unreadCount, setUnreadCount] = useState(0);
 
-  // Fetch unread count - ONLY when authenticated
-  useEffect(() => {
-    // Don't fetch if not authenticated
-    if (status !== 'authenticated') {
-      return;
-    }
-
-    const fetchUnreadCount = async () => {
-      try {
-        const data = await notificationsApi.getUnreadCount();
-        setUnreadCount(data.count || 0);
-      } catch (error) {
-        console.error('Error fetching unread count:', error);
-      }
-    };
-
-    fetchUnreadCount();
-    // Poll every 30 seconds
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, [status]);
+  // Use shared useNotifications hook with SSE real-time updates
+  const { unreadCount } = useNotifications({ enabled: status === 'authenticated' });
 
   const menuItems = [
     {
@@ -180,8 +160,8 @@ export default function HamburgerMenu() {
                         href={item.href}
                         onClick={closeMenu}
                         className={`flex items-start gap-4 p-4 rounded-xl transition-all ${isActive
-                            ? 'bg-blue-50 text-blue-600'
-                            : 'hover:bg-gray-50 text-gray-700'
+                          ? 'bg-blue-50 text-blue-600'
+                          : 'hover:bg-gray-50 text-gray-700'
                           }`}
                       >
                         <Icon className={`h-6 w-6 flex-shrink-0 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
