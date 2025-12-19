@@ -32,6 +32,10 @@ export function JobProvider({ children }) {
     try {
       const data = await jobsApi.getJobs(search);
       dispatch({ type: ACTIONS.SET_JOBS, payload: data.jobs });
+      // Store server's total count for accurate tracking
+      if (typeof data.total === 'number') {
+        dispatch({ type: ACTIONS.SET_TOTAL_COUNT, payload: data.total });
+      }
       dispatch({ type: ACTIONS.SET_RETRY_COUNT, payload: 0 });
       dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: null });
       dispatch({ type: ACTIONS.SET_LOADING, payload: false });
@@ -434,6 +438,21 @@ export function JobProvider({ children }) {
     // Use reducer's ROLLBACK_JOB action which handles all state updates atomically
     dispatch({ type: ACTIONS.ROLLBACK_JOB, payload: { job: lastAction.job, lastAction } });
 
+<<<<<<< HEAD
+=======
+    // If action was never synced to server, just remove from offline queue - no API call needed
+    if (lastAction.pendingSync) {
+      const actionType = lastAction.action === 'accepted' ? 'accept' :
+        lastAction.action === 'rejected' ? 'reject' : 'skip';
+      const wasRemoved = offlineQueue.rollbackUnsyncedAction(actionType, lastAction.jobId);
+      if (wasRemoved) {
+        console.log(`Rolled back unsynced ${lastAction.action} action for job ${lastAction.jobId}`);
+        return;
+      }
+      // If not found in queue, it may have been synced already - continue to API call
+    }
+
+>>>>>>> 89b08c122c78573e3ddab0e978e56ceb0df9f5d1
     // Add to offline queue for background sync with retry capability
     try {
       await offlineQueue.addOperation({
@@ -576,7 +595,9 @@ export function JobProvider({ children }) {
   };
 
   const currentJob = state.jobs[state.currentIndex];
+  // Use local count (for current session optimization), but also expose server's total
   const remainingJobs = state.jobs.length - state.currentIndex;
+  const totalJobCount = state.totalJobCount;
 
   const manualRetry = () => {
     dispatch({ type: ACTIONS.SET_RETRY_COUNT, payload: 0 });
@@ -591,6 +612,7 @@ export function JobProvider({ children }) {
         currentJob,
         currentIndex: state.currentIndex,
         remainingJobs,
+        totalJobCount, // Server's total remaining jobs count
         savedJobs: state.savedJobs,
         saveds: state.savedJobs, // Keep for backward compatibility
         applications: state.applications,
