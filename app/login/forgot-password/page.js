@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 /**
  * Forgot Password Page
  * Form for requesting password reset link
@@ -22,8 +24,8 @@ export default function ForgotPasswordPage() {
     const emailValue = e.target.email.value;
 
     try {
-      // Call forgot password API
-      const response = await fetch('/api/auth/forgot-password', {
+      // Call forgot password API using full backend URL
+      const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailValue }),
