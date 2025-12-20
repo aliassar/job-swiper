@@ -33,6 +33,14 @@ export function JobProvider({ children }) {
 
   // Optimization 8: useCallback for fetch functions (defined before useEffects that use them)
   const fetchJobs = useCallback(async (retryAttempt = 0, search = '') => {
+    // If offline and we have cached jobs, don't fetch - use cached data
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      console.log('[JobContext] Offline - using cached jobs');
+      dispatch({ type: ACTIONS.SET_LOADING, payload: false });
+      // Don't set error if we have cached jobs
+      return;
+    }
+
     dispatch({ type: ACTIONS.SET_LOADING, payload: true });
     dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: null });
 
@@ -59,6 +67,13 @@ export function JobProvider({ children }) {
     } catch (error) {
       console.error(`Error fetching jobs (attempt ${retryAttempt + 1}):`, error);
 
+      // If we went offline during fetch, don't retry - use cached data
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        console.log('[JobContext] Went offline during fetch - using cached jobs');
+        dispatch({ type: ACTIONS.SET_LOADING, payload: false });
+        return;
+      }
+
       if (retryAttempt < MAX_FETCH_RETRIES) {
         // Exponential backoff: 1s, 2s, 4s, 8s, 16s
         const delay = Math.pow(2, retryAttempt) * 1000;
@@ -70,7 +85,7 @@ export function JobProvider({ children }) {
           fetchJobs(retryAttempt + 1, search);
         }, delay);
       } else {
-        // Max retries reached
+        // Max retries reached - but don't clear existing cached jobs
         dispatch({
           type: ACTIONS.SET_FETCH_ERROR, payload: {
             message: 'Unable to load jobs. Please check your connection and try again.',
@@ -117,6 +132,12 @@ export function JobProvider({ children }) {
   }, [state.hasMore, state.currentPage]);
 
   const fetchSavedJobs = useCallback(async (search = '') => {
+    // If offline, use cached data
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      console.log('[JobContext] Offline - using cached saved jobs');
+      return;
+    }
+
     try {
       const data = await savedJobsApi.getSavedJobs(search);
       // After API unwrapping, data should contain savedJobs or jobs property
@@ -125,7 +146,10 @@ export function JobProvider({ children }) {
       dispatch({ type: ACTIONS.SET_SAVED_JOBS, payload: savedJobsList });
     } catch (error) {
       console.error('Error fetching saved jobs:', error);
-      // Set error state for saved jobs
+      // If offline, don't show error - use cached data
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        return;
+      }
       dispatch({
         type: ACTIONS.SET_FETCH_ERROR, payload: {
           message: 'Unable to load saved jobs. Please try again later.',
@@ -137,12 +161,21 @@ export function JobProvider({ children }) {
   }, []);
 
   const fetchApplications = useCallback(async (search = '') => {
+    // If offline, use cached data
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      console.log('[JobContext] Offline - using cached applications');
+      return;
+    }
+
     try {
       const data = await applicationsApi.getApplications(search);
       dispatch({ type: ACTIONS.SET_APPLICATIONS, payload: data.applications });
     } catch (error) {
       console.error('Error fetching applications:', error);
-      // Set error state for applications
+      // If offline, don't show error - use cached data
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        return;
+      }
       dispatch({
         type: ACTIONS.SET_FETCH_ERROR, payload: {
           message: 'Unable to load applications. Please try again later.',
