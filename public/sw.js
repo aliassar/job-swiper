@@ -1,9 +1,9 @@
 /**
  * Service Worker for Job Swiper PWA
- * Handles offline caching and navigation
+ * Handles offline caching and navigation for Next.js App Router
  */
 
-const CACHE_NAME = 'job-swiper-v2';
+const CACHE_NAME = 'job-swiper-v3';
 const OFFLINE_FALLBACK = '/';
 
 // Pages to pre-cache for offline navigation
@@ -22,7 +22,6 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[SW] Caching static pages');
-      // Cache pages individually to handle failures gracefully
       return Promise.allSettled(
         STATIC_CACHE_URLS.map(url =>
           cache.add(url).catch(err => console.warn(`[SW] Failed to cache ${url}:`, err))
@@ -30,7 +29,6 @@ self.addEventListener('install', (event) => {
       );
     })
   );
-  // Activate immediately
   self.skipWaiting();
 });
 
@@ -49,7 +47,6 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
-  // Take control of all pages immediately
   self.clients.claim();
 });
 
@@ -68,9 +65,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip webpack HMR and development requests
+  if (url.pathname.includes('webpack') || url.pathname.includes('_next/webpack')) {
+    return;
+  }
+
   // API requests - network first, then cache
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(networkFirstStrategy(request));
+    return;
+  }
+
+  // Next.js RSC (React Server Components) requests - these have special headers
+  // They're used for client-side navigation in App Router
+  const isRSCRequest = request.headers.get('RSC') === '1' ||
+    request.headers.get('Next-Router-State-Tree') ||
+    url.searchParams.has('_rsc');
+
+  if (isRSCRequest) {
+    // For RSC requests, try network first, but fall back to serving the full page
+    event.respondWith(handleRSCRequest(request, url));
     return;
   }
 
@@ -81,14 +95,53 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Navigation requests (HTML pages) - network first with offline fallback
-  if (request.mode === 'navigate') {
-    event.respondWith(navigationStrategy(request));
+  if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(navigationStrategy(request, url));
     return;
   }
 
   // Everything else - stale while revalidate
   event.respondWith(staleWhileRevalidateStrategy(request));
 });
+
+/**
+ * Handle Next.js RSC navigation requests
+ */
+async function handleRSCRequest(request, url) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    console.log('[SW] RSC request failed, attempting fallback for:', url.pathname);
+
+    // Try to get cached RSC response
+    const cachedRSC = await caches.match(request);
+    if (cachedRSC) {
+      return cachedRSC;
+    }
+
+    // Fall back to cached HTML page for this route
+    const pageUrl = new URL(url.pathname, url.origin);
+    const cachedPage = await caches.match(pageUrl.href);
+    if (cachedPage) {
+      // Return a response that tells Next.js to do a full page navigation
+      return new Response(null, {
+        status: 200,
+        headers: {
+          'x-nextjs-cache': 'STALE',
+          'content-type': 'text/x-component',
+        }
+      });
+    }
+
+    // Return error that will trigger client-side fallback
+    return new Response('Offline', { status: 503 });
+  }
+}
 
 /**
  * Network first strategy - try network, fall back to cache
@@ -106,7 +159,6 @@ async function networkFirstStrategy(request) {
     if (cachedResponse) {
       return cachedResponse;
     }
-    // Return offline error for API
     return new Response(
       JSON.stringify({ error: 'Offline - data not available', offline: true }),
       {
@@ -134,7 +186,6 @@ async function cacheFirstStrategy(request) {
     }
     return response;
   } catch (error) {
-    // Return empty response for failed static assets
     return new Response('', { status: 503 });
   }
 }
@@ -142,7 +193,7 @@ async function cacheFirstStrategy(request) {
 /**
  * Navigation strategy - network first with fallback to cached page or home
  */
-async function navigationStrategy(request) {
+async function navigationStrategy(request, url) {
   try {
     const response = await fetch(request);
     if (response.ok) {
@@ -151,48 +202,102 @@ async function navigationStrategy(request) {
     }
     return response;
   } catch (error) {
+    console.log('[SW] Navigation failed, trying cache for:', url.pathname);
+
     // Try to return cached version of this page
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
+      console.log('[SW] Returning cached page');
       return cachedResponse;
+    }
+
+    // Try to match by pathname only (without query params)
+    const pathOnlyUrl = new URL(url.pathname, url.origin);
+    const cachedByPath = await caches.match(pathOnlyUrl.href);
+    if (cachedByPath) {
+      console.log('[SW] Returning cached page by path');
+      return cachedByPath;
     }
 
     // Try to return cached home page as fallback
     const fallbackResponse = await caches.match(OFFLINE_FALLBACK);
     if (fallbackResponse) {
+      console.log('[SW] Returning home page fallback');
       return fallbackResponse;
     }
 
     // Last resort - offline error page
-    return new Response(
-      `<!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <title>Offline</title>
-          <style>
-            body { font-family: system-ui, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f8fafc; }
-            .container { text-align: center; padding: 2rem; }
-            h1 { color: #1e293b; }
-            p { color: #64748b; }
-            button { background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 0.5rem; cursor: pointer; font-size: 1rem; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1>📶 You're Offline</h1>
-            <p>Please check your connection and try again.</p>
-            <button onclick="location.reload()">Retry</button>
-          </div>
-        </body>
-      </html>`,
-      {
-        status: 503,
-        headers: { 'Content-Type': 'text/html' },
-      }
-    );
+    console.log('[SW] No cache available, showing offline page');
+    return offlineErrorPage();
   }
+}
+
+/**
+ * Generate offline error page
+ */
+function offlineErrorPage() {
+  return new Response(
+    `<!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Offline - Job Swiper</title>
+        <style>
+          * { box-sizing: border-box; }
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          }
+          .container { 
+            text-align: center; 
+            padding: 2rem; 
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 400px;
+            margin: 1rem;
+          }
+          .icon { font-size: 4rem; margin-bottom: 1rem; }
+          h1 { color: #1e293b; margin: 0 0 0.5rem 0; font-size: 1.5rem; }
+          p { color: #64748b; margin: 0 0 1.5rem 0; }
+          button { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; 
+            border: none; 
+            padding: 0.875rem 2rem; 
+            border-radius: 0.5rem; 
+            cursor: pointer; 
+            font-size: 1rem;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+          }
+          button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+          }
+          button:active { transform: translateY(0); }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="icon">📶</div>
+          <h1>You're Offline</h1>
+          <p>Please check your internet connection and try again.</p>
+          <button onclick="location.reload()">Try Again</button>
+        </div>
+      </body>
+    </html>`,
+    {
+      status: 503,
+      headers: { 'Content-Type': 'text/html' },
+    }
+  );
 }
 
 /**
