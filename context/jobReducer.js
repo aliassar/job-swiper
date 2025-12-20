@@ -8,6 +8,8 @@ export const ACTIONS = {
   SET_JOBS: 'SET_JOBS',
   APPEND_JOBS: 'APPEND_JOBS', // For pagination - append more jobs to existing list
   SET_TOTAL_COUNT: 'SET_TOTAL_COUNT',
+  DECREMENT_TOTAL_COUNT: 'DECREMENT_TOTAL_COUNT', // Decrement when job is acted upon
+  INCREMENT_TOTAL_COUNT: 'INCREMENT_TOTAL_COUNT', // Increment when action is rolled back
   SET_CURRENT_INDEX: 'SET_CURRENT_INDEX',
   SET_SAVED_JOBS: 'SET_SAVED_JOBS',
   SET_APPLICATIONS: 'SET_APPLICATIONS',
@@ -90,6 +92,12 @@ export function jobReducer(state, action) {
 
     case ACTIONS.SET_TOTAL_COUNT:
       return { ...state, totalJobCount: action.payload };
+
+    case ACTIONS.DECREMENT_TOTAL_COUNT:
+      return { ...state, totalJobCount: Math.max(0, state.totalJobCount - 1) };
+
+    case ACTIONS.INCREMENT_TOTAL_COUNT:
+      return { ...state, totalJobCount: state.totalJobCount + 1 };
 
     case ACTIONS.SET_CURRENT_INDEX:
       return { ...state, currentIndex: action.payload };
@@ -227,15 +235,15 @@ export function jobReducer(state, action) {
         };
       }
 
-      const currentJobIndex = state.jobs.findIndex(j => j.id === state.jobs[state.currentIndex]?.id);
-      const insertIndex = currentJobIndex >= 0 ? currentJobIndex : state.currentIndex;
+      // Insert the job at the current position (before the current job)
+      const insertIndex = state.currentIndex;
       const newJobs = [...state.jobs];
       newJobs.splice(insertIndex, 0, job);
 
       return {
         ...state,
         jobs: newJobs,
-        currentIndex: Math.max(0, state.currentIndex - 1),
+        currentIndex: insertIndex, // Keep pointing to the restored job (now at insertIndex)
         sessionActions: state.sessionActions.slice(0, -1),
         applications: lastAction.action === 'accepted'
           ? state.applications.filter(app => app.jobId !== lastAction.jobId)
