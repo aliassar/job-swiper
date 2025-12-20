@@ -33,11 +33,11 @@ export function JobProvider({ children }) {
 
   // Optimization 8: useCallback for fetch functions (defined before useEffects that use them)
   const fetchJobs = useCallback(async (retryAttempt = 0, search = '') => {
-    // If offline and we have cached jobs, don't fetch - use cached data
+    // If offline, use cached data - clear any error and don't fetch
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       console.log('[JobContext] Offline - using cached jobs');
       dispatch({ type: ACTIONS.SET_LOADING, payload: false });
-      // Don't set error if we have cached jobs
+      dispatch({ type: ACTIONS.SET_FETCH_ERROR, payload: null }); // Clear error to show cached data
       return;
     }
 
