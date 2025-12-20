@@ -560,11 +560,22 @@ export function JobProvider({ children }) {
             // Rollback synced successfully - no UI update needed
             console.log('Rollback synced to server successfully');
           } catch (error) {
-            // If server returns 4xx error about irreversible stage, log but don't retry
-            if (error.status === 400 || error.status === 422) {
+            // If server returns 4xx error about irreversible stage, notify user
+            if (error.status === 400 || error.status === 422 ||
+              (error.message && error.message.includes('irreversible'))) {
               console.warn('Rollback rejected by server (irreversible stage):', error.message);
-              // The UI already rolled back locally - notify user of inconsistency
-              throw error; // Let queue handle as failure
+              // Notify user of the inconsistency between local and server state
+              dispatch({
+                type: ACTIONS.SET_OPERATION_ERROR,
+                payload: {
+                  message: 'Cannot undo: This job application has already progressed to the next stage.',
+                  details: { jobId: payload.jobId, serverMessage: error.message },
+                  timestamp: new Date().toISOString(),
+                  recoveryAction: 'refresh', // Hint for UI to offer refresh button
+                }
+              });
+              // Don't retry 4xx errors - they won't succeed
+              error.noRetry = true;
             }
             throw error;
           }
