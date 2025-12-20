@@ -33,34 +33,34 @@ export default function ApplicationDetailPage() {
   const [cvVerificationTime, setCvVerificationTime] = useState(null); // Server-synced time for CV approval
   const [canRollbackCV, setCanRollbackCV] = useState(false);
   const [, setTick] = useState(0); // Force re-render for countdown
-  
+
   // Message verification states
   const [isEditingMessage, setIsEditingMessage] = useState(false);
   const [editedMessage, setEditedMessage] = useState('');
   const [messageSendTime, setMessageSendTime] = useState(null); // Server-synced time for message approval
   const [canRollbackMessage, setCanRollbackMessage] = useState(false);
-  
+
   // Document editing states
   const [isEditingResume, setIsEditingResume] = useState(false);
   const [isEditingCoverLetter, setIsEditingCoverLetter] = useState(false);
   const [uploadingResume, setUploadingResume] = useState(false);
   const [uploadingCoverLetter, setUploadingCoverLetter] = useState(false);
-  
+
   // Document URLs
   const [resumeUrl, setResumeUrl] = useState(null);
   const [coverLetterUrl, setCoverLetterUrl] = useState(null);
-  
+
   // Auto-update status toggle (on by default)
   const [autoUpdateStatus, setAutoUpdateStatus] = useState(true);
-  
+
   // Follow-up tracking (show count of follow-ups sent)
   const [followUpsSent, setFollowUpsSent] = useState(0);
-  
+
   // Notes editing state
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notes, setNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
-  
+
   // Determine if verification stages should be shown based on automation settings
   const hasCVVerification = settings?.automationStages?.writeResumeAndCoverLetter || false;
   const hasMessageVerification = settings?.automationStages?.applyViaEmailsAndForms || false;
@@ -68,43 +68,47 @@ export default function ApplicationDetailPage() {
   useEffect(() => {
     const fetchApplication = async () => {
       const appId = params.id;
-      
+
       try {
         setLoading(true);
-        
+
         // Try to fetch from API first
         const response = await applicationsApi.getApplication(appId);
-        if (response && response.application) {
-          setApplication(response.application);
-          setNotes(response.application.notes || '');
-          
+        // Backend returns application directly after http interceptor unwraps { data: application }
+        // Support both direct object and legacy { application: ... } format
+        const app = response?.application || response;
+        if (app && app.id) {
+          setApplication(app);
+          setNotes(app.notes || '');
+
           // Load server-synced times from application
-          if (response.application.cvVerificationTime) {
-            setCvVerificationTime(response.application.cvVerificationTime);
+          if (app.cvVerificationTime) {
+            setCvVerificationTime(app.cvVerificationTime);
           }
-          if (response.application.messageSendTime) {
-            setMessageSendTime(response.application.messageSendTime);
+          if (app.messageSendTime) {
+            setMessageSendTime(app.messageSendTime);
           }
-          
+
           // Load follow-up count from application
-          if (response.application.followUpsSent !== undefined) {
-            setFollowUpsSent(response.application.followUpsSent);
+          if (app.followUpsSent !== undefined) {
+            setFollowUpsSent(app.followUpsSent);
           }
-          
+
           // Check if this app requires verification
-          if (response.application.stage === 'CV Check') {
+          if (app.stage === 'CV Check') {
             setVerificationState('pending');
           }
         }
+
       } catch (error) {
         console.error('Error fetching application from API:', error);
-        
+
         // Fallback to context if API fails
         const foundApp = applications.find(a => a.id === appId);
         if (foundApp) {
           setApplication(foundApp);
           setNotes(foundApp.notes || '');
-          
+
           if (foundApp.cvVerificationTime) {
             setCvVerificationTime(foundApp.cvVerificationTime);
           }
@@ -118,7 +122,7 @@ export default function ApplicationDetailPage() {
             setVerificationState('pending');
           }
         }
-        
+
         // Fetch document URLs
         try {
           const docsResponse = await applicationsApi.getDocuments(appId);
@@ -133,7 +137,7 @@ export default function ApplicationDetailPage() {
         setLoading(false);
       }
     };
-    
+
     fetchApplication();
   }, [params.id, applications]);
 
@@ -145,7 +149,7 @@ export default function ApplicationDetailPage() {
         const now = Date.now();
         const elapsed = now - cvVerificationTime;
         const fiveMinutes = 5 * 60 * 1000;
-        
+
         if (elapsed >= fiveMinutes) {
           setCanRollbackCV(false);
           setCvVerificationTime(null);
@@ -161,13 +165,13 @@ export default function ApplicationDetailPage() {
       checkRollback();
       // Use 1s interval for smooth countdown display
       const interval = setInterval(checkRollback, 1000);
-      
+
       return () => clearInterval(interval);
     } else {
       setCanRollbackCV(false);
     }
   }, [cvVerificationTime]);
-  
+
   // Message send timer - 5 minutes delay before sending
   // Timer synced with server so reloading page won't reset it
   useEffect(() => {
@@ -176,7 +180,7 @@ export default function ApplicationDetailPage() {
         const now = Date.now();
         const elapsed = now - messageSendTime;
         const fiveMinutes = 5 * 60 * 1000;
-        
+
         if (elapsed >= fiveMinutes) {
           setCanRollbackMessage(false);
           setMessageSendTime(null);
@@ -196,7 +200,7 @@ export default function ApplicationDetailPage() {
 
       checkMessageSend();
       const interval = setInterval(checkMessageSend, 1000);
-      
+
       return () => clearInterval(interval);
     } else {
       setCanRollbackMessage(false);
@@ -216,7 +220,7 @@ export default function ApplicationDetailPage() {
     setVerificationState('accepted');
     const now = Date.now();
     setCvVerificationTime(now);
-    
+
     try {
       // Call API to confirm CV is good
       await applicationsApi.confirmCv(application.id);
@@ -234,7 +238,7 @@ export default function ApplicationDetailPage() {
   const handleVerificationReject = async () => {
     setVerificationState('rejected');
     // Don't start timer for rejection
-    
+
     // For rejection, user needs to upload custom documents using the upload controls
     // that appear below when verificationState is 'rejected'. The reuploadCv() API method
     // will be called when user selects a file in the upload control.
@@ -248,10 +252,10 @@ export default function ApplicationDetailPage() {
     setVerificationState('pending');
     setCvVerificationTime(null);
     setCanRollbackCV(false);
-    
+
     console.log('CV confirmation rolled back (UI only - user can re-confirm or upload new docs)');
   };
-  
+
   const handleSkipCVVerification = () => {
     // Skip CV verification and move to next stage
     if (application) {
@@ -259,7 +263,7 @@ export default function ApplicationDetailPage() {
     }
     console.log('CV Check skipped');
   };
-  
+
   const handleSkipMessageVerification = () => {
     // Skip message verification and move to Applied stage
     if (application) {
@@ -276,19 +280,19 @@ export default function ApplicationDetailPage() {
       } else {
         setUploadingCoverLetter(true);
       }
-      
+
       try {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('type', type);
-        
+
         const response = await fetch('/api/upload', {
           method: 'POST',
           body: formData,
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
           console.log(`Custom ${type} uploaded:`, data.name);
           // Update application with new document reference
@@ -297,14 +301,14 @@ export default function ApplicationDetailPage() {
             type === 'resume' ? data.url : undefined,
             type === 'coverLetter' ? data.url : undefined
           );
-          
+
           // Update local state
           if (type === 'resume') {
             setResumeUrl(data.url);
           } else {
             setCoverLetterUrl(data.url);
           }
-          
+
           alert(`${type === 'resume' ? 'Resume' : 'Cover letter'} uploaded successfully!`);
         } else {
           console.error('Upload failed:', data.error);
@@ -324,10 +328,10 @@ export default function ApplicationDetailPage() {
       }
     }
   };
-  
+
   const handleSaveNotes = async () => {
     if (!application) return;
-    
+
     try {
       setSavingNotes(true);
       await applicationsApi.updateNotes(application.id, notes);
@@ -339,17 +343,17 @@ export default function ApplicationDetailPage() {
       setSavingNotes(false);
     }
   };
-  
+
   const handleDownloadDocument = async (documentType) => {
     if (!application) return;
-    
+
     const url = documentType === 'resume' ? resumeUrl : coverLetterUrl;
-    
+
     if (!url) {
       alert(`No ${documentType} available for this application. Please upload one in Settings or during CV Check.`);
       return;
     }
-    
+
     try {
       // Extract filename from URL, handling query params and fragments
       let filename;
@@ -361,7 +365,7 @@ export default function ApplicationDetailPage() {
         // Fallback if URL parsing fails
         filename = `${documentType}-${application.company}-${application.position}.pdf`;
       }
-      
+
       // Create a temporary link to trigger download
       const link = document.createElement('a');
       link.href = url;
@@ -369,7 +373,7 @@ export default function ApplicationDetailPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       console.log(`Downloading ${documentType} from:`, url);
     } catch (error) {
       console.error(`Error downloading ${documentType}:`, error);
@@ -403,7 +407,7 @@ export default function ApplicationDetailPage() {
     const seconds = Math.floor((remaining % 60000) / 1000);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
-  
+
   const getMessageRemainingTime = () => {
     if (!messageSendTime) return '';
     const now = Date.now();
@@ -471,7 +475,7 @@ export default function ApplicationDetailPage() {
           {/* Company header with gradient - smaller */}
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-3">
             <div className="flex items-center gap-3">
-              <img 
+              <img
                 src={logoUrl}
                 alt={`${application.company} logo`}
                 className="w-12 h-12 rounded-lg shadow-lg bg-white flex-shrink-0"
@@ -493,14 +497,14 @@ export default function ApplicationDetailPage() {
             {/* Application dates - smaller */}
             <div className="mb-3 text-xs text-gray-600 flex items-center gap-3 flex-wrap">
               <span>
-                Applied {new Date(application.appliedAt).toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric', 
-                  year: 'numeric' 
+                Applied {new Date(application.appliedAt).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
                 })}
                 {application.updatedAt && application.updatedAt !== application.appliedAt && (
-                  <> • Updated {new Date(application.updatedAt).toLocaleDateString('en-US', { 
-                    month: 'short', 
+                  <> • Updated {new Date(application.updatedAt).toLocaleDateString('en-US', {
+                    month: 'short',
                     day: 'numeric'
                   })}</>
                 )}
@@ -516,7 +520,7 @@ export default function ApplicationDetailPage() {
             {/* Timeline section - reduced spacing */}
             <div className="mb-3 pb-3 border-b border-gray-200">
               <h3 className="text-xs font-semibold text-gray-700 mb-2">Progress</h3>
-              <ApplicationTimeline 
+              <ApplicationTimeline
                 currentStage={application.stage}
                 timestamps={{
                   'Applied': application.appliedAt,
@@ -531,7 +535,7 @@ export default function ApplicationDetailPage() {
             {/* Stage selector - reduced spacing */}
             <div className="mb-3 pb-3 border-b border-gray-200">
               <h3 className="text-xs font-semibold text-gray-700 mb-2">Update Status</h3>
-              
+
               {application.pendingSync && (
                 <div className="mb-2 inline-flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium">
                   <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -546,15 +550,14 @@ export default function ApplicationDetailPage() {
                 value={application.stage}
                 onChange={handleStageChange}
                 disabled={application.stage === 'Syncing'}
-                className={`w-full px-3 py-2 rounded-lg text-sm font-medium border-0 ${
-                  application.stage === 'Syncing'
-                    ? 'cursor-not-allowed opacity-70' 
+                className={`w-full px-3 py-2 rounded-lg text-sm font-medium border-0 ${application.stage === 'Syncing'
+                    ? 'cursor-not-allowed opacity-70'
                     : 'cursor-pointer'
-                } ${getStageColor(application.stage)}`}
+                  } ${getStageColor(application.stage)}`}
               >
                 {APPLICATION_STAGES.map((stage) => (
-                  <option 
-                    key={stage} 
+                  <option
+                    key={stage}
                     value={stage}
                     disabled={stage === 'Syncing'}
                   >
@@ -567,7 +570,7 @@ export default function ApplicationDetailPage() {
                   Status locked until sync completes. Server will auto-progress to next stage.
                 </p>
               )}
-              
+
               {/* Auto-update status toggle */}
               <div className="mt-3 flex items-center justify-between">
                 <div className="flex-1">
@@ -584,15 +587,13 @@ export default function ApplicationDetailPage() {
                   role="switch"
                   aria-checked={autoUpdateStatus}
                   onClick={() => setAutoUpdateStatus(!autoUpdateStatus)}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                    autoUpdateStatus ? 'bg-blue-600' : 'bg-gray-200'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${autoUpdateStatus ? 'bg-blue-600' : 'bg-gray-200'
+                    }`}
                 >
                   <span
                     aria-hidden="true"
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      autoUpdateStatus ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${autoUpdateStatus ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   />
                 </button>
               </div>
@@ -605,11 +606,10 @@ export default function ApplicationDetailPage() {
                 <button
                   onClick={() => handleDownloadDocument('resume')}
                   disabled={!resumeUrl}
-                  className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                    resumeUrl
+                  className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${resumeUrl
                       ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
                       : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
+                    }`}
                 >
                   <ArrowDownTrayIcon className="h-3.5 w-3.5" />
                   Resume
@@ -617,17 +617,16 @@ export default function ApplicationDetailPage() {
                 <button
                   onClick={() => handleDownloadDocument('coverLetter')}
                   disabled={!coverLetterUrl}
-                  className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                    coverLetterUrl
+                  className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${coverLetterUrl
                       ? 'bg-green-50 text-green-700 hover:bg-green-100'
                       : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
+                    }`}
                 >
                   <ArrowDownTrayIcon className="h-3.5 w-3.5" />
                   Cover Letter
                 </button>
               </div>
-              
+
               {/* Edit documents button for CV and Message Check stages */}
               {(application.stage === 'CV Check' || application.stage === 'Message Check') && (
                 <div className="mt-2">
@@ -660,7 +659,7 @@ export default function ApplicationDetailPage() {
                       />
                     </label>
                   )}
-                  
+
                   <button
                     onClick={() => {
                       setIsEditingCoverLetter(!isEditingCoverLetter);
@@ -692,7 +691,7 @@ export default function ApplicationDetailPage() {
                   )}
                 </div>
               )}
-              
+
               {/* Verification buttons for pending verification */}
               {showVerification && (
                 <div className="mt-3 pt-3 border-t border-gray-200">
@@ -770,13 +769,13 @@ export default function ApplicationDetailPage() {
             {application.stage === 'Message Check' && (
               <div className="mb-3 pb-3 border-b border-gray-200">
                 <h3 className="text-xs font-semibold text-gray-700 mb-2">Recommended Application Message</h3>
-                
+
                 {!messageSendTime ? (
                   <>
                     <p className="text-xs text-gray-600 mb-2">
                       Review the message below that will be sent to the company to apply for this position:
                     </p>
-                    
+
                     {isEditingMessage ? (
                       <textarea
                         value={editedMessage}
@@ -798,7 +797,7 @@ Best regards`}
                         </p>
                       </div>
                     )}
-                    
+
                     {/* Message Check Actions */}
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       {isEditingMessage ? (
@@ -832,13 +831,13 @@ Best regards`}
                                 // Approve message - update if edited, then schedule send in 5 minutes
                                 const now = Date.now();
                                 setMessageSendTime(now);
-                                
+
                                 try {
                                   // If message was edited, update it first
                                   if (editedMessage && editedMessage !== application.recommendedMessage) {
                                     await applicationsApi.updateMessage(application.id, editedMessage);
                                   }
-                                  
+
                                   console.log('Message approved, 5-minute timer started at:', new Date(now).toISOString());
                                 } catch (error) {
                                   console.error('Error approving message:', error);
@@ -900,7 +899,7 @@ Thank you for considering my application. I look forward to hearing from you.
 Best regards`}
                       </p>
                     </div>
-                    
+
                     {/* Undo button */}
                     {canRollbackMessage && (
                       <div className="mt-3 pt-3 border-t border-gray-200">
@@ -911,7 +910,7 @@ Best regards`}
                             // User can re-edit and re-approve the message after rollback
                             setMessageSendTime(null);
                             setCanRollbackMessage(false);
-                            
+
                             console.log('Message send rolled back (UI only - user can re-edit and re-approve)');
                           }}
                           className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors"
@@ -957,7 +956,7 @@ Best regards`}
                 </p>
               </div>
             )}
-            
+
             {/* Application Notes Section */}
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -972,7 +971,7 @@ Best regards`}
                   </button>
                 )}
               </div>
-              
+
               {isEditingNotes ? (
                 <div className="space-y-2">
                   <textarea

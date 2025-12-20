@@ -6,15 +6,16 @@ import { useJobs } from '@/context/JobContext';
 import { useSavedJobsInfinite } from '@/lib/hooks/useSWR';
 import { BookmarkIcon } from '@heroicons/react/24/solid';
 import SearchInput from '@/components/SearchInput';
+import OfflineBanner from '@/components/OfflineBanner';
 
 export default function SavedJobsPage() {
   const router = useRouter();
   const { toggleSaveJob } = useJobs();
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Feature 24: Use infinite scroll SWR hook
-  const { savedJobs, isLoading, isLoadingMore, hasMore, loadMore, mutate } = useSavedJobsInfinite(searchQuery);
-  
+
+  // Feature 24: Use infinite scroll SWR hook with offline support
+  const { savedJobs, isLoading, isLoadingMore, isOffline, hasMore, loadMore, mutate } = useSavedJobsInfinite(searchQuery);
+
   // IntersectionObserver for infinite scroll
   const sentinelRef = useRef(null);
 
@@ -56,11 +57,14 @@ export default function SavedJobsPage() {
 
         {/* Always show search bar */}
         <div className="mb-4">
-          <SearchInput 
+          <SearchInput
             placeholder="Search by company, position, or skills..."
             onSearch={handleSearch}
           />
         </div>
+
+        {/* Offline banner */}
+        {isOffline && <OfflineBanner />}
 
         {isLoading && (
           <div className="flex flex-col items-center justify-center h-full px-6 text-center">
@@ -95,23 +99,23 @@ export default function SavedJobsPage() {
               const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
               // Check if this job has been accepted (has an application)
               const hasApplication = job.status === 'accepted' || job.applicationId;
-              
+
               return (
-                <div 
+                <div
                   key={job.id}
                   className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow overflow-hidden"
                 >
                   <div className="flex items-start gap-4">
-                    <img 
+                    <img
                       src={logoUrl}
                       alt={`${job.company} logo`}
                       className="w-14 h-14 rounded-xl flex-shrink-0 cursor-pointer"
                       onClick={() => router.push(`/job/${job.id}`)}
                     />
-                    
+
                     <div className="flex-1 min-w-0 overflow-hidden">
                       <div className="flex items-start justify-between gap-2">
-                        <div 
+                        <div
                           className="flex-1 min-w-0 overflow-hidden cursor-pointer"
                           onClick={() => router.push(`/job/${job.id}`)}
                         >
@@ -120,7 +124,7 @@ export default function SavedJobsPage() {
                           </h3>
                           <p className="text-sm text-gray-600 truncate">{job.company}</p>
                           <p className="text-xs text-gray-500 mt-1 truncate">{job.location}</p>
-                          
+
                           {/* Syncing indicator */}
                           {job.pendingSync && (
                             <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs font-medium">
@@ -132,7 +136,7 @@ export default function SavedJobsPage() {
                             </div>
                           )}
                         </div>
-                        
+
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -146,7 +150,7 @@ export default function SavedJobsPage() {
                           <BookmarkIcon className="h-5 w-5 text-blue-500 flex-shrink-0" />
                         </button>
                       </div>
-                      
+
                       <div className="flex flex-wrap gap-1.5 mt-3">
                         {job.skills.slice(0, 3).map((skill, index) => (
                           <span
@@ -162,7 +166,7 @@ export default function SavedJobsPage() {
                           </span>
                         )}
                       </div>
-                      
+
                       {/* Action buttons for undecided jobs */}
                       {!hasApplication && (
                         <div className="flex gap-2 mt-3">
@@ -177,7 +181,7 @@ export default function SavedJobsPage() {
                                   body: JSON.stringify({}),
                                 });
                                 const data = await response.json();
-                                
+
                                 if (data.applicationId) {
                                   // Navigate to the application page
                                   router.push(`/application/${data.applicationId}`);
@@ -219,7 +223,7 @@ export default function SavedJobsPage() {
                           </button>
                         </div>
                       )}
-                      
+
                       {/* View application button for decided jobs */}
                       {hasApplication && (
                         <button
@@ -234,7 +238,7 @@ export default function SavedJobsPage() {
                 </div>
               );
             })}
-            
+
             {/* Feature 24: Infinite scroll sentinel */}
             {hasMore && (
               <div ref={sentinelRef} className="py-8 text-center">
@@ -248,7 +252,7 @@ export default function SavedJobsPage() {
                 )}
               </div>
             )}
-            
+
             {!hasMore && savedJobs.length > 0 && (
               <div className="py-8 text-center">
                 <p className="text-sm text-gray-500">No more jobs to load</p>

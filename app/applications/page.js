@@ -7,6 +7,7 @@ import { useApplications } from '@/lib/hooks/useSWR';
 import { BriefcaseIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
+import OfflineBanner from '@/components/OfflineBanner';
 
 const APPLICATION_STAGES = [
   'Syncing',
@@ -29,11 +30,12 @@ export default function ApplicationsPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Use SWR for data fetching with automatic caching and revalidation
-  const { applications, isLoading, mutate } = useApplications(searchQuery);
+  const { applications, isLoading, isOffline, mutate } = useApplications(searchQuery);
 
   const handleSearch = useCallback((query) => {
     setSearchQuery(query);
   }, []);
+
 
   const hasApplications = applications.length > 0;
   const hasResults = applications.length > 0;
@@ -75,6 +77,9 @@ export default function ApplicationsPage() {
             onSearch={handleSearch}
           />
         </div>
+
+        {/* Offline banner */}
+        {isOffline && <OfflineBanner />}
 
         {isLoading && (
           <div className="flex flex-col items-center justify-center h-full px-6 text-center mt-20">
