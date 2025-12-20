@@ -529,16 +529,18 @@ export function JobProvider({ children }) {
       // Use reducer's ROLLBACK_JOB action which handles all state updates atomically
       dispatch({ type: ACTIONS.ROLLBACK_JOB, payload: { job: lastAction.job, lastAction } });
 
-      // If action was never synced to server, just remove from offline queue - no API call needed
+      // If action was never synced to server, remove from offline queue
+      // But STILL send server rollback - the action might have been in-flight!
       if (lastAction.pendingSync) {
         const actionType = lastAction.action === 'accepted' ? 'accept' :
           lastAction.action === 'rejected' ? 'reject' : 'skip';
         const wasRemoved = offlineQueue.rollbackUnsyncedAction(actionType, lastAction.jobId);
         if (wasRemoved) {
           console.log(`Rolled back unsynced ${lastAction.action} action for job ${lastAction.jobId}`);
-          return;
+          // DON'T return - still queue server rollback in case action was in-flight
+          // The queue uses idempotency keys, so duplicate rollbacks are safe
         }
-        // If not found in queue, it may have been synced already - continue to API call
+        // Continue to add rollback operation (no early return)
       }
 
       // Add to offline queue for background sync with retry capability
@@ -549,9 +551,19 @@ export function JobProvider({ children }) {
         apiCall: async (payload, options) => {
           // Retry logic is built into the offline queue
           // The queue will automatically retry with exponential backoff on failure
-          await jobsApi.rollbackJob(payload.jobId, options);
-          // Rollback synced successfully - no UI update needed
-          console.log('Rollback synced to server successfully');
+          try {
+            await jobsApi.rollbackJob(payload.jobId, options);
+            // Rollback synced successfully - no UI update needed
+            console.log('Rollback synced to server successfully');
+          } catch (error) {
+            // If server returns 4xx error about irreversible stage, log but don't retry
+            if (error.status === 400 || error.status === 422) {
+              console.warn('Rollback rejected by server (irreversible stage):', error.message);
+              // The UI already rolled back locally - notify user of inconsistency
+              throw error; // Let queue handle as failure
+            }
+            throw error;
+          }
         },
       });
     } catch (error) {
