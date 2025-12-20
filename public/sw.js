@@ -1,127 +1,227 @@
+/**
+ * Service Worker for Job Swiper PWA
+ * Handles offline caching and navigation
+ */
 
-const CACHE_NAME = 'job-swiper';
+const CACHE_NAME = 'job-swiper-v2';
+const OFFLINE_FALLBACK = '/';
+
+// Pages to pre-cache for offline navigation
 const STATIC_CACHE_URLS = [
   '/',
   '/applications',
   '/saved',
   '/skipped',
   '/reported',
+  '/settings',
 ];
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('Service Worker installing...');
+  console.log('[SW] Installing...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Caching static assets');
-      return cache.addAll(STATIC_CACHE_URLS);
+      console.log('[SW] Caching static pages');
+      // Cache pages individually to handle failures gracefully
+      return Promise.allSettled(
+        STATIC_CACHE_URLS.map(url =>
+          cache.add(url).catch(err => console.warn(`[SW] Failed to cache ${url}:`, err))
+        )
+      );
     })
   );
+  // Activate immediately
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches and legacy routes
+// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating...');
+  console.log('[SW] Activating...');
   event.waitUntil(
-    Promise.all([
-      // Delete old caches
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames
-            .filter((name) => name !== CACHE_NAME)
-            .map((name) => caches.delete(name))
-        );
-      }),
-      // Clean up legacy routes from current cache
-      caches.open(CACHE_NAME).then((cache) => {
-        return Promise.all(
-          LEGACY_ROUTES.map((route) => cache.delete(route))
-        );
-      }),
-    ])
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => {
+            console.log('[SW] Deleting old cache:', name);
+            return caches.delete(name);
+          })
+      );
+    })
   );
+  // Take control of all pages immediately
   self.clients.claim();
 });
 
-// Fetch event - network-first strategy for API calls, cache-first for static assets
+// Fetch event - handle requests
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // API requests - network first, then cache
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Clone the response before caching
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseToCache);
-          });
-          return response;
-        })
-        .catch(() => {
-          // If network fails, try cache
-          return caches.match(request).then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // Return a custom offline response for API calls
-            return new Response(
-              JSON.stringify({ error: 'Offline - data not available' }),
-              {
-                status: 503,
-                statusText: 'Service Unavailable',
-                headers: new Headers({
-                  'Content-Type': 'application/json',
-                }),
-              }
-            );
-          });
-        })
-    );
+  // Skip non-GET requests
+  if (request.method !== 'GET') {
     return;
   }
 
-  // Static assets - cache first, then network
-  event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+  // Skip chrome-extension and other non-http(s) requests
+  if (!url.protocol.startsWith('http')) {
+    return;
+  }
 
-      return fetch(request).then((response) => {
-        // Don't cache non-GET requests or error responses
-        if (request.method !== 'GET' || !response || response.status !== 200) {
-          return response;
-        }
+  // API requests - network first, then cache
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(networkFirstStrategy(request));
+    return;
+  }
 
-        // Clone the response before caching
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(request, responseToCache);
-        });
+  // Next.js static files (_next) - cache first for performance
+  if (url.pathname.startsWith('/_next/')) {
+    event.respondWith(cacheFirstStrategy(request));
+    return;
+  }
 
-        return response;
-      });
-    })
-  );
+  // Navigation requests (HTML pages) - network first with offline fallback
+  if (request.mode === 'navigate') {
+    event.respondWith(navigationStrategy(request));
+    return;
+  }
+
+  // Everything else - stale while revalidate
+  event.respondWith(staleWhileRevalidateStrategy(request));
 });
+
+/**
+ * Network first strategy - try network, fall back to cache
+ */
+async function networkFirstStrategy(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    // Return offline error for API
+    return new Response(
+      JSON.stringify({ error: 'Offline - data not available', offline: true }),
+      {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
+}
+
+/**
+ * Cache first strategy - try cache, fall back to network
+ */
+async function cacheFirstStrategy(request) {
+  const cachedResponse = await caches.match(request);
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    // Return empty response for failed static assets
+    return new Response('', { status: 503 });
+  }
+}
+
+/**
+ * Navigation strategy - network first with fallback to cached page or home
+ */
+async function navigationStrategy(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    // Try to return cached version of this page
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+
+    // Try to return cached home page as fallback
+    const fallbackResponse = await caches.match(OFFLINE_FALLBACK);
+    if (fallbackResponse) {
+      return fallbackResponse;
+    }
+
+    // Last resort - offline error page
+    return new Response(
+      `<!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>Offline</title>
+          <style>
+            body { font-family: system-ui, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f8fafc; }
+            .container { text-align: center; padding: 2rem; }
+            h1 { color: #1e293b; }
+            p { color: #64748b; }
+            button { background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 0.5rem; cursor: pointer; font-size: 1rem; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>📶 You're Offline</h1>
+            <p>Please check your connection and try again.</p>
+            <button onclick="location.reload()">Retry</button>
+          </div>
+        </body>
+      </html>`,
+      {
+        status: 503,
+        headers: { 'Content-Type': 'text/html' },
+      }
+    );
+  }
+}
+
+/**
+ * Stale while revalidate - return cache immediately, update in background
+ */
+async function staleWhileRevalidateStrategy(request) {
+  const cachedResponse = await caches.match(request);
+
+  const fetchPromise = fetch(request).then((response) => {
+    if (response.ok) {
+      caches.open(CACHE_NAME).then((cache) => {
+        cache.put(request, response.clone());
+      });
+    }
+    return response;
+  }).catch(() => cachedResponse);
+
+  return cachedResponse || fetchPromise;
+}
 
 // Background sync for offline queue
 self.addEventListener('sync', (event) => {
-  console.log('Background sync event:', event.tag);
-  
+  console.log('[SW] Background sync:', event.tag);
+
   if (event.tag === 'sync-offline-queue') {
     event.waitUntil(
-      // Trigger queue processing
-      // The actual queue processing is handled by the offlineQueue.js module
       self.clients.matchAll().then((clients) => {
         clients.forEach((client) => {
-          client.postMessage({
-            type: 'PROCESS_OFFLINE_QUEUE',
-          });
+          client.postMessage({ type: 'PROCESS_OFFLINE_QUEUE' });
         });
       })
     );
@@ -130,8 +230,8 @@ self.addEventListener('sync', (event) => {
 
 // Handle messages from clients
 self.addEventListener('message', (event) => {
-  console.log('Service Worker received message:', event.data);
-  
+  console.log('[SW] Message received:', event.data);
+
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
