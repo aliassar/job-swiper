@@ -4,14 +4,16 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useJobs } from '@/context/JobContext';
 import { CheckIcon, XMarkIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import http from '@/lib/http';
 
 export default function JobDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { savedJobs, skippedJobs, reportedJobs, applications, acceptJob, rejectJob } = useJobs();
+  const { savedJobs, skippedJobs, reportedJobs, applications, acceptJob, rejectJob, jobs } = useJobs();
   const [job, setJob] = useState(null);
   const [source, setSource] = useState(null);
   const [applicationStatus, setApplicationStatus] = useState(null); // 'accepted' or 'rejected' or null
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const jobId = params.id;
@@ -26,6 +28,7 @@ export default function JobDetailPage() {
     if (foundJob) {
       setJob(foundJob);
       setSource('saved');
+      setLoading(false);
       return;
     }
 
@@ -33,6 +36,7 @@ export default function JobDetailPage() {
     if (foundJob) {
       setJob(foundJob);
       setSource('skipped');
+      setLoading(false);
       return;
     }
 
@@ -40,6 +44,7 @@ export default function JobDetailPage() {
     if (report) {
       setJob(report.job);
       setSource('reported');
+      setLoading(false);
       return;
     }
 
@@ -52,9 +57,37 @@ export default function JobDetailPage() {
         skills: app.skills,
       });
       setSource('application');
+      setLoading(false);
       return;
     }
-  }, [params.id, savedJobs, skippedJobs, reportedJobs, applications]);
+
+    // Check in current jobs list
+    foundJob = jobs.find(j => j.id === jobId);
+    if (foundJob) {
+      setJob(foundJob);
+      setSource('pending');
+      setLoading(false);
+      return;
+    }
+
+    // If not found locally, try to fetch from server
+    const fetchJob = async () => {
+      try {
+        const response = await http.get(`/api/jobs/${jobId}`);
+        const jobData = response.data || response;
+        if (jobData) {
+          setJob(jobData);
+          setSource('server');
+        }
+      } catch (error) {
+        console.error('Failed to fetch job:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJob();
+  }, [params.id, savedJobs, skippedJobs, reportedJobs, applications, jobs]);
 
   const handleAccept = () => {
     if (job) {
@@ -93,6 +126,17 @@ export default function JobDetailPage() {
     if (diffInDays === 1) return 'Posted 1 day ago';
     return `Posted ${diffInDays} days ago`;
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center px-6">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading job details...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!job) {
     return (
