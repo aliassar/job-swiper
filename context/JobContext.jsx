@@ -324,6 +324,7 @@ export function JobProvider({ children }) {
 
     // Move to next job immediately
     dispatch({ type: ACTIONS.INCREMENT_INDEX });
+    dispatch({ type: ACTIONS.DECREMENT_TOTAL_COUNT });
 
     // Add to offline queue
     try {
@@ -382,6 +383,7 @@ export function JobProvider({ children }) {
 
     // Move to next job immediately
     dispatch({ type: ACTIONS.INCREMENT_INDEX });
+    dispatch({ type: ACTIONS.DECREMENT_TOTAL_COUNT });
 
     // Add to offline queue
     try {
@@ -435,6 +437,7 @@ export function JobProvider({ children }) {
 
     // Move to next job immediately
     dispatch({ type: ACTIONS.INCREMENT_INDEX });
+    dispatch({ type: ACTIONS.DECREMENT_TOTAL_COUNT });
 
     // Add to offline queue
     try {
@@ -528,6 +531,7 @@ export function JobProvider({ children }) {
 
       // Use reducer's ROLLBACK_JOB action which handles all state updates atomically
       dispatch({ type: ACTIONS.ROLLBACK_JOB, payload: { job: lastAction.job, lastAction } });
+      dispatch({ type: ACTIONS.INCREMENT_TOTAL_COUNT });
 
       // If action was never synced to server, remove from offline queue
       // But STILL send server rollback - the action might have been in-flight!
