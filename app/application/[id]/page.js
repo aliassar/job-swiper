@@ -140,7 +140,7 @@ export default function ApplicationDetailPage() {
     };
 
     fetchApplication();
-  }, [params.id, applications]);
+  }, [params.id]); // Note: excluding 'applications' to prevent infinite loop
 
   // CV Check rollback timer - 5 minutes from CV approval time
   // Timer synced with server so reloading page won't reset it
