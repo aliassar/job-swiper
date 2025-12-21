@@ -87,7 +87,7 @@ export default function HamburgerMenu() {
       {/* Notification Icon - Same size as hamburger with more distance */}
       <Link
         href="/notifications"
-        className="fixed top-2 right-[72px] z-50 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
+        className="fixed top-2 right-[90px] z-50 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
         aria-label="Notifications"
       >
         <BellIcon className="h-6 w-6 text-gray-800" />
