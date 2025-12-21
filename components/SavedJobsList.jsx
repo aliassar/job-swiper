@@ -1,11 +1,14 @@
 'use client';
 
 import { BookmarkIcon, ArrowDownTrayIcon } from '@heroicons/react/24/solid';
-import { useJobs } from '@/context/JobContext';
+import { useSwipe } from '@/context/SwipeContext';
+import { useSavedJobs, useApplications } from '@/lib/hooks/useSWR';
 import { useRouter } from 'next/navigation';
 
 export default function SavedJobsList() {
-  const { savedJobs, toggleSaveJob, applications } = useJobs();
+  const { toggleSaveJob } = useSwipe();
+  const { savedJobs } = useSavedJobs();
+  const { applications } = useApplications();
   const router = useRouter();
 
   const handleExportCSV = () => {
@@ -15,7 +18,7 @@ export default function SavedJobsList() {
       const savedAt = job.savedAt || new Date().toISOString();
       return `"${job.company}","${job.position}","${job.location}","${job.salary || 'N/A'}","${skills}","${savedAt}"`;
     }).join('\n');
-    
+
     const csv = csvHeaders + csvRows;
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -114,20 +117,20 @@ export default function SavedJobsList() {
       {savedJobs.map((job) => {
         const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
         const hasApplication = applications.some(app => app.jobId === job.id);
-        
+
         return (
-          <div 
+          <div
             key={job.id}
             onClick={() => handleJobClick(job)}
             className={`bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-shadow overflow-hidden ${hasApplication ? 'cursor-pointer' : ''}`}
           >
             <div className="flex items-start gap-4">
-              <img 
+              <img
                 src={logoUrl}
                 alt={`${job.company} logo`}
                 className="w-14 h-14 rounded-xl flex-shrink-0"
               />
-              
+
               <div className="flex-1 min-w-0 overflow-hidden">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0 overflow-hidden">
@@ -136,7 +139,7 @@ export default function SavedJobsList() {
                     </h3>
                     <p className="text-sm text-gray-600 truncate">{job.company}</p>
                     <p className="text-xs text-gray-500 mt-1 truncate">{job.location}</p>
-                    
+
                     {/* Salary badge */}
                     {job.salary && (
                       <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 bg-green-50 border border-green-200 rounded-full">
@@ -146,14 +149,14 @@ export default function SavedJobsList() {
                         </span>
                       </div>
                     )}
-                    
+
                     {/* Has application indicator */}
                     {hasApplication && (
                       <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs font-medium ml-2">
                         <span>📋 View Application</span>
                       </div>
                     )}
-                    
+
                     {/* Syncing indicator */}
                     {job.pendingSync && (
                       <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 bg-orange-50 text-orange-600 rounded-full text-xs font-medium ml-2">
@@ -165,7 +168,7 @@ export default function SavedJobsList() {
                       </div>
                     )}
                   </div>
-                  
+
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -177,7 +180,7 @@ export default function SavedJobsList() {
                     <BookmarkIcon className="h-5 w-5 text-blue-500 flex-shrink-0" />
                   </button>
                 </div>
-                
+
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {job.skills.slice(0, 3).map((skill, index) => (
                     <span

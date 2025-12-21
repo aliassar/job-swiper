@@ -32,7 +32,7 @@ import { useSwipeStateMachine } from '@/context/useSwipeStateMachine';
 import { SwipeActionType } from '@/context/swipeStateMachine';
 import { jobsApi } from '@/lib/api';
 import { useState } from 'react';
-import { useJobs } from '@/context/JobContext';
+import { useSwipe } from '@/context/SwipeContext';
 
 /**
  * NOTE: Auto-apply feature
@@ -73,13 +73,15 @@ export default function SwipeContainer() {
   const {
     toggleSaveJob,
     reportJob,
-    savedJobs,
     acceptJob: createApplication,
     rejectJob,
     skipJob,
     rollbackLastAction,
-    manualRetry
-  } = useJobs();
+  } = useSwipe();
+
+  // Track locally saved/reported jobs to avoid SWR refetch on every swipe
+  const [localSavedJobIds, setLocalSavedJobIds] = useState(new Set());
+  const [localReportedJobIds, setLocalReportedJobIds] = useState(new Set());
 
   // Animation state (local to UI only)
   const x = useMotionValue(0);
@@ -384,6 +386,8 @@ export default function SwipeContainer() {
 
   const handleReport = useCallback((reason) => {
     if (jobToReport) {
+      // Add to local reported set
+      setLocalReportedJobIds(prev => new Set([...prev, jobToReport.id]));
       // Call the actual report API
       reportJob(jobToReport, reason);
       setReportModalOpen(false);
@@ -451,14 +455,24 @@ export default function SwipeContainer() {
   }, [autoApplyEnabled]);
   const handleToggleSaved = useCallback(() => {
     if (!currentJob || isLocked) return;
-    toggleSaveJob(currentJob);
-  }, [currentJob, isLocked, toggleSaveJob]);
+    // Toggle local state immediately
+    setLocalSavedJobIds(prev => {
+      const next = new Set(prev);
+      if (next.has(currentJob.id)) {
+        next.delete(currentJob.id);
+      } else {
+        next.add(currentJob.id);
+      }
+      return next;
+    });
+    toggleSaveJob(currentJob, localSavedJobIds.has(currentJob.id));
+  }, [currentJob, isLocked, toggleSaveJob, localSavedJobIds]);
 
   // Check if current job is saved
   const isCurrentJobSaved = useMemo(() => {
     if (!currentJob) return false;
-    return savedJobs.some(saved => saved.id === currentJob.id);
-  }, [currentJob, savedJobs]);
+    return localSavedJobIds.has(currentJob.id);
+  }, [currentJob, localSavedJobIds]);
 
   // Unlock when entering empty state (no animation to unlock otherwise)
   // This must be before any conditional returns to follow Rules of Hooks
@@ -482,7 +496,10 @@ export default function SwipeContainer() {
 
           {error.canRetry && (
             <button
-              onClick={() => manualRetry()}
+              onClick={() => {
+                // Reload the page to retry
+                window.location.reload();
+              }}
               className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-full font-medium hover:bg-blue-600 transition-colors"
             >
               Try Again
@@ -628,6 +645,7 @@ export default function SwipeContainer() {
                   <JobCard
                     job={job}
                     onReportClick={() => handleOpenReportModal(job)}
+                    isReported={localReportedJobIds.has(job.id)}
                   />
                 </motion.div>
               );
@@ -664,8 +682,8 @@ export default function SwipeContainer() {
           <button
             onClick={handleToggleFilters}
             className={`rounded-full p-2 shadow-lg hover:scale-110 transition-all active:scale-95 ${filters.location || filters.minSalary || filters.maxSalary
-                ? 'bg-blue-500 text-white'
-                : 'bg-white text-gray-700 border border-gray-300'
+              ? 'bg-blue-500 text-white'
+              : 'bg-white text-gray-700 border border-gray-300'
               }`}
             aria-label="Toggle filters"
           >
@@ -678,8 +696,8 @@ export default function SwipeContainer() {
           <button
             onClick={handleToggleAutoApply}
             className={`rounded-full p-2 shadow-lg hover:scale-110 transition-all active:scale-95 ${autoApplyEnabled
-                ? 'bg-blue-500 text-white'
-                : 'bg-white text-gray-700 border border-gray-300'
+              ? 'bg-blue-500 text-white'
+              : 'bg-white text-gray-700 border border-gray-300'
               }`}
             aria-label="Toggle auto-apply"
           >
