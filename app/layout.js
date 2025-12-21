@@ -1,5 +1,5 @@
 import './globals.css';
-import { JobProvider } from '@/context/JobContext';
+import { SwipeProvider } from '@/context/SwipeContext';
 import HamburgerMenu from '@/components/HamburgerMenu';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import SessionProvider from '@/components/SessionProvider';
@@ -54,18 +54,19 @@ export default function RootLayout({ children }) {
 
         <ErrorBoundary>
           <SessionProvider>
-            <JobProvider>
+            <SwipeProvider>
               {/* Hamburger menu - available on all pages */}
               <HamburgerMenu />
-              
+
               {/* Main content - full height, no top bar */}
               <main className="h-full overflow-hidden">
                 {children}
               </main>
-            </JobProvider>
+            </SwipeProvider>
           </SessionProvider>
         </ErrorBoundary>
       </body>
     </html>
   );
 }
+
