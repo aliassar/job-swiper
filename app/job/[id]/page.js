@@ -2,14 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useJobs } from '@/context/JobContext';
+import { useSwipe } from '@/context/SwipeContext';
+import { useSavedJobs, useSkippedJobs, useReportedJobs, useApplications } from '@/lib/hooks/useSWR';
 import { CheckIcon, XMarkIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import http from '@/lib/http';
 
 export default function JobDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { savedJobs, skippedJobs, reportedJobs, applications, acceptJob, rejectJob, jobs } = useJobs();
+  const { acceptJob, rejectJob } = useSwipe();
+  const { savedJobs } = useSavedJobs();
+  const { skippedJobs } = useSkippedJobs();
+  const { reportedJobs } = useReportedJobs();
+  const { applications } = useApplications();
   const [job, setJob] = useState(null);
   const [source, setSource] = useState(null);
   const [applicationStatus, setApplicationStatus] = useState(null);
@@ -60,14 +65,7 @@ export default function JobDetailPage() {
       return;
     }
 
-    foundJob = jobs.find(j => j.id === jobId);
-    if (foundJob) {
-      setJob(foundJob);
-      setSource('pending');
-      setLoading(false);
-      return;
-    }
-
+    // Could not find in cached data, try fetching from server
     const fetchJob = async () => {
       try {
         const response = await http.get(`/api/jobs/${jobId}`);

@@ -2,8 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useJobs } from '@/context/JobContext';
-import { useApplications } from '@/lib/hooks/useSWR';
+import { useApplications, useUpdateApplicationStage } from '@/lib/hooks/useSWR';
 import { BriefcaseIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
@@ -26,7 +25,7 @@ const APPLICATION_STAGES = [
 
 export default function ApplicationsPage() {
   const router = useRouter();
-  const { updateApplicationStage } = useJobs();
+  const { updateStage } = useUpdateApplicationStage();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Use SWR for data fetching with automatic caching and revalidation
@@ -137,7 +136,7 @@ export default function ApplicationsPage() {
                         value={app.stage}
                         onChange={(e) => {
                           e.stopPropagation();
-                          updateApplicationStage(app.id, e.target.value);
+                          updateStage(app.id, e.target.value, mutate);
                           mutate();
                         }}
                         onClick={(e) => e.stopPropagation()}
