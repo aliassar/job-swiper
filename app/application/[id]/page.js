@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useJobs } from '@/context/JobContext';
+import { useApplications, useUpdateApplicationStage } from '@/lib/hooks/useSWR';
 import { useSettings } from '@/lib/hooks/useSettings';
 import { applicationsApi } from '@/lib/api';
 import { ArrowLeftIcon, ArrowDownTrayIcon, CheckIcon, XMarkIcon, DocumentArrowUpIcon, ArrowUturnLeftIcon, EnvelopeIcon, PencilIcon } from '@heroicons/react/24/outline';
@@ -25,7 +25,8 @@ const APPLICATION_STAGES = [
 export default function ApplicationDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { applications, updateApplicationStage } = useJobs();
+  const { applications } = useApplications();
+  const { updateStage } = useUpdateApplicationStage();
   const { settings } = useSettings();
   const [application, setApplication] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -186,7 +187,7 @@ export default function ApplicationDetailPage() {
           setMessageSendTime(null);
           // Actually send the message and move to Applied stage
           if (application && application.stage === 'Message Check') {
-            updateApplicationStage(application.id, 'Applied');
+            applicationsApi.updateStage(application.id, 'Applied');
             // Actually confirm and send the message via API
             applicationsApi.confirmMessage(application.id)
               .then(() => console.log('Message confirmed and sent successfully'))
@@ -205,12 +206,12 @@ export default function ApplicationDetailPage() {
     } else {
       setCanRollbackMessage(false);
     }
-  }, [messageSendTime, application, updateApplicationStage]);
+  }, [messageSendTime, application]);
 
   const handleStageChange = async (e) => {
     const newStage = e.target.value;
     if (application) {
-      await updateApplicationStage(application.id, newStage);
+      await applicationsApi.updateStage(application.id, newStage);
       // Update local state
       setApplication({ ...application, stage: newStage });
     }
@@ -259,7 +260,7 @@ export default function ApplicationDetailPage() {
   const handleSkipCVVerification = () => {
     // Skip CV verification and move to next stage
     if (application) {
-      updateApplicationStage(application.id, 'Being Applied');
+      applicationsApi.updateStage(application.id, 'Being Applied');
     }
     console.log('CV Check skipped');
   };
@@ -267,7 +268,7 @@ export default function ApplicationDetailPage() {
   const handleSkipMessageVerification = () => {
     // Skip message verification and move to Applied stage
     if (application) {
-      updateApplicationStage(application.id, 'Applied');
+      applicationsApi.updateStage(application.id, 'Applied');
     }
     console.log('Message Check skipped');
   };
@@ -551,8 +552,8 @@ export default function ApplicationDetailPage() {
                 onChange={handleStageChange}
                 disabled={application.stage === 'Syncing'}
                 className={`w-full px-3 py-2 rounded-lg text-sm font-medium border-0 ${application.stage === 'Syncing'
-                    ? 'cursor-not-allowed opacity-70'
-                    : 'cursor-pointer'
+                  ? 'cursor-not-allowed opacity-70'
+                  : 'cursor-pointer'
                   } ${getStageColor(application.stage)}`}
               >
                 {APPLICATION_STAGES.map((stage) => (
@@ -607,8 +608,8 @@ export default function ApplicationDetailPage() {
                   onClick={() => handleDownloadDocument('resume')}
                   disabled={!resumeUrl}
                   className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${resumeUrl
-                      ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     }`}
                 >
                   <ArrowDownTrayIcon className="h-3.5 w-3.5" />
@@ -618,8 +619,8 @@ export default function ApplicationDetailPage() {
                   onClick={() => handleDownloadDocument('coverLetter')}
                   disabled={!coverLetterUrl}
                   className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${coverLetterUrl
-                      ? 'bg-green-50 text-green-700 hover:bg-green-100'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     }`}
                 >
                   <ArrowDownTrayIcon className="h-3.5 w-3.5" />
