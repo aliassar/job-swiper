@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSwipe } from '@/context/SwipeContext';
 import { useSavedJobsInfinite, useApplications } from '@/lib/hooks/useSWR';
 import { BookmarkIcon } from '@heroicons/react/24/solid';
+import { TrashIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 import { jobsApi } from '@/lib/api';
 import OfflineBanner from '@/components/OfflineBanner';
@@ -23,6 +24,9 @@ export default function SavedJobsClient({ initialData }) {
 
     // Track accepted jobs locally for current session
     const [acceptedJobsMap, setAcceptedJobsMap] = useState({});
+
+    // Track removed jobs for optimistic UI update
+    const [removedJobIds, setRemovedJobIds] = useState(new Set());
 
     // IntersectionObserver for infinite scroll
     const sentinelRef = useRef(null);
@@ -50,7 +54,10 @@ export default function SavedJobsClient({ initialData }) {
 
     // Show loading only when searching (not on initial load since we have server data)
     const showLoading = isLoading && searchQuery !== '';
-    const hasResults = savedJobs.length > 0;
+
+    // Filter out optimistically removed jobs
+    const visibleJobs = savedJobs.filter(job => !removedJobIds.has(job.id));
+    const hasResults = visibleJobs.length > 0;
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white pt-16">
@@ -100,7 +107,7 @@ export default function SavedJobsClient({ initialData }) {
                 {/* Jobs List */}
                 {!showLoading && hasResults && (
                     <div className="space-y-3">
-                        {savedJobs.map((job) => {
+                        {visibleJobs.map((job) => {
                             const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
                             // Check if this job has been accepted (has an application)
                             const localAppId = acceptedJobsMap[job.id];
@@ -146,15 +153,19 @@ export default function SavedJobsClient({ initialData }) {
                                                 </div>
 
                                                 <button
-                                                    onClick={(e) => {
+                                                    onClick={async (e) => {
                                                         e.stopPropagation();
-                                                        toggleSaveJob(job);
+                                                        // Optimistic UI update - immediately hide the job
+                                                        setRemovedJobIds(prev => new Set([...prev, job.id]));
+                                                        // Send unsave request
+                                                        await toggleSaveJob(job, true);
+                                                        // Revalidate data
                                                         mutate();
                                                     }}
-                                                    className="flex-shrink-0 p-2 rounded-full hover:bg-blue-50 transition-colors"
+                                                    className="flex-shrink-0 p-2 rounded-full hover:bg-red-50 transition-colors"
                                                     aria-label="Remove from saved jobs"
                                                 >
-                                                    <BookmarkIcon className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                                                    <TrashIcon className="h-5 w-5 text-red-500 flex-shrink-0" />
                                                 </button>
                                             </div>
 
@@ -252,7 +263,7 @@ export default function SavedJobsClient({ initialData }) {
                             </div>
                         )}
 
-                        {!hasMore && savedJobs.length > 0 && (
+                        {!hasMore && visibleJobs.length > 0 && (
                             <div className="py-8 text-center">
                                 <p className="text-sm text-gray-500">No more jobs to load</p>
                             </div>
