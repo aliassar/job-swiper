@@ -16,7 +16,10 @@ export default function SavedJobsPage() {
 
   // Feature 24: Use infinite scroll SWR hook with offline support
   const { savedJobs, isLoading, isLoadingMore, isOffline, hasMore, loadMore, mutate } = useSavedJobsInfinite(searchQuery);
-  const { applications } = useApplications();
+  const { applications, mutate: mutateApplications } = useApplications();
+
+  // Track accepted jobs locally for current session
+  const [acceptedJobsMap, setAcceptedJobsMap] = useState({});
 
   // IntersectionObserver for infinite scroll
   const sentinelRef = useRef(null);
@@ -100,8 +103,10 @@ export default function SavedJobsPage() {
             {savedJobs.map((job) => {
               const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
               // Check if this job has been accepted (has an application)
+              const localAppId = acceptedJobsMap[job.id];
               const application = applications.find(app => app.jobId === job.id);
-              const hasApplication = job.status === 'accepted' || job.applicationId || application;
+              const applicationId = localAppId || application?.id || job.applicationId;
+              const hasApplication = job.status === 'accepted' || !!applicationId;
 
               return (
                 <div
@@ -181,12 +186,12 @@ export default function SavedJobsPage() {
                                 const data = await jobsApi.acceptJob(job.id);
 
                                 if (data.applicationId) {
-                                  // Navigate to the application page
-                                  router.push(`/application/${data.applicationId}`);
-                                } else {
-                                  // Refresh the list
-                                  mutate();
+                                  // Store locally and refresh
+                                  setAcceptedJobsMap(prev => ({ ...prev, [job.id]: data.applicationId }));
+                                  mutateApplications(); // Refresh applications list
                                 }
+                                // Refresh saved jobs list
+                                mutate();
                               } catch (err) {
                                 console.error('Error accepting job:', err);
                               }
@@ -224,10 +229,9 @@ export default function SavedJobsPage() {
                       {hasApplication && (
                         <button
                           onClick={() => {
-                            // Use application ID from applications list, or fall back to job.applicationId
-                            const appId = application?.id || job.applicationId;
-                            if (appId) {
-                              router.push(`/application/${appId}`);
+                            // Use applicationId from local state, applications list, or job data
+                            if (applicationId) {
+                              router.push(`/application/${applicationId}`);
                             }
                           }}
                           className="w-full px-4 py-2 mt-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
