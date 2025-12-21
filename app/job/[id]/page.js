@@ -22,67 +22,77 @@ export default function JobDetailPage() {
 
   useEffect(() => {
     const jobId = params.id;
+    let isMounted = true;
 
-    const app = applications.find(a => a.jobId === jobId);
-    if (app) {
-      setApplicationStatus('accepted');
-    }
+    const loadJob = async () => {
+      // Check cached data first
+      const app = applications.find(a => a.jobId === jobId);
+      if (app) {
+        setApplicationStatus('accepted');
+      }
 
-    let foundJob = savedJobs.find(j => j.id === jobId);
-    if (foundJob) {
-      setJob(foundJob);
-      setSource('saved');
-      setLoading(false);
-      return;
-    }
+      let foundJob = savedJobs.find(j => j.id === jobId);
+      if (foundJob) {
+        if (isMounted) {
+          setJob(foundJob);
+          setSource('saved');
+          setLoading(false);
+        }
+        return;
+      }
 
-    foundJob = skippedJobs.find(j => j.id === jobId);
-    if (foundJob) {
-      setJob(foundJob);
-      setSource('skipped');
-      setLoading(false);
-      return;
-    }
+      foundJob = skippedJobs.find(j => j.id === jobId);
+      if (foundJob) {
+        if (isMounted) {
+          setJob(foundJob);
+          setSource('skipped');
+          setLoading(false);
+        }
+        return;
+      }
 
-    const report = reportedJobs.find(r => r.jobId === jobId);
-    if (report) {
-      setJob(report.job);
-      setSource('reported');
-      setLoading(false);
-      return;
-    }
+      const report = reportedJobs.find(r => r.jobId === jobId);
+      if (report) {
+        if (isMounted) {
+          setJob(report.job);
+          setSource('reported');
+          setLoading(false);
+        }
+        return;
+      }
 
-    if (app) {
-      setJob({
-        id: app.jobId,
-        company: app.company,
-        position: app.position,
-        location: app.location,
-        skills: app.skills,
-      });
-      setSource('application');
-      setLoading(false);
-      return;
-    }
+      if (app && app.job) {
+        if (isMounted) {
+          setJob(app.job);
+          setSource('application');
+          setLoading(false);
+        }
+        return;
+      }
 
-    // Could not find in cached data, try fetching from server
-    const fetchJob = async () => {
+      // If not found in cache, fetch from server
       try {
         const response = await http.get(`/api/jobs/${jobId}`);
         const jobData = response.data || response;
-        if (jobData) {
+        if (jobData && isMounted) {
           setJob(jobData);
           setSource('server');
         }
       } catch (error) {
         console.error('Failed to fetch job:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchJob();
-  }, [params.id, savedJobs, skippedJobs, reportedJobs, applications, jobs]);
+    loadJob();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [params.id]); // Note: excluding SWR data to prevent re-fetching loops
 
   const handleAccept = () => {
     if (job) {
