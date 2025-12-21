@@ -23,15 +23,14 @@ export default function HistoryPage() {
       if (search) params.append('search', search);
       if (stage !== 'all') params.append('stage', stage);
 
-      const response = await fetch(`/api/applications?${params.toString()}`);
-      const data = await response.json();
-      
+      const data = await applicationsApi.getApplications(search);
+
       if (pageNum === 0) {
-        setApplications(data.applications || []);
+        setApplications(data.items || []);
       } else {
         setApplications(prev => [...prev, ...(data.applications || [])]);
       }
-      
+
       setHasMore(data.hasMore || false);
       setTotal(data.total || 0);
     } catch (error) {
@@ -156,10 +155,10 @@ export default function HistoryPage() {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
     });
   };
 
@@ -177,11 +176,11 @@ export default function HistoryPage() {
 
         {/* Search and Filters */}
         <div className="mb-4 space-y-3">
-          <SearchInput 
+          <SearchInput
             placeholder="Search by company, position, or location..."
             onSearch={handleSearch}
           />
-          
+
           {/* Filter and Export Controls */}
           <div className="flex items-center justify-between gap-3 flex-wrap">
             {/* Stage Filter */}
@@ -303,7 +302,7 @@ export default function HistoryPage() {
             {/* Mobile Card View */}
             <div className="md:hidden space-y-3">
               {applications.map((app) => (
-                <div 
+                <div
                   key={app.id}
                   className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow"
                 >

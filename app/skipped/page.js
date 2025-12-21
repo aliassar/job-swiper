@@ -2,14 +2,15 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useJobs } from '@/context/JobContext';
+import { useSwipe } from '@/context/SwipeContext';
 import { useSkippedJobs } from '@/lib/hooks/useSWR';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
+import { jobsApi } from '@/lib/api';
 
 export default function SkippedJobsPage() {
   const router = useRouter();
-  const { rollbackLastAction } = useJobs();
+  const { rollbackLastAction } = useSwipe();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Use SWR for data fetching with automatic caching and revalidation
@@ -174,12 +175,7 @@ export default function SkippedJobsPage() {
                             e.stopPropagation();
                             try {
                               // Accept the job and create application
-                              const response = await fetch(`/api/jobs/${job.id}/accept`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({}),
-                              });
-                              const data = await response.json();
+                              const data = await jobsApi.acceptJob(job.id);
 
                               if (data.data?.applicationId) {
                                 // Navigate to the application page
@@ -204,9 +200,7 @@ export default function SkippedJobsPage() {
                             e.stopPropagation();
                             try {
                               // Reject the job
-                              await fetch(`/api/jobs/${job.id}/reject`, {
-                                method: 'POST',
-                              });
+                              await jobsApi.rejectJob(job.id);
                               // Remove from skipped list
                               mutate();
                             } catch (err) {
