@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSwipe } from '@/context/SwipeContext';
-import { useSavedJobsInfinite } from '@/lib/hooks/useSWR';
+import { useSavedJobsInfinite, useApplications } from '@/lib/hooks/useSWR';
 import { BookmarkIcon } from '@heroicons/react/24/solid';
 import SearchInput from '@/components/SearchInput';
 import { jobsApi } from '@/lib/api';
@@ -16,6 +16,7 @@ export default function SavedJobsPage() {
 
   // Feature 24: Use infinite scroll SWR hook with offline support
   const { savedJobs, isLoading, isLoadingMore, isOffline, hasMore, loadMore, mutate } = useSavedJobsInfinite(searchQuery);
+  const { applications } = useApplications();
 
   // IntersectionObserver for infinite scroll
   const sentinelRef = useRef(null);
@@ -99,7 +100,8 @@ export default function SavedJobsPage() {
             {savedJobs.map((job) => {
               const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=60&background=0D8ABC&color=fff&bold=true`;
               // Check if this job has been accepted (has an application)
-              const hasApplication = job.status === 'accepted' || job.applicationId;
+              const application = applications.find(app => app.jobId === job.id);
+              const hasApplication = job.status === 'accepted' || job.applicationId || application;
 
               return (
                 <div
@@ -221,7 +223,13 @@ export default function SavedJobsPage() {
                       {/* View application button for decided jobs */}
                       {hasApplication && (
                         <button
-                          onClick={() => router.push(`/application/${job.applicationId || job.id}`)}
+                          onClick={() => {
+                            // Use application ID from applications list, or fall back to job.applicationId
+                            const appId = application?.id || job.applicationId;
+                            if (appId) {
+                              router.push(`/application/${appId}`);
+                            }
+                          }}
                           className="w-full px-4 py-2 mt-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
                         >
                           View Application
