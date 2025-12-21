@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, CheckCircleIcon, DocumentCheckIcon, EnvelopeIcon, ExclamationCircleIcon, ClockIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { notificationsApi } from '@/lib/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export default function NotificationsPage() {
   const router = useRouter();
@@ -26,7 +26,7 @@ export default function NotificationsPage() {
         // Use API_URL if configured, otherwise use relative path for local development
         const sseUrl = API_URL ? `${API_URL}/api/notifications/stream` : '/api/notifications/stream';
         eventSourceRef.current = new EventSource(sseUrl);
-        
+
         eventSourceRef.current.onmessage = (event) => {
           try {
             const newNotification = JSON.parse(event.data);
@@ -109,7 +109,7 @@ export default function NotificationsPage() {
     if (!notification.read) {
       try {
         await notificationsApi.markAsRead(notification.id);
-        
+
         setNotifications(prev =>
           prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
         );
@@ -117,7 +117,7 @@ export default function NotificationsPage() {
         console.error('Error marking notification as read:', error);
       }
     }
-    
+
     // Navigate to application detail page
     if (notification.applicationId) {
       router.push(`/application/${notification.applicationId}`);
@@ -126,11 +126,11 @@ export default function NotificationsPage() {
 
   const dismissNotification = async (e, notificationId) => {
     e.stopPropagation(); // Prevent notification click
-    
+
     try {
       // Optimistically update UI
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
-      
+
       // Call API to delete notification
       await notificationsApi.deleteNotification(notificationId);
     } catch (error) {
@@ -143,12 +143,12 @@ export default function NotificationsPage() {
   const markAllAsRead = async () => {
     try {
       const unreadCount = notifications.filter(n => !n.read).length;
-      
+
       if (unreadCount === 0) return;
-      
+
       // Optimistically update UI
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      
+
       await notificationsApi.markAllAsRead();
     } catch (error) {
       console.error('Error marking all as read:', error);
@@ -161,11 +161,11 @@ export default function NotificationsPage() {
     if (!confirm('Are you sure you want to clear all notifications? This action cannot be undone.')) {
       return;
     }
-    
+
     try {
       // Optimistically update UI
       setNotifications([]);
-      
+
       await notificationsApi.clearAll();
     } catch (error) {
       console.error('Error clearing notifications:', error);
@@ -261,9 +261,8 @@ export default function NotificationsPage() {
               <div
                 key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
-                className={`relative border-l-4 rounded-lg p-3 cursor-pointer transition-all hover:shadow-md ${
-                  getNotificationColor(notification.type)
-                } ${notification.read ? 'opacity-60' : ''}`}
+                className={`relative border-l-4 rounded-lg p-3 cursor-pointer transition-all hover:shadow-md ${getNotificationColor(notification.type)
+                  } ${notification.read ? 'opacity-60' : ''}`}
               >
                 {/* Unread indicator */}
                 {!notification.read && (
