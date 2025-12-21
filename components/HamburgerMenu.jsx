@@ -85,8 +85,8 @@ export default function HamburgerMenu() {
       </button>
 
       {/* Notification Icon - Same size as hamburger with more distance */}
-      <button
-        onClick={() => router.push('/notifications')}
+      <Link
+        href="/notifications"
         className="fixed top-2 right-[72px] z-50 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
         aria-label="Notifications"
       >
@@ -96,7 +96,7 @@ export default function HamburgerMenu() {
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
-      </button>
+      </Link>
 
       {/* Backdrop */}
       <AnimatePresence>
