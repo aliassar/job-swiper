@@ -3,14 +3,12 @@
 import PropTypes from 'prop-types';
 import { FlagIcon } from '@heroicons/react/24/outline';
 import { FlagIcon as FlagIconSolid } from '@heroicons/react/24/solid';
-import { useJobs } from '@/context/JobContext';
+import { useSwipe } from '@/context/SwipeContext';
 
-export default function JobCard({ job, style, onSwipe, onReportClick }) {
-  const { reportedJobs, unreportJob } = useJobs();
+export default function JobCard({ job, style, onSwipe, onReportClick, isReported = false }) {
+  const { unreportJob } = useSwipe();
 
   if (!job) return null;
-
-  const isReported = (reportedJobs || []).some(report => report.jobId === job.id);
 
   const getRelativeTime = (dateString) => {
     const date = new Date(dateString);
@@ -158,4 +156,5 @@ JobCard.propTypes = {
   style: PropTypes.object,
   onSwipe: PropTypes.func,
   onReportClick: PropTypes.func,
+  isReported: PropTypes.bool,
 };
