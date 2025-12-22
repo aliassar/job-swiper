@@ -498,17 +498,13 @@ export default function ApplicationDetailPage() {
             {/* Application dates - smaller */}
             <div className="mb-3 text-xs text-gray-600 flex items-center gap-3 flex-wrap">
               <span>
-                Applied {new Date(application.appliedAt).toLocaleDateString('en-US', {
+                Applied {new Date(application.createdAt || application.appliedAt || application.lastUpdated).toLocaleString('en-US', {
                   month: 'short',
                   day: 'numeric',
-                  year: 'numeric'
+                  year: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit'
                 })}
-                {application.updatedAt && application.updatedAt !== application.appliedAt && (
-                  <> • Updated {new Date(application.updatedAt).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric'
-                  })}</>
-                )}
               </span>
               {followUpsSent > 0 && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs font-medium">
