@@ -152,24 +152,10 @@ export default function ApplicationsClient({ initialData }) {
                                         </div>
                                     )}
 
-                                    <div className="mt-2">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs text-gray-600">Current Status:</span>
-                                            <span className={`text-xs font-semibold`}>
-                                                {app.stage}
-                                            </span>
-                                            {app.updatedAt && (
-                                                <span className="text-xs text-gray-500">
-                                                    • {new Date(app.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-
                                     <div className="mt-2 pt-2 border-t border-gray-100">
                                         <div className="flex items-center justify-between text-xs text-gray-500">
                                             <span>
-                                                Applied {new Date(app.appliedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                Applied {new Date(app.createdAt || app.appliedAt || app.lastUpdated).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                                             </span>
                                             {app.skills && app.skills.length > 0 && (
                                                 <span className="text-xs text-gray-500">
