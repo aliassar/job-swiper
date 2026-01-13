@@ -42,8 +42,16 @@ export default function JobCard({ job, style, onSwipe, onReportClick, isReported
       : job.description)
     : 'No description available';
 
-  // Optimization 11: Use provided logo if available, otherwise fallback to ui-avatars
-  const logoUrl = job.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=80&background=0D8ABC&color=fff&bold=true`;
+  // Use logoUrl from database, fallback to ui-avatars if not available
+  const logoUrl = job.logoUrl || job.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=80&background=0D8ABC&color=fff&bold=true`;
+
+  // Source badge configuration
+  const sourceConfig = {
+    indeed: { label: 'Indeed', color: 'bg-blue-600', textColor: 'text-white' },
+    linkedin: { label: 'LinkedIn', color: 'bg-sky-600', textColor: 'text-white' },
+    glassdoor: { label: 'Glassdoor', color: 'bg-green-600', textColor: 'text-white' },
+  };
+  const source = job.srcName ? sourceConfig[job.srcName.toLowerCase()] : null;
 
   return (
     <div
@@ -60,7 +68,14 @@ export default function JobCard({ job, style, onSwipe, onReportClick, isReported
               className="w-20 h-20 rounded-2xl shadow-lg bg-white"
             />
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-white mb-1">{job.company}</h2>
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-2xl font-bold text-white">{job.company}</h2>
+                {source && (
+                  <span className={`px-2 py-0.5 ${source.color} ${source.textColor} text-xs font-medium rounded-full`}>
+                    {source.label}
+                  </span>
+                )}
+              </div>
               <p className="text-blue-100 text-sm">{job.location}</p>
             </div>
           </div>
@@ -151,6 +166,8 @@ JobCard.propTypes = {
     description: PropTypes.string.isRequired,
     postedDate: PropTypes.string.isRequired,
     logo: PropTypes.string,
+    logoUrl: PropTypes.string,
+    srcName: PropTypes.string,
     salary: PropTypes.string,
   }),
   style: PropTypes.object,
