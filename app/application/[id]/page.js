@@ -7,6 +7,7 @@ import { useSettings } from '@/lib/hooks/useSettings';
 import { applicationsApi } from '@/lib/api';
 import { ArrowLeftIcon, ArrowDownTrayIcon, CheckIcon, XMarkIcon, DocumentArrowUpIcon, ArrowUturnLeftIcon, EnvelopeIcon, PencilIcon } from '@heroicons/react/24/outline';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
+import ReactMarkdown from 'react-markdown';
 
 const APPLICATION_STAGES = [
   'Syncing',
@@ -451,7 +452,7 @@ export default function ApplicationDetailPage() {
     );
   }
 
-  const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(application.company)}&size=120&background=0D8ABC&color=fff&bold=true`;
+  const logoUrl = application.logoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(application.company)}&size=120&background=0D8ABC&color=fff&bold=true`;
   const showVerification = verificationState === 'pending';
   const showRejectedUpload = verificationState === 'rejected';
 
@@ -494,6 +495,40 @@ export default function ApplicationDetailPage() {
             <h2 className="text-base font-bold text-gray-900 mb-2">
               {application.position}
             </h2>
+
+            {/* Source, Job type, German requirement and experience badges */}
+            {(application.srcName || application.jobType || application.germanRequirement || application.yearsOfExperience) && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {application.srcName && (
+                  <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold ${application.srcName.toLowerCase() === 'indeed' ? 'bg-blue-600 text-white' :
+                    application.srcName.toLowerCase() === 'linkedin' ? 'bg-sky-600 text-white' :
+                      'bg-green-600 text-white'
+                    }`}>
+                    {application.srcName}
+                  </span>
+                )}
+                {application.jobType && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-semibold">
+                    💼 {application.jobType}
+                  </span>
+                )}
+                {application.germanRequirement === 'required' && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-700 rounded-lg text-xs font-semibold">
+                    🇩🇪 German Required
+                  </span>
+                )}
+                {(application.germanRequirement === 'optional' || application.germanRequirement === 'nice_to_have') && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-50 text-yellow-700 rounded-lg text-xs font-semibold">
+                    🇩🇪 German Preferred
+                  </span>
+                )}
+                {application.yearsOfExperience && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold">
+                    📅 {application.yearsOfExperience}+ years experience
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Application dates - smaller */}
             <div className="mb-3 text-xs text-gray-600 flex items-center gap-3 flex-wrap">
@@ -945,12 +980,12 @@ Best regards`}
             )}
 
             {/* Description if available - reduced */}
-            {application.description && (
+            {application.shortDescription && (
               <div className="mb-3 pb-3 border-b border-gray-200">
                 <h3 className="text-xs font-semibold text-gray-700 mb-2">Description</h3>
-                <p className="text-gray-700 text-xs leading-relaxed whitespace-pre-line line-clamp-4">
-                  {application.description}
-                </p>
+                <div className="text-gray-700 text-xs leading-relaxed prose prose-sm max-w-none">
+                  <ReactMarkdown>{application.shortDescription}</ReactMarkdown>
+                </div>
               </div>
             )}
 

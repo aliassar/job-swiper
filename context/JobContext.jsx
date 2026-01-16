@@ -335,7 +335,7 @@ export function JobProvider({ children }) {
       company: job.company,
       position: job.position,
       location: job.location,
-      skills: job.skills,
+      requiredSkills: job.requiredSkills,
       stage: 'Syncing',
       appliedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

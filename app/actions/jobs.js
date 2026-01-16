@@ -37,7 +37,7 @@ export async function acceptJob(jobId) {
   try {
     const storage = getJobsStorage();
     const job = storage.jobs.find(j => j.id === jobId);
-    
+
     if (!job) {
       throw new Error('Job not found');
     }
@@ -49,7 +49,7 @@ export async function acceptJob(jobId) {
       company: job.company,
       position: job.position,
       location: job.location,
-      skills: job.skills,
+      requiredSkills: job.requiredSkills,
       stage: 'Applied',
       appliedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -81,7 +81,7 @@ export async function acceptJob(jobId) {
 export async function rejectJob(jobId) {
   try {
     const storage = getJobsStorage();
-    
+
     storage.userJobStatus.set(jobId, {
       status: 'rejected',
       rejectedAt: new Date().toISOString(),
@@ -89,7 +89,7 @@ export async function rejectJob(jobId) {
     });
 
     revalidatePath('/');
-    
+
     return { success: true };
   } catch (error) {
     console.error('Error in rejectJob action:', error);
@@ -105,7 +105,7 @@ export async function rejectJob(jobId) {
 export async function skipJob(jobId) {
   try {
     const storage = getJobsStorage();
-    
+
     storage.userJobStatus.set(jobId, {
       status: 'skipped',
       skippedAt: new Date().toISOString(),
@@ -114,7 +114,7 @@ export async function skipJob(jobId) {
 
     revalidatePath('/');
     revalidatePath('/skipped');
-    
+
     return { success: true };
   } catch (error) {
     console.error('Error in skipJob action:', error);
@@ -132,7 +132,7 @@ export async function toggleSaveJob(jobId, saved) {
   try {
     const storage = getJobsStorage();
     const existingStatus = storage.userJobStatus.get(jobId) || { status: 'pending' };
-    
+
     storage.userJobStatus.set(jobId, {
       ...existingStatus,
       saved,
@@ -140,7 +140,7 @@ export async function toggleSaveJob(jobId, saved) {
     });
 
     revalidatePath('/saved');
-    
+
     return { success: true, saved };
   } catch (error) {
     console.error('Error in toggleSaveJob action:', error);
@@ -158,7 +158,7 @@ export async function updateApplicationStage(applicationId, stage) {
   try {
     const storage = getJobsStorage();
     const application = storage.applications.get(applicationId);
-    
+
     if (!application) {
       throw new Error('Application not found');
     }
@@ -172,7 +172,7 @@ export async function updateApplicationStage(applicationId, stage) {
     storage.applications.set(applicationId, updatedApplication);
 
     revalidatePath('/applications');
-    
+
     return { success: true, application: updatedApplication };
   } catch (error) {
     console.error('Error in updateApplicationStage action:', error);
@@ -190,7 +190,7 @@ export async function reportJob(jobId, reason = 'other') {
   try {
     const storage = getJobsStorage();
     const job = storage.jobs.find(j => j.id === jobId);
-    
+
     if (!job) {
       throw new Error('Job not found');
     }
@@ -206,14 +206,14 @@ export async function reportJob(jobId, reason = 'other') {
         company: job.company,
         position: job.position,
         location: job.location,
-        skills: job.skills,
+        requiredSkills: job.requiredSkills,
       },
     };
 
     storage.reportedJobs.set(reportId, report);
 
     revalidatePath('/reported');
-    
+
     return { success: true, report };
   } catch (error) {
     console.error('Error in reportJob action:', error);
@@ -229,7 +229,7 @@ export async function reportJob(jobId, reason = 'other') {
 export async function unreportJob(jobId) {
   try {
     const storage = getJobsStorage();
-    
+
     // Find and remove all reports for this job
     for (const [reportId, report] of storage.reportedJobs.entries()) {
       if (report.jobId === jobId) {
@@ -238,7 +238,7 @@ export async function unreportJob(jobId) {
     }
 
     revalidatePath('/reported');
-    
+
     return { success: true };
   } catch (error) {
     console.error('Error in unreportJob action:', error);
