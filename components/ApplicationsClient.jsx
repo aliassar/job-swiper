@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useApplications, useUpdateApplicationStage } from '@/lib/hooks/useSWR';
+import { useApplicationsInfinite, useUpdateApplicationStage } from '@/lib/hooks/useSWR';
 import { BriefcaseIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
@@ -27,15 +27,32 @@ export default function ApplicationsClient({ initialData }) {
     const router = useRouter();
     const { updateStage } = useUpdateApplicationStage();
     const [searchQuery, setSearchQuery] = useState('');
+    const loadMoreRef = useRef(null);
 
-    // Use SWR with initial data for faster first render
-    const { applications, isLoading, isOffline, mutate } = useApplications(searchQuery, {
-        fallbackData: searchQuery === '' ? initialData : undefined,
-    });
+    // Use SWR infinite for scroll-based pagination
+    const { applications, isLoading, isLoadingMore, isOffline, hasMore, loadMore, mutate } = useApplicationsInfinite(searchQuery);
 
     const handleSearch = useCallback((query) => {
         setSearchQuery(query);
     }, []);
+
+    // Intersection observer for infinite scroll
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+                    loadMore();
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (loadMoreRef.current) {
+            observer.observe(loadMoreRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [hasMore, isLoadingMore, loadMore]);
 
     // Only show loading when searching
     const showLoading = isLoading && searchQuery !== '';
@@ -101,7 +118,7 @@ export default function ApplicationsClient({ initialData }) {
                 {hasResults && (
                     <div className="space-y-3">
                         {applications.map((app) => {
-                            const logoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.company)}&size=48&background=0D8ABC&color=fff&bold=true`;
+                            const logoUrl = app.logoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(app.company)}&size=48&background=0D8ABC&color=fff&bold=true`;
 
                             return (
                                 <div
@@ -157,11 +174,41 @@ export default function ApplicationsClient({ initialData }) {
                                             <span>
                                                 Applied {new Date(app.createdAt || app.appliedAt || app.lastUpdated).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                                             </span>
-                                            {app.skills && app.skills.length > 0 && (
-                                                <span className="text-xs text-gray-500">
-                                                    {app.skills.length} skill{app.skills.length > 1 ? 's' : ''}
-                                                </span>
-                                            )}
+                                            <div className="flex items-center gap-2">
+                                                {app.srcName && (
+                                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${app.srcName.toLowerCase() === 'indeed' ? 'bg-blue-600 text-white' :
+                                                        app.srcName.toLowerCase() === 'linkedin' ? 'bg-sky-600 text-white' :
+                                                            'bg-green-600 text-white'
+                                                        }`}>
+                                                        {app.srcName}
+                                                    </span>
+                                                )}
+                                                {app.jobType && (
+                                                    <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-medium">
+                                                        {app.jobType}
+                                                    </span>
+                                                )}
+                                                {app.germanRequirement === 'required' && (
+                                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-red-50 text-red-700 rounded text-[10px] font-medium">
+                                                        🇩🇪 DE
+                                                    </span>
+                                                )}
+                                                {(app.germanRequirement === 'optional' || app.germanRequirement === 'nice_to_have') && (
+                                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-yellow-50 text-yellow-700 rounded text-[10px] font-medium">
+                                                        🇩🇪 opt
+                                                    </span>
+                                                )}
+                                                {app.yearsOfExperience && (
+                                                    <span className="text-xs text-blue-600 font-medium">
+                                                        {app.yearsOfExperience}+ yrs
+                                                    </span>
+                                                )}
+                                                {app.requiredSkills && app.requiredSkills.length > 0 && (
+                                                    <span className="text-xs text-gray-500">
+                                                        {app.requiredSkills.length} skill{app.requiredSkills.length > 1 ? 's' : ''}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -169,6 +216,13 @@ export default function ApplicationsClient({ initialData }) {
                         })}
                     </div>
                 )}
+
+                {/* Load more trigger for infinite scroll */}
+                <div ref={loadMoreRef} className="h-10 flex items-center justify-center">
+                    {isLoadingMore && (
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                    )}
+                </div>
             </div>
         </div>
     );
