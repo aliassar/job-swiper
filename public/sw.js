@@ -3,7 +3,7 @@
  * Handles offline caching and navigation for Next.js App Router
  */
 
-const CACHE_NAME = 'job-swiper-v3';
+const CACHE_NAME = 'job-swiper-v4';
 const OFFLINE_FALLBACK = '/';
 
 // Pages to pre-cache for offline navigation
@@ -83,7 +83,8 @@ self.addEventListener('fetch', (event) => {
     url.searchParams.has('_rsc');
 
   if (isRSCRequest) {
-    // For RSC requests, try network first, but fall back to serving the full page
+    // RSC requests should always go to network to get fresh data
+    // Don't cache these as they contain dynamic content that can become stale
     event.respondWith(handleRSCRequest(request, url));
     return;
   }
@@ -100,31 +101,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Everything else - stale while revalidate
-  event.respondWith(staleWhileRevalidateStrategy(request));
+  // Everything else - network first to avoid stale cache issues
+  event.respondWith(networkFirstStrategy(request));
 });
 
 /**
  * Handle Next.js RSC navigation requests
+ * RSC responses contain dynamic content and should NOT be cached
+ * to prevent stale data issues on page refresh
  */
 async function handleRSCRequest(request, url) {
   try {
+    // Always fetch from network for RSC requests - don't cache
     const response = await fetch(request);
-    if (response.ok) {
-      const cache = await caches.open(CACHE_NAME);
-      cache.put(request, response.clone());
-    }
     return response;
   } catch (error) {
     console.log('[SW] RSC request failed, attempting fallback for:', url.pathname);
 
-    // Try to get cached RSC response
-    const cachedRSC = await caches.match(request);
-    if (cachedRSC) {
-      return cachedRSC;
-    }
-
-    // Fall back to cached HTML page for this route
+    // Fall back to cached HTML page for this route (offline fallback only)
     const pageUrl = new URL(url.pathname, url.origin);
     const cachedPage = await caches.match(pageUrl.href);
     if (cachedPage) {
