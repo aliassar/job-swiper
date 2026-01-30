@@ -237,9 +237,16 @@ export function JobProvider({ children }) {
             if (persistedState.applications) dispatch({ type: ACTIONS.SET_APPLICATIONS, payload: persistedState.applications });
             if (persistedState.savedJobs) dispatch({ type: ACTIONS.SET_SAVED_JOBS, payload: persistedState.savedJobs });
             // Issue #4 fix: Load persisted jobs for offline first load
+            // Normalize cached jobs to ensure new fields exist
             if (persistedState.jobs && persistedState.jobs.length > 0) {
-              dispatch({ type: ACTIONS.SET_JOBS, payload: persistedState.jobs });
-              console.log(`Restored ${persistedState.jobs.length} jobs from IndexedDB`);
+              const normalizedJobs = persistedState.jobs.map(job => ({
+                ...job,
+                requiredSkills: job.requiredSkills || [],
+                optionalSkills: job.optionalSkills || [],
+                shortDescription: job.shortDescription || null,
+              }));
+              dispatch({ type: ACTIONS.SET_JOBS, payload: normalizedJobs });
+              console.log(`Restored ${normalizedJobs.length} jobs from IndexedDB`);
             }
             if (persistedState.reportedJobs) dispatch({ type: ACTIONS.SET_REPORTED_JOBS, payload: persistedState.reportedJobs });
             if (persistedState.skippedJobs) dispatch({ type: ACTIONS.SET_SKIPPED_JOBS, payload: persistedState.skippedJobs });
@@ -336,7 +343,7 @@ export function JobProvider({ children }) {
       position: job.position,
       location: job.location,
       requiredSkills: job.requiredSkills,
-      stage: 'Syncing',
+      stage: 'Being Applied',
       appliedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       pendingSync: true,

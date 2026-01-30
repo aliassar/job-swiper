@@ -25,10 +25,10 @@ const UNLOCK_TIMEOUT_MS = 5000;
 
 export function useSwipeStateMachine() {
   const [state, dispatch] = useReducer(swipeReducer, initialSwipeState);
-  
+
   // Timeout reference for automatic unlock
   const unlockTimeoutRef = useRef(null);
-  
+
   /**
    * Clear any pending unlock timeout
    */
@@ -38,7 +38,7 @@ export function useSwipeStateMachine() {
       unlockTimeoutRef.current = null;
     }
   }, []);
-  
+
   /**
    * Set a timeout to automatically unlock if animation fails
    */
@@ -49,17 +49,17 @@ export function useSwipeStateMachine() {
       dispatch({ type: 'UNLOCK' });
     }, UNLOCK_TIMEOUT_MS);
   }, [clearUnlockTimeout]);
-  
+
   /**
-   * Initialize jobs data
+   * Initialize jobs data with optional total count from server
    */
-  const initializeJobs = useCallback((jobs) => {
+  const initializeJobs = useCallback((jobs, totalCount) => {
     dispatch({
       type: SWIPE_ACTIONS.INITIALIZE_JOBS,
-      payload: jobs,
+      payload: { jobs, totalCount },
     });
   }, []);
-  
+
   /**
    * Set loading state
    */
@@ -69,7 +69,7 @@ export function useSwipeStateMachine() {
       payload: loading,
     });
   }, []);
-  
+
   /**
    * Set error state
    */
@@ -79,7 +79,7 @@ export function useSwipeStateMachine() {
       payload: error,
     });
   }, []);
-  
+
   /**
    * Perform a swipe action (UI only, synchronous)
    * Returns true if swipe was successful
@@ -88,18 +88,18 @@ export function useSwipeStateMachine() {
     if (!canSwipe(state)) {
       return false;
     }
-    
+
     dispatch({
       type: SWIPE_ACTIONS.SWIPE,
       payload: { jobId, action },
     });
-    
+
     // Set timeout to unlock if animation fails
     setUnlockTimeout();
-    
+
     return true;
   }, [state, setUnlockTimeout]);
-  
+
   /**
    * Perform a rollback (UI only, synchronous)
    * Returns true if rollback was successful
@@ -108,17 +108,17 @@ export function useSwipeStateMachine() {
     if (!canRollback(state)) {
       return false;
     }
-    
+
     dispatch({
       type: SWIPE_ACTIONS.ROLLBACK,
     });
-    
+
     // Set timeout to unlock if animation fails
     setUnlockTimeout();
-    
+
     return true;
   }, [state, setUnlockTimeout]);
-  
+
   /**
    * Unlock the state machine after animation completes
    */
@@ -126,7 +126,7 @@ export function useSwipeStateMachine() {
     clearUnlockTimeout();
     dispatch({ type: 'UNLOCK' });
   }, [clearUnlockTimeout]);
-  
+
   /**
    * Side effect: Queue API calls when history grows (new swipe)
    * This runs AFTER the UI state has updated
@@ -139,7 +139,7 @@ export function useSwipeStateMachine() {
    * single source of truth for persistence.
    */
   const prevHistoryLengthRef = useRef(0);
-  
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -147,14 +147,15 @@ export function useSwipeStateMachine() {
       clearUnlockTimeout();
     };
   }, [clearUnlockTimeout]);
-  
+
   // Computed values
   const currentJob = getCurrentJob(state);
   const nextJob = getNextJob(state);
   const remainingJobs = getRemainingJobs(state);
+  const totalJobCount = state.totalJobCount;
   const canPerformRollback = canRollback(state);
   const canPerformSwipe = canSwipe(state);
-  
+
   return {
     // State
     jobs: state.jobs,
@@ -163,14 +164,15 @@ export function useSwipeStateMachine() {
     isLocked: state.isLocked,
     loading: state.loading,
     error: state.error,
-    
+
     // Computed
     currentJob,
     nextJob,
     remainingJobs,
+    totalJobCount,
     canRollback: canPerformRollback,
     canSwipe: canPerformSwipe,
-    
+
     // Actions
     initializeJobs,
     setLoading,

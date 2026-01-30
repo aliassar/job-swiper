@@ -21,10 +21,11 @@ export const SWIPE_ACTIONS = {
   // Core swipe actions
   SWIPE: 'SWIPE',
   ROLLBACK: 'ROLLBACK',
-  
+
   // Data initialization
   INITIALIZE_JOBS: 'INITIALIZE_JOBS',
-  
+  SET_TOTAL_COUNT: 'SET_TOTAL_COUNT',
+
   // Loading states
   SET_LOADING: 'SET_LOADING',
   SET_ERROR: 'SET_ERROR',
@@ -38,10 +39,13 @@ export const initialSwipeState = {
   jobs: [],
   cursor: 0,
   history: [],
-  
+
+  // Server's total job count (for accurate display)
+  totalJobCount: 0,
+
   // UI lock state
   isLocked: false,
-  
+
   // Meta state
   loading: true,
   error: null,
@@ -54,23 +58,32 @@ export const initialSwipeState = {
 export function swipeReducer(state, action) {
   switch (action.type) {
     case SWIPE_ACTIONS.INITIALIZE_JOBS: {
+      const { jobs, totalCount } = action.payload;
       return {
         ...state,
-        jobs: action.payload,
+        jobs: jobs,
         cursor: 0,
         history: [],
+        totalJobCount: totalCount ?? jobs.length,
         loading: false,
         error: null,
       };
     }
-    
+
+    case SWIPE_ACTIONS.SET_TOTAL_COUNT: {
+      return {
+        ...state,
+        totalJobCount: action.payload,
+      };
+    }
+
     case SWIPE_ACTIONS.SET_LOADING: {
       return {
         ...state,
         loading: action.payload,
       };
     }
-    
+
     case SWIPE_ACTIONS.SET_ERROR: {
       return {
         ...state,
@@ -78,27 +91,27 @@ export function swipeReducer(state, action) {
         loading: false,
       };
     }
-    
+
     case SWIPE_ACTIONS.SWIPE: {
       const { jobId, action: swipeAction } = action.payload;
-      
+
       // Safety checks
       if (state.isLocked) {
         console.warn('Swipe blocked: action already in progress');
         return state;
       }
-      
+
       if (state.cursor >= state.jobs.length) {
         console.warn('Swipe blocked: no more jobs');
         return state;
       }
-      
+
       const currentJob = state.jobs[state.cursor];
       if (currentJob?.id !== jobId) {
         console.warn('Swipe blocked: job mismatch', { currentJob: currentJob?.id, requestedJob: jobId });
         return state;
       }
-      
+
       // Pure state transition
       return {
         ...state,
@@ -112,42 +125,44 @@ export function swipeReducer(state, action) {
           }
         ],
         isLocked: true, // Lock until animation completes
+        totalJobCount: Math.max(0, state.totalJobCount - 1), // Decrement total
       };
     }
-    
+
     case SWIPE_ACTIONS.ROLLBACK: {
       // Safety checks
       if (state.isLocked) {
         console.warn('Rollback blocked: action already in progress');
         return state;
       }
-      
+
       if (state.history.length === 0) {
         console.warn('Rollback blocked: no history');
         return state;
       }
-      
+
       if (state.cursor === 0) {
         console.warn('Rollback blocked: cursor at start');
         return state;
       }
-      
+
       // Pure state transition
       return {
         ...state,
         cursor: state.cursor - 1,
         history: state.history.slice(0, -1),
         isLocked: true, // Lock until animation completes
+        totalJobCount: state.totalJobCount + 1, // Increment total on rollback
       };
     }
-    
+
     case 'UNLOCK': {
       return {
         ...state,
         isLocked: false,
       };
     }
-    
+
     default:
       return state;
   }
