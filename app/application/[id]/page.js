@@ -502,7 +502,9 @@ export default function ApplicationDetailPage() {
                 {application.srcName && (
                   <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold ${application.srcName.toLowerCase() === 'indeed' ? 'bg-blue-600 text-white' :
                     application.srcName.toLowerCase() === 'linkedin' ? 'bg-sky-600 text-white' :
-                      'bg-green-600 text-white'
+                      application.srcName.toLowerCase() === 'xing' ? 'bg-orange-500 text-white' :
+                        application.srcName.toLowerCase() === 'glassdoor' ? 'bg-green-600 text-white' :
+                          'bg-gray-600 text-white'
                     }`}>
                     {application.srcName}
                   </span>

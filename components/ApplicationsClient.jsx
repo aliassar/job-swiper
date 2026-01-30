@@ -3,24 +3,18 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApplicationsInfinite, useUpdateApplicationStage } from '@/lib/hooks/useSWR';
-import { BriefcaseIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
 import OfflineBanner from '@/components/OfflineBanner';
 
 const APPLICATION_STAGES = [
-    'Syncing',
-    'CV Check',
-    'Message Check',
     'Being Applied',
     'Applied',
-    'Interview 1',
-    'Next Interviews',
-    'Offer',
-    'Rejected',
+    'In Review',
     'Accepted',
+    'Rejected',
     'Withdrawn',
-    'Failed',
 ];
 
 export default function ApplicationsClient({ initialData }) {
@@ -61,18 +55,12 @@ export default function ApplicationsClient({ initialData }) {
 
     const getStageColor = (stage) => {
         const colors = {
-            'Syncing': 'bg-orange-100 text-orange-700',
-            'CV Check': 'bg-indigo-100 text-indigo-700',
-            'Message Check': 'bg-violet-100 text-violet-700',
             'Being Applied': 'bg-amber-100 text-amber-700',
             'Applied': 'bg-blue-100 text-blue-700',
-            'Interview 1': 'bg-purple-100 text-purple-700',
-            'Next Interviews': 'bg-fuchsia-100 text-fuchsia-700',
-            'Offer': 'bg-green-100 text-green-700',
-            'Rejected': 'bg-red-100 text-red-700',
+            'In Review': 'bg-purple-100 text-purple-700',
             'Accepted': 'bg-emerald-100 text-emerald-700',
+            'Rejected': 'bg-red-100 text-red-700',
             'Withdrawn': 'bg-gray-100 text-gray-700',
-            'Failed': 'bg-rose-100 text-rose-700',
         };
         return colors[stage] || 'bg-gray-100 text-gray-700';
     };
@@ -147,8 +135,8 @@ export default function ApplicationsClient({ initialData }) {
                                                     mutate();
                                                 }}
                                                 onClick={(e) => e.stopPropagation()}
-                                                disabled={app.stage === 'Syncing'}
-                                                className={`px-2 py-1 rounded-md text-xs font-medium border-0 ${app.stage === 'Syncing' ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'} ${getStageColor(app.stage)}`}
+                                                disabled={app.pendingSync}
+                                                className={`px-2 py-1 rounded-md text-xs font-medium border-0 ${app.pendingSync ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'} ${getStageColor(app.stage)}`}
                                             >
                                                 {APPLICATION_STAGES.map((stage) => (
                                                     <option key={stage} value={stage}>
@@ -178,7 +166,9 @@ export default function ApplicationsClient({ initialData }) {
                                                 {app.srcName && (
                                                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${app.srcName.toLowerCase() === 'indeed' ? 'bg-blue-600 text-white' :
                                                         app.srcName.toLowerCase() === 'linkedin' ? 'bg-sky-600 text-white' :
-                                                            'bg-green-600 text-white'
+                                                            app.srcName.toLowerCase() === 'xing' ? 'bg-orange-500 text-white' :
+                                                                app.srcName.toLowerCase() === 'glassdoor' ? 'bg-green-600 text-white' :
+                                                                    'bg-gray-600 text-white'
                                                         }`}>
                                                         {app.srcName}
                                                     </span>
@@ -210,6 +200,80 @@ export default function ApplicationsClient({ initialData }) {
                                                 )}
                                             </div>
                                         </div>
+                                    </div>
+
+                                    {/* Action buttons row */}
+                                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
+                                        {(app.customResumeUrl || app.generatedResumeUrl) && (
+                                            <button
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    try {
+                                                        const token = localStorage.getItem('auth_token');
+                                                        const response = await fetch(
+                                                            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/application-history/${app.id}/download/resume`,
+                                                            { headers: { Authorization: `Bearer ${token}` } }
+                                                        );
+                                                        if (!response.ok) throw new Error('Download failed');
+                                                        const blob = await response.blob();
+                                                        const url = window.URL.createObjectURL(blob);
+                                                        const a = document.createElement('a');
+                                                        a.href = url;
+                                                        a.download = `resume_${app.company.replace(/\s+/g, '_')}.pdf`;
+                                                        a.click();
+                                                        window.URL.revokeObjectURL(url);
+                                                    } catch (err) {
+                                                        console.error('Download error:', err);
+                                                        alert('Failed to download resume');
+                                                    }
+                                                }}
+                                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
+                                            >
+                                                <DocumentArrowDownIcon className="h-3.5 w-3.5" />
+                                                Resume
+                                            </button>
+                                        )}
+                                        {(app.customCoverLetterUrl || app.generatedCoverLetterUrl) && (
+                                            <button
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    try {
+                                                        const token = localStorage.getItem('auth_token');
+                                                        const response = await fetch(
+                                                            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/application-history/${app.id}/download/cover-letter`,
+                                                            { headers: { Authorization: `Bearer ${token}` } }
+                                                        );
+                                                        if (!response.ok) throw new Error('Download failed');
+                                                        const blob = await response.blob();
+                                                        const url = window.URL.createObjectURL(blob);
+                                                        const a = document.createElement('a');
+                                                        a.href = url;
+                                                        a.download = `cover_letter_${app.company.replace(/\s+/g, '_')}.pdf`;
+                                                        a.click();
+                                                        window.URL.revokeObjectURL(url);
+                                                    } catch (err) {
+                                                        console.error('Download error:', err);
+                                                        alert('Failed to download cover letter');
+                                                    }
+                                                }}
+                                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded transition-colors"
+                                            >
+                                                <DocumentArrowDownIcon className="h-3.5 w-3.5" />
+                                                Cover Letter
+                                            </button>
+                                        )}
+                                        {(app.applyLink || app.jobUrl || app.url) && (
+                                            <a
+                                                href={app.applyLink || app.jobUrl || app.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded transition-colors ml-auto"
+                                            >
+                                                <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" />
+                                                {app.applyLink ? 'Apply' : 'View Job'}
+                                            </a>
+                                        )}
                                     </div>
                                 </div>
                             );
