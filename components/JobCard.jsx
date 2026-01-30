@@ -9,7 +9,8 @@ import ReactMarkdown from 'react-markdown';
 export default function JobCard({ job, style, onSwipe, onReportClick, isReported = false }) {
   const { unreportJob } = useSwipe();
 
-  if (!job) return null;
+  // Early return if job is missing or invalid
+  if (!job || typeof job !== 'object') return null;
 
   const getRelativeTime = (dateString) => {
     const date = new Date(dateString);
@@ -52,6 +53,7 @@ export default function JobCard({ job, style, onSwipe, onReportClick, isReported
     indeed: { label: 'Indeed', color: 'bg-blue-600', textColor: 'text-white' },
     linkedin: { label: 'LinkedIn', color: 'bg-sky-600', textColor: 'text-white' },
     glassdoor: { label: 'Glassdoor', color: 'bg-green-600', textColor: 'text-white' },
+    xing: { label: 'Xing', color: 'bg-orange-500', textColor: 'text-white' },
   };
   const source = job.srcName ? sourceConfig[job.srcName.toLowerCase()] : null;
 
@@ -122,12 +124,7 @@ export default function JobCard({ job, style, onSwipe, onReportClick, isReported
                   <span className="text-sm font-semibold text-red-700">German Required</span>
                 </div>
               )}
-              {(job.germanRequirement === 'optional' || job.germanRequirement === 'nice_to_have') && (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <span className="text-base">🇩🇪</span>
-                  <span className="text-sm font-semibold text-yellow-700">German Preferred</span>
-                </div>
-              )}
+              {/* German Preferred tag hidden per user request */}
             </div>
           </div>
 
