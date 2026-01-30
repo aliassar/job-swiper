@@ -240,16 +240,19 @@ export function SwipeProvider({ children }) {
     }, [offlineQueue]);
 
     // Report job
-    const reportJob = useCallback(async (job, reason = 'not_interested') => {
+    const reportJob = useCallback(async (job, reason = 'not_interested', blockCompany = false) => {
         dispatch({ type: ACTIONS.SET_REPORTING, payload: job.id });
 
         try {
             await offlineQueue.addOperation({
                 type: 'report',
                 id: `report-${job.id}`,
-                payload: { jobId: job.id, reason },
+                payload: { jobId: job.id, reason, blockCompany },
                 apiCall: async (payload, options) => {
-                    await reportedApi.reportJob(payload.jobId, payload.reason, options);
+                    await reportedApi.reportJob(payload.jobId, payload.reason, {
+                        ...options,
+                        blockCompany: payload.blockCompany
+                    });
                     dispatch({ type: ACTIONS.SET_REPORTING, payload: null });
                 },
             });

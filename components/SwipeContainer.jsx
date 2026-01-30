@@ -56,6 +56,7 @@ export default function SwipeContainer() {
     currentJob,
     nextJob,
     remainingJobs,
+    totalJobCount,
     isLocked,
     loading,
     error,
@@ -200,7 +201,7 @@ export default function SwipeContainer() {
 
         // Only update state if request wasn't aborted
         if (!abortController.signal.aborted) {
-          initializeJobs(data.jobs);
+          initializeJobs(data.jobs, data.total);
         }
       } catch (err) {
         // Ignore abort errors - they're expected when filters change rapidly
@@ -384,12 +385,12 @@ export default function SwipeContainer() {
     setReportModalOpen(true);
   }, []);
 
-  const handleReport = useCallback((reason) => {
+  const handleReport = useCallback((reason, blockCompany = false) => {
     if (jobToReport) {
       // Add to local reported set
       setLocalReportedJobIds(prev => new Set([...prev, jobToReport.id]));
-      // Call the actual report API
-      reportJob(jobToReport, reason);
+      // Call the actual report API with blockCompany flag
+      reportJob(jobToReport, reason, blockCompany);
       setReportModalOpen(false);
       setJobToReport(null);
     }
@@ -587,7 +588,7 @@ export default function SwipeContainer() {
         {/* Jobs remaining counter */}
         <div className="absolute top-4 left-4 z-20 pointer-events-none">
           <div className="bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-full font-medium">
-            {remainingJobs} {remainingJobs === 1 ? 'job' : 'jobs'}
+            {totalJobCount} {totalJobCount === 1 ? 'job' : 'jobs'}
           </div>
         </div>
 
