@@ -3,7 +3,7 @@
  * Handles offline caching and navigation for Next.js App Router
  */
 
-const CACHE_NAME = 'job-swiper-v5';
+const CACHE_NAME = 'job-swiper-v6';
 const OFFLINE_FALLBACK = '/';
 
 // Pages to pre-cache for offline navigation
