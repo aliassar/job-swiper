@@ -53,10 +53,20 @@ export function useSwipeStateMachine() {
   /**
    * Initialize jobs data with optional total count from server
    */
-  const initializeJobs = useCallback((jobs, totalCount) => {
+  const initializeJobs = useCallback((jobs, totalCount, hasMore = true) => {
     dispatch({
       type: SWIPE_ACTIONS.INITIALIZE_JOBS,
-      payload: { jobs, totalCount },
+      payload: { jobs, totalCount, hasMore },
+    });
+  }, []);
+
+  /**
+   * Append more jobs for pagination (without resetting cursor)
+   */
+  const appendJobs = useCallback((jobs, hasMore) => {
+    dispatch({
+      type: SWIPE_ACTIONS.APPEND_JOBS,
+      payload: { jobs, hasMore },
     });
   }, []);
 
@@ -175,10 +185,14 @@ export function useSwipeStateMachine() {
 
     // Actions
     initializeJobs,
+    appendJobs,
     setLoading,
     setError,
     swipe,
     rollback,
     unlock,
+
+    // Pagination
+    hasMore: state.hasMore,
   };
 }

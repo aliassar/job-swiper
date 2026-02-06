@@ -24,6 +24,7 @@ export const SWIPE_ACTIONS = {
 
   // Data initialization
   INITIALIZE_JOBS: 'INITIALIZE_JOBS',
+  APPEND_JOBS: 'APPEND_JOBS', // For pagination - add more jobs
   SET_TOTAL_COUNT: 'SET_TOTAL_COUNT',
 
   // Loading states
@@ -43,6 +44,9 @@ export const initialSwipeState = {
   // Server's total job count (for accurate display)
   totalJobCount: 0,
 
+  // Pagination
+  hasMore: true,
+
   // UI lock state
   isLocked: false,
 
@@ -58,13 +62,14 @@ export const initialSwipeState = {
 export function swipeReducer(state, action) {
   switch (action.type) {
     case SWIPE_ACTIONS.INITIALIZE_JOBS: {
-      const { jobs, totalCount } = action.payload;
+      const { jobs, totalCount, hasMore } = action.payload;
       return {
         ...state,
         jobs: jobs,
         cursor: 0,
         history: [],
         totalJobCount: totalCount ?? jobs.length,
+        hasMore: hasMore ?? true,
         loading: false,
         error: null,
       };
@@ -74,6 +79,18 @@ export function swipeReducer(state, action) {
       return {
         ...state,
         totalJobCount: action.payload,
+      };
+    }
+
+    case SWIPE_ACTIONS.APPEND_JOBS: {
+      // Append new jobs for pagination, avoiding duplicates
+      const { jobs: newJobs, hasMore } = action.payload;
+      const existingIds = new Set(state.jobs.map(j => j.id));
+      const uniqueNewJobs = newJobs.filter(j => !existingIds.has(j.id));
+      return {
+        ...state,
+        jobs: [...state.jobs, ...uniqueNewJobs],
+        hasMore: hasMore ?? true,
       };
     }
 

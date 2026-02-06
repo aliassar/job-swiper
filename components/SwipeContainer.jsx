@@ -61,9 +61,11 @@ export default function SwipeContainer() {
     loading,
     error,
     history,
+    hasMore,
     canRollback: canPerformRollback,
     canSwipe: canPerformSwipe,
     initializeJobs,
+    appendJobs,
     setLoading,
     setError,
     swipe,
@@ -134,6 +136,10 @@ export default function SwipeContainer() {
   // Online status
   const [isOnline, setIsOnline] = useState(true);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const fetchingMoreRef = useRef(false);
+
   // Memoize exit distance
   const exitDistance = useMemo(() => getExitDistance(), []);
 
@@ -188,10 +194,13 @@ export default function SwipeContainer() {
 
     const loadJobs = async () => {
       setLoading(true);
+      setCurrentPage(1); // Reset page on filter change
       try {
         // Build options object from filters
         const options = {
           signal: abortController.signal, // Pass abort signal for request cancellation
+          page: 1,
+          limit: 20,
         };
         if (filters.location) options.location = filters.location;
         if (filters.minSalary) options.salaryMin = filters.minSalary;
@@ -201,7 +210,7 @@ export default function SwipeContainer() {
 
         // Only update state if request wasn't aborted
         if (!abortController.signal.aborted) {
-          initializeJobs(data.jobs, data.total);
+          initializeJobs(data.jobs, data.total, data.pagination?.hasMore ?? data.jobs.length === 20);
         }
       } catch (err) {
         // Ignore abort errors - they're expected when filters change rapidly
@@ -228,6 +237,38 @@ export default function SwipeContainer() {
       abortController.abort();
     };
   }, [initializeJobs, setLoading, setError, filters]);
+
+  // Auto-fetch more jobs when approaching the end (10 or fewer jobs remaining)
+  useEffect(() => {
+    // Only fetch if there are more jobs, not already fetching, and running low
+    if (remainingJobs <= 10 && hasMore && !loading && !fetchingMoreRef.current && isOnline) {
+      const fetchMoreJobs = async () => {
+        fetchingMoreRef.current = true;
+        const nextPage = currentPage + 1;
+        console.log(`[SwipeContainer] Auto-fetching: ${remainingJobs} jobs remaining, fetching page ${nextPage}...`);
+
+        try {
+          const options = {
+            page: nextPage,
+            limit: 20,
+          };
+          if (filters.location) options.location = filters.location;
+          if (filters.minSalary) options.salaryMin = filters.minSalary;
+          if (filters.maxSalary) options.salaryMax = filters.maxSalary;
+
+          const data = await jobsApi.getJobs(options);
+          appendJobs(data.jobs, data.pagination?.hasMore ?? data.jobs.length === 20);
+          setCurrentPage(nextPage);
+        } catch (err) {
+          console.error('Error fetching more jobs:', err);
+        } finally {
+          fetchingMoreRef.current = false;
+        }
+      };
+
+      fetchMoreJobs();
+    }
+  }, [remainingJobs, hasMore, loading, currentPage, filters, appendJobs, isOnline]);
 
   /**
    * Handle drag end - determines swipe action
