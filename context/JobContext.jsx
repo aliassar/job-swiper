@@ -762,10 +762,12 @@ export function JobProvider({ children }) {
   };
 
   // Auto-fetch more jobs when approaching end of current batch (Issue #1 fix)
+  // Fixed: Trigger at 10 jobs remaining instead of 5 to ensure seamless experience
   useEffect(() => {
-    // Only auto-fetch if there are more jobs and we're within 5 of the end
     const jobsRemaining = state.jobs.length - state.currentIndex;
-    if (jobsRemaining <= 5 && state.hasMore && !state.loading) {
+    // Fetch more when 10 or fewer jobs remain to avoid "all caught up" appearing prematurely
+    if (jobsRemaining <= 10 && state.hasMore && !state.loading && !fetchingMoreRef.current) {
+      console.log(`[JobContext] Auto-fetching: ${jobsRemaining} jobs remaining, fetching more...`);
       fetchMoreJobs();
     }
   }, [state.currentIndex, state.jobs.length, state.hasMore, state.loading, fetchMoreJobs]);
