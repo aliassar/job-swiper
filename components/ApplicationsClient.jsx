@@ -3,10 +3,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApplicationsInfinite, useUpdateApplicationStage } from '@/lib/hooks/useSWR';
-import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
+import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
 import OfflineBanner from '@/components/OfflineBanner';
+import ReportModal from '@/components/ReportModal';
+import { reportedApi } from '@/lib/api';
 
 const APPLICATION_STAGES = [
     'Being Applied',
@@ -22,6 +24,8 @@ export default function ApplicationsClient({ initialData }) {
     const { updateStage } = useUpdateApplicationStage();
     const [searchQuery, setSearchQuery] = useState('');
     const loadMoreRef = useRef(null);
+    const [reportModalOpen, setReportModalOpen] = useState(false);
+    const [jobToReport, setJobToReport] = useState(null);
 
     // Use SWR infinite for scroll-based pagination
     const { applications, isLoading, isLoadingMore, isOffline, hasMore, loadMore, mutate } = useApplicationsInfinite(searchQuery);
@@ -52,6 +56,26 @@ export default function ApplicationsClient({ initialData }) {
     const showLoading = isLoading && searchQuery !== '';
     const hasApplications = applications.length > 0;
     const hasResults = applications.length > 0;
+
+    const handleOpenReportModal = useCallback((app) => {
+        setJobToReport({
+            id: app.jobId || app.id,
+            company: app.company,
+            position: app.position,
+        });
+        setReportModalOpen(true);
+    }, []);
+
+    const handleReport = useCallback(async (reason, blockCompany = false) => {
+        if (!jobToReport) return;
+        try {
+            await reportedApi.reportJob(jobToReport.id, reason, { blockCompany });
+        } catch (err) {
+            console.error('Error reporting job:', err);
+        }
+        setReportModalOpen(false);
+        setJobToReport(null);
+    }, [jobToReport]);
 
     const getStageColor = (stage) => {
         const colors = {
@@ -268,12 +292,23 @@ export default function ApplicationsClient({ initialData }) {
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 onClick={(e) => e.stopPropagation()}
-                                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded transition-colors ml-auto"
+                                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded transition-colors"
                                             >
                                                 <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" />
                                                 {app.applyLink ? 'Apply' : 'View Job'}
                                             </a>
                                         )}
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleOpenReportModal(app);
+                                            }}
+                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-500 bg-red-50 hover:bg-red-100 rounded transition-colors ml-auto"
+                                            title="Report this job"
+                                        >
+                                            <FlagIcon className="h-3.5 w-3.5" />
+                                            Report
+                                        </button>
                                     </div>
                                 </div>
                             );
@@ -288,6 +323,13 @@ export default function ApplicationsClient({ initialData }) {
                     )}
                 </div>
             </div>
+
+            <ReportModal
+                isOpen={reportModalOpen}
+                onClose={() => { setReportModalOpen(false); setJobToReport(null); }}
+                onReport={handleReport}
+                job={jobToReport}
+            />
         </div>
     );
 }
