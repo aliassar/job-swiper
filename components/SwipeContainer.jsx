@@ -139,6 +139,7 @@ export default function SwipeContainer() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const fetchingMoreRef = useRef(false);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
 
   // Memoize exit distance
   const exitDistance = useMemo(() => getExitDistance(), []);
@@ -244,6 +245,7 @@ export default function SwipeContainer() {
     if (remainingJobs <= 10 && hasMore && !loading && !fetchingMoreRef.current && isOnline) {
       const fetchMoreJobs = async () => {
         fetchingMoreRef.current = true;
+        setIsFetchingMore(true);
         const nextPage = currentPage + 1;
         console.log(`[SwipeContainer] Auto-fetching: ${remainingJobs} jobs remaining, fetching page ${nextPage}...`);
 
@@ -263,6 +265,7 @@ export default function SwipeContainer() {
           console.error('Error fetching more jobs:', err);
         } finally {
           fetchingMoreRef.current = false;
+          setIsFetchingMore(false);
         }
       };
 
@@ -518,7 +521,7 @@ export default function SwipeContainer() {
 
   // Unlock when entering empty state (no animation to unlock otherwise)
   // This must be before any conditional returns to follow Rules of Hooks
-  const shouldShowEmpty = !loading && !currentJob && remainingJobs === 0;
+  const shouldShowEmpty = !loading && !isFetchingMore && !currentJob && remainingJobs === 0 && !hasMore;
   useEffect(() => {
     // Unlock when entering empty state (finished all jobs)
     // There's no more cards to animate, so onExitComplete won't fire
