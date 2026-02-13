@@ -240,18 +240,21 @@ export default function SwipeContainer() {
   }, [initializeJobs, setLoading, setError, filters]);
 
   // Auto-fetch more jobs when approaching the end (10 or fewer jobs remaining)
+  // IMPORTANT: Always fetch page=1 because swiped/rejected jobs are filtered out
+  // by the backend query (status IS NULL OR status = 'pending'). Using offset-based
+  // pagination (page 2, 3, etc.) would skip jobs since the result set shifts as
+  // jobs get accepted/rejected.
   useEffect(() => {
     // Only fetch if there are more jobs, not already fetching, and running low
     if (remainingJobs <= 10 && hasMore && !loading && !fetchingMoreRef.current && isOnline) {
       const fetchMoreJobs = async () => {
         fetchingMoreRef.current = true;
         setIsFetchingMore(true);
-        const nextPage = currentPage + 1;
-        console.log(`[SwipeContainer] Auto-fetching: ${remainingJobs} jobs remaining, fetching page ${nextPage}...`);
+        console.log(`[SwipeContainer] Auto-fetching: ${remainingJobs} jobs remaining, fetching page 1 (offset 0)...`);
 
         try {
           const options = {
-            page: nextPage,
+            page: 1,
             limit: 20,
           };
           if (filters.location) options.location = filters.location;
@@ -260,7 +263,6 @@ export default function SwipeContainer() {
 
           const data = await jobsApi.getJobs(options);
           appendJobs(data.jobs, data.pagination?.hasMore ?? data.jobs.length === 20);
-          setCurrentPage(nextPage);
         } catch (err) {
           console.error('Error fetching more jobs:', err);
         } finally {
@@ -271,7 +273,7 @@ export default function SwipeContainer() {
 
       fetchMoreJobs();
     }
-  }, [remainingJobs, hasMore, loading, currentPage, filters, appendJobs, isOnline]);
+  }, [remainingJobs, hasMore, loading, filters, appendJobs, isOnline]);
 
   /**
    * Handle drag end - determines swipe action
