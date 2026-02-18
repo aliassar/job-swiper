@@ -3,12 +3,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApplicationsInfinite, useUpdateApplicationStage } from '@/lib/hooks/useSWR';
-import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon } from '@heroicons/react/24/outline';
+import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon, TrashIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
 import OfflineBanner from '@/components/OfflineBanner';
 import ReportModal from '@/components/ReportModal';
-import { reportedApi } from '@/lib/api';
+import { reportedApi, applicationsApi } from '@/lib/api';
 
 const APPLICATION_STAGES = [
     'Being Applied',
@@ -76,6 +76,18 @@ export default function ApplicationsClient({ initialData }) {
         setReportModalOpen(false);
         setJobToReport(null);
     }, [jobToReport]);
+
+    const handleDeleteApplication = useCallback(async (e, app) => {
+        e.stopPropagation();
+        if (!confirm(`Delete application for ${app.position} at ${app.company}? The job will be reverted to pending.`)) return;
+        try {
+            await applicationsApi.deleteApplication(app.id);
+            mutate();
+        } catch (err) {
+            console.error('Error deleting application:', err);
+            alert('Failed to delete application');
+        }
+    }, [mutate]);
 
     const getStageColor = (stage) => {
         const colors = {
@@ -308,6 +320,14 @@ export default function ApplicationsClient({ initialData }) {
                                         >
                                             <FlagIcon className="h-3.5 w-3.5" />
                                             Report
+                                        </button>
+                                        <button
+                                            onClick={(e) => handleDeleteApplication(e, app)}
+                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 bg-gray-50 hover:bg-gray-200 rounded transition-colors"
+                                            title="Delete application and revert job to pending"
+                                        >
+                                            <TrashIcon className="h-3.5 w-3.5" />
+                                            Delete
                                         </button>
                                     </div>
                                 </div>
