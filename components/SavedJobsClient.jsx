@@ -124,15 +124,13 @@ export default function SavedJobsClient({ initialData }) {
                                         <img
                                             src={logoUrl}
                                             alt={`${job.company} logo`}
-                                            className="w-14 h-14 rounded-xl flex-shrink-0 cursor-pointer"
-                                            onClick={() => router.push(`/job/${job.id}`)}
+                                            className="w-14 h-14 rounded-xl flex-shrink-0"
                                         />
 
                                         <div className="flex-1 min-w-0 overflow-hidden">
                                             <div className="flex items-start justify-between gap-2">
                                                 <div
-                                                    className="flex-1 min-w-0 overflow-hidden cursor-pointer"
-                                                    onClick={() => router.push(`/job/${job.id}`)}
+                                                    className="flex-1 min-w-0 overflow-hidden"
                                                 >
                                                     <h3 className="font-semibold text-gray-900 truncate">
                                                         {job.position}
