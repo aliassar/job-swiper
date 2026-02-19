@@ -14,7 +14,7 @@ export default function SavedJobsList() {
   const handleExportCSV = () => {
     const csvHeaders = 'Company,Position,Location,Salary,Skills,Saved At\n';
     const csvRows = savedJobs.map(job => {
-      const skills = (job.skills || []).join('; '); // Safety check for undefined skills
+      const skills = (job.requiredSkills || job.skills || []).join('; ');
       const savedAt = job.savedAt || new Date().toISOString();
       return `"${job.company}","${job.position}","${job.location}","${job.salary || 'N/A'}","${skills}","${savedAt}"`;
     }).join('\n');
@@ -59,7 +59,7 @@ export default function SavedJobsList() {
               <div class="location">${job.location}</div>
               ${job.salary ? `<div class="salary">💰 ${job.salary}</div>` : ''}
               <div class="skills">
-                ${(job.skills || []).map(skill => `<span class="skill">${skill}</span>`).join('')}
+                ${(job.requiredSkills || job.skills || []).map(skill => `<span class="skill">${skill}</span>`).join('')}
               </div>
             </div>
           `).join('')}
@@ -182,7 +182,7 @@ export default function SavedJobsList() {
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 mt-3">
-                  {job.skills.slice(0, 3).map((skill, index) => (
+                  {(job.requiredSkills || job.skills || []).slice(0, 3).map((skill, index) => (
                     <span
                       key={index}
                       className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium"
@@ -190,9 +190,9 @@ export default function SavedJobsList() {
                       {skill}
                     </span>
                   ))}
-                  {job.skills.length > 3 && (
+                  {(job.requiredSkills || job.skills || []).length > 3 && (
                     <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
-                      +{job.skills.length - 3} more
+                      +{(job.requiredSkills || job.skills || []).length - 3} more
                     </span>
                   )}
                 </div>
