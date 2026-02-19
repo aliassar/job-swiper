@@ -251,7 +251,7 @@ export default function ApplicationsClient({ initialData }) {
                                     </div>
 
                                     {/* Action buttons row */}
-                                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
+                                    <div className="flex items-center flex-wrap gap-2 mt-2 pt-2 border-t border-gray-100">
                                         {(app.customResumeUrl || app.generatedResumeUrl) && (
                                             <button
                                                 onClick={async (e) => {
