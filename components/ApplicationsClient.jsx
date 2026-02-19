@@ -219,7 +219,7 @@ export default function ApplicationsClient({ initialData }) {
                                     <div className="mt-2 pt-2 border-t border-gray-100">
                                         <div className="flex items-center justify-between text-xs text-gray-500">
                                             <span>
-                                                Applied {new Date(app.createdAt || app.appliedAt || app.lastUpdated).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                                                {app.postedDate && `Posted ${new Date(app.postedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} • `}Applied {new Date(app.createdAt || app.appliedAt || app.lastUpdated).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                                             </span>
                                             <div className="flex items-center gap-2">
                                                 {app.srcName && (
