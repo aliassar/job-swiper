@@ -1,14 +1,12 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { applicationsApi } from '@/lib/api';
 import { ArchiveBoxIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 import useSWR from 'swr';
 
 export default function ArchivedPage() {
-    const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
 
     const { data, isLoading, mutate } = useSWR(
@@ -90,8 +88,7 @@ export default function ArchivedPage() {
                             return (
                                 <div
                                     key={app.id}
-                                    onClick={() => router.push(`/application/${app.id}`)}
-                                    className="bg-white rounded-xl shadow-sm p-3 hover:shadow-md transition-shadow cursor-pointer border border-gray-100 opacity-80"
+                                    className="bg-white rounded-xl shadow-sm p-3 hover:shadow-md transition-shadow border border-gray-100 opacity-80"
                                 >
                                     <div className="flex items-center gap-3 mb-2">
                                         <img

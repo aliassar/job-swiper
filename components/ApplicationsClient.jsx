@@ -170,8 +170,7 @@ export default function ApplicationsClient({ initialData }) {
                             return (
                                 <div
                                     key={app.id}
-                                    onClick={() => router.push(`/application/${app.id}`)}
-                                    className="bg-white rounded-xl shadow-sm p-3 hover:shadow-md transition-shadow cursor-pointer border border-gray-100"
+                                    className="bg-white rounded-xl shadow-sm p-3 hover:shadow-md transition-shadow border border-gray-100"
                                 >
                                     <div className="flex items-center gap-3 mb-2">
                                         <img
