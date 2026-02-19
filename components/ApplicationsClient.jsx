@@ -170,43 +170,45 @@ export default function ApplicationsClient({ initialData }) {
                             return (
                                 <div
                                     key={app.id}
-                                    className="bg-white rounded-xl shadow-sm p-3 hover:shadow-md transition-shadow border border-gray-100"
+                                    className="bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-all border border-gray-100"
                                 >
-                                    <div className="flex items-center gap-3 mb-2">
+                                    {/* Header: Logo + Info + Stage */}
+                                    <div className="flex items-start gap-3">
                                         <img
                                             src={logoUrl}
                                             alt={`${app.company} logo`}
-                                            className="w-10 h-10 rounded-lg flex-shrink-0"
+                                            className="w-11 h-11 rounded-xl flex-shrink-0 mt-0.5"
                                         />
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="text-sm font-semibold text-gray-900 truncate">
+                                            <h3 className="text-sm font-semibold text-gray-900 truncate leading-tight">
                                                 {app.position}
                                             </h3>
-                                            <p className="text-xs text-gray-600 truncate">{app.company} • {app.location}</p>
+                                            <p className="text-xs text-gray-500 truncate mt-0.5">
+                                                {app.company} • {app.location}
+                                                {app.salary && <span className="text-emerald-600 font-medium"> • {app.salary}</span>}
+                                            </p>
                                         </div>
-                                        <div className="flex-shrink-0">
-                                            <select
-                                                value={app.stage}
-                                                onChange={(e) => {
-                                                    e.stopPropagation();
-                                                    updateStage(app.id, e.target.value, mutate);
-                                                    mutate();
-                                                }}
-                                                onClick={(e) => e.stopPropagation()}
-                                                disabled={app.pendingSync}
-                                                className={`px-2 py-1 rounded-md text-xs font-medium border-0 ${app.pendingSync ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'} ${getStageColor(app.stage)}`}
-                                            >
-                                                {APPLICATION_STAGES.map((stage) => (
-                                                    <option key={stage} value={stage}>
-                                                        {stage}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
+                                        <select
+                                            value={app.stage}
+                                            onChange={(e) => {
+                                                e.stopPropagation();
+                                                updateStage(app.id, e.target.value, mutate);
+                                                mutate();
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            disabled={app.pendingSync}
+                                            className={`flex-shrink-0 px-2 py-1 rounded-lg text-xs font-medium border-0 ${app.pendingSync ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'} ${getStageColor(app.stage)}`}
+                                        >
+                                            {APPLICATION_STAGES.map((stage) => (
+                                                <option key={stage} value={stage}>
+                                                    {stage}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
 
                                     {app.pendingSync && (
-                                        <div className="mb-2 inline-flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium">
+                                        <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium">
                                             <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -215,53 +217,36 @@ export default function ApplicationsClient({ initialData }) {
                                         </div>
                                     )}
 
-                                    <div className="mt-2 pt-2 border-t border-gray-100">
-                                        <div className="flex items-center justify-between text-xs text-gray-500">
-                                            <span>
-                                                {app.postedDate && `Posted ${new Date(app.postedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} • `}Applied {new Date(app.createdAt || app.appliedAt || app.lastUpdated).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                                            </span>
-                                            <div className="flex items-center gap-2">
-                                                {app.srcName && (
-                                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${app.srcName.toLowerCase() === 'indeed' ? 'bg-blue-600 text-white' :
-                                                        app.srcName.toLowerCase() === 'linkedin' ? 'bg-sky-600 text-white' :
-                                                            app.srcName.toLowerCase() === 'xing' ? 'bg-orange-500 text-white' :
-                                                                app.srcName.toLowerCase() === 'glassdoor' ? 'bg-green-600 text-white' :
-                                                                    'bg-gray-600 text-white'
-                                                        }`}>
-                                                        {app.srcName}
-                                                    </span>
-                                                )}
-                                                {app.jobType && (
-                                                    <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-medium">
-                                                        {app.jobType}
-                                                    </span>
-                                                )}
-                                                {app.germanRequirement === 'required' && (
-                                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-red-50 text-red-700 rounded text-[10px] font-medium">
-                                                        🇩🇪 DE
-                                                    </span>
-                                                )}
-                                                {(app.germanRequirement === 'optional' || app.germanRequirement === 'nice_to_have') && (
-                                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-yellow-50 text-yellow-700 rounded text-[10px] font-medium">
-                                                        🇩🇪 opt
-                                                    </span>
-                                                )}
-                                                {app.yearsOfExperience && (
-                                                    <span className="text-xs text-blue-600 font-medium">
-                                                        {app.yearsOfExperience}+ yrs
-                                                    </span>
-                                                )}
-                                                {app.requiredSkills && app.requiredSkills.length > 0 && (
-                                                    <span className="text-xs text-gray-500">
-                                                        {app.requiredSkills.length} skill{app.requiredSkills.length > 1 ? 's' : ''}
-                                                    </span>
-                                                )}
-                                            </div>
+                                    {/* Meta row: dates + badges */}
+                                    <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-50">
+                                        <span className="text-[11px] text-gray-400">
+                                            {app.postedDate && `Posted ${new Date(app.postedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · `}Applied {new Date(app.createdAt || app.appliedAt || app.lastUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                        </span>
+                                        <div className="flex items-center gap-1.5">
+                                            {app.srcName && (
+                                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${app.srcName.toLowerCase() === 'indeed' ? 'bg-blue-600 text-white' :
+                                                    app.srcName.toLowerCase() === 'linkedin' ? 'bg-sky-600 text-white' :
+                                                        app.srcName.toLowerCase() === 'xing' ? 'bg-orange-500 text-white' :
+                                                            app.srcName.toLowerCase() === 'glassdoor' ? 'bg-green-600 text-white' :
+                                                                'bg-gray-600 text-white'
+                                                    }`}>
+                                                    {app.srcName}
+                                                </span>
+                                            )}
+                                            {app.germanRequirement === 'required' && (
+                                                <span className="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[10px] font-medium">🇩🇪</span>
+                                            )}
+                                            {(app.germanRequirement === 'optional' || app.germanRequirement === 'nice_to_have') && (
+                                                <span className="px-1.5 py-0.5 bg-yellow-50 text-yellow-600 rounded text-[10px] font-medium">🇩🇪 opt</span>
+                                            )}
+                                            {app.yearsOfExperience && (
+                                                <span className="text-[10px] text-blue-600 font-semibold">{app.yearsOfExperience}+ yr</span>
+                                            )}
                                         </div>
                                     </div>
 
-                                    {/* Action buttons row */}
-                                    <div className="flex items-center flex-wrap gap-2 mt-2 pt-2 border-t border-gray-100">
+                                    {/* Action buttons — icon-only with tooltips */}
+                                    <div className="flex items-center gap-1 mt-2.5 pt-2.5 border-t border-gray-50">
                                         {(app.customResumeUrl || app.generatedResumeUrl) && (
                                             <button
                                                 onClick={async (e) => {
@@ -285,10 +270,10 @@ export default function ApplicationsClient({ initialData }) {
                                                         alert('Failed to download resume');
                                                     }
                                                 }}
-                                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
+                                                className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                                title="Download Resume"
                                             >
-                                                <DocumentArrowDownIcon className="h-3.5 w-3.5" />
-                                                Resume
+                                                <DocumentArrowDownIcon className="h-4 w-4" />
                                             </button>
                                         )}
                                         {(app.customCoverLetterUrl || app.generatedCoverLetterUrl) && (
@@ -314,10 +299,10 @@ export default function ApplicationsClient({ initialData }) {
                                                         alert('Failed to download cover letter');
                                                     }
                                                 }}
-                                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded transition-colors"
+                                                className="p-1.5 text-purple-500 hover:bg-purple-50 rounded-lg transition-colors"
+                                                title="Download Cover Letter"
                                             >
-                                                <DocumentArrowDownIcon className="h-3.5 w-3.5" />
-                                                Cover Letter
+                                                <DocumentArrowDownIcon className="h-4 w-4" />
                                             </button>
                                         )}
                                         {(app.applyLink || app.jobUrl || app.url) && (
@@ -326,46 +311,46 @@ export default function ApplicationsClient({ initialData }) {
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 onClick={(e) => e.stopPropagation()}
-                                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded transition-colors"
+                                                className="p-1.5 text-green-500 hover:bg-green-50 rounded-lg transition-colors"
+                                                title={app.applyLink ? 'Apply to Job' : 'View Job Posting'}
                                             >
-                                                <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" />
-                                                {app.applyLink ? 'Apply' : 'View Job'}
+                                                <ArrowTopRightOnSquareIcon className="h-4 w-4" />
                                             </a>
                                         )}
                                         <button
                                             onClick={(e) => handleRegenerateDocuments(e, app)}
-                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded transition-colors"
-                                            title="Regenerate resume and cover letter"
+                                            className={`p-1.5 rounded-lg transition-colors ${app.stage === 'Being Applied' ? 'text-gray-300 cursor-not-allowed' : 'text-indigo-500 hover:bg-indigo-50'}`}
+                                            title={app.stage === 'Being Applied' ? 'Documents are generating...' : 'Regenerate Documents'}
+                                            disabled={app.stage === 'Being Applied'}
                                         >
-                                            <ArrowPathIcon className="h-3.5 w-3.5" />
-                                            Regenerate
+                                            <ArrowPathIcon className={`h-4 w-4 ${app.stage === 'Being Applied' ? 'animate-spin' : ''}`} />
                                         </button>
                                         <button
                                             onClick={(e) => handleArchiveApplication(e, app)}
-                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 rounded transition-colors"
-                                            title={app.isArchived ? 'Unarchive application' : 'Archive application'}
+                                            className="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition-colors"
+                                            title={app.isArchived ? 'Unarchive' : 'Archive'}
                                         >
-                                            <ArchiveBoxIcon className="h-3.5 w-3.5" />
-                                            {app.isArchived ? 'Unarchive' : 'Archive'}
+                                            <ArchiveBoxIcon className="h-4 w-4" />
                                         </button>
+
+                                        <div className="flex-1" />
+
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleOpenReportModal(app);
                                             }}
-                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-500 bg-red-50 hover:bg-red-100 rounded transition-colors ml-auto"
-                                            title="Report this job"
+                                            className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors"
+                                            title="Report Job"
                                         >
-                                            <FlagIcon className="h-3.5 w-3.5" />
-                                            Report
+                                            <FlagIcon className="h-4 w-4" />
                                         </button>
                                         <button
                                             onClick={(e) => handleDeleteApplication(e, app)}
-                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 bg-gray-50 hover:bg-gray-200 rounded transition-colors"
-                                            title="Delete application and revert job to pending"
+                                            className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+                                            title="Delete Application"
                                         >
-                                            <TrashIcon className="h-3.5 w-3.5" />
-                                            Delete
+                                            <TrashIcon className="h-4 w-4" />
                                         </button>
                                     </div>
                                 </div>
