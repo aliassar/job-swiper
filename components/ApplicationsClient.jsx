@@ -319,11 +319,10 @@ export default function ApplicationsClient({ initialData }) {
                                         )}
                                         <button
                                             onClick={(e) => handleRegenerateDocuments(e, app)}
-                                            className={`p-1.5 rounded-lg transition-colors ${app.stage === 'Being Applied' ? 'text-gray-300 cursor-not-allowed' : 'text-indigo-500 hover:bg-indigo-50'}`}
-                                            title={app.stage === 'Being Applied' ? 'Documents are generating...' : 'Regenerate Documents'}
-                                            disabled={app.stage === 'Being Applied'}
+                                            className="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+                                            title="Regenerate Documents"
                                         >
-                                            <ArrowPathIcon className={`h-4 w-4 ${app.stage === 'Being Applied' ? 'animate-spin' : ''}`} />
+                                            <ArrowPathIcon className="h-4 w-4" />
                                         </button>
                                         <button
                                             onClick={(e) => handleArchiveApplication(e, app)}
