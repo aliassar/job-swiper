@@ -335,11 +335,12 @@ export default function ApplicationsClient({ initialData }) {
                                         )}
                                         <button
                                             onClick={(e) => handleRegenerateDocuments(e, app)}
-                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded transition-colors"
-                                            title="Regenerate resume and cover letter"
+                                            className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors ${app.stage === 'Being Applied' ? 'text-gray-400 bg-gray-100 cursor-not-allowed' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'}`}
+                                            title={app.stage === 'Being Applied' ? 'Documents are currently being generated' : 'Regenerate resume and cover letter'}
+                                            disabled={app.stage === 'Being Applied'}
                                         >
-                                            <ArrowPathIcon className="h-3.5 w-3.5" />
-                                            Regenerate
+                                            <ArrowPathIcon className={`h-3.5 w-3.5 ${app.stage === 'Being Applied' ? 'animate-spin' : ''}`} />
+                                            {app.stage === 'Being Applied' ? 'Generating...' : 'Regenerate'}
                                         </button>
                                         <button
                                             onClick={(e) => handleArchiveApplication(e, app)}
