@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApplicationsInfinite, useUpdateApplicationStage } from '@/lib/hooks/useSWR';
-import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon, TrashIcon, ArrowPathIcon, ArchiveBoxIcon } from '@heroicons/react/24/outline';
+import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon, TrashIcon, ArrowPathIcon, ArchiveBoxIcon, EllipsisHorizontalIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
 import OfflineBanner from '@/components/OfflineBanner';
@@ -26,6 +26,7 @@ export default function ApplicationsClient({ initialData }) {
     const loadMoreRef = useRef(null);
     const [reportModalOpen, setReportModalOpen] = useState(false);
     const [jobToReport, setJobToReport] = useState(null);
+    const [openMenuId, setOpenMenuId] = useState(null);
 
     // Use SWR infinite for scroll-based pagination
     const { applications, isLoading, isLoadingMore, isOffline, hasMore, loadMore, mutate } = useApplicationsInfinite(searchQuery);
@@ -185,7 +186,6 @@ export default function ApplicationsClient({ initialData }) {
                                             </h3>
                                             <p className="text-xs text-gray-500 truncate mt-0.5">
                                                 {app.company} • {app.location}
-                                                {app.salary && <span className="text-emerald-600 font-medium"> • {app.salary}</span>}
                                             </p>
                                         </div>
                                         <select
@@ -245,8 +245,8 @@ export default function ApplicationsClient({ initialData }) {
                                         </div>
                                     </div>
 
-                                    {/* Action buttons — icon-only with tooltips */}
-                                    <div className="flex items-center gap-1 mt-2.5 pt-2.5 border-t border-gray-50">
+                                    {/* Action buttons — primary actions */}
+                                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
                                         {(app.customResumeUrl || app.generatedResumeUrl) && (
                                             <button
                                                 onClick={async (e) => {
@@ -270,10 +270,11 @@ export default function ApplicationsClient({ initialData }) {
                                                         alert('Failed to download resume');
                                                     }
                                                 }}
-                                                className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                                                 title="Download Resume"
                                             >
                                                 <DocumentArrowDownIcon className="h-4 w-4" />
+                                                Resume
                                             </button>
                                         )}
                                         {(app.customCoverLetterUrl || app.generatedCoverLetterUrl) && (
@@ -299,10 +300,11 @@ export default function ApplicationsClient({ initialData }) {
                                                         alert('Failed to download cover letter');
                                                     }
                                                 }}
-                                                className="p-1.5 text-purple-500 hover:bg-purple-50 rounded-lg transition-colors"
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
                                                 title="Download Cover Letter"
                                             >
                                                 <DocumentArrowDownIcon className="h-4 w-4" />
+                                                Cover Letter
                                             </button>
                                         )}
                                         {(app.applyLink || app.jobUrl || app.url) && (
@@ -311,46 +313,86 @@ export default function ApplicationsClient({ initialData }) {
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 onClick={(e) => e.stopPropagation()}
-                                                className="p-1.5 text-green-500 hover:bg-green-50 rounded-lg transition-colors"
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
                                                 title={app.applyLink ? 'Apply to Job' : 'View Job Posting'}
                                             >
                                                 <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                                                Open
                                             </a>
                                         )}
-                                        <button
-                                            onClick={(e) => handleRegenerateDocuments(e, app)}
-                                            className="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
-                                            title="Regenerate Documents"
-                                        >
-                                            <ArrowPathIcon className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            onClick={(e) => handleArchiveApplication(e, app)}
-                                            className="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition-colors"
-                                            title={app.isArchived ? 'Unarchive' : 'Archive'}
-                                        >
-                                            <ArchiveBoxIcon className="h-4 w-4" />
-                                        </button>
 
                                         <div className="flex-1" />
 
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleOpenReportModal(app);
-                                            }}
-                                            className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors"
-                                            title="Report Job"
-                                        >
-                                            <FlagIcon className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            onClick={(e) => handleDeleteApplication(e, app)}
-                                            className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
-                                            title="Delete Application"
-                                        >
-                                            <TrashIcon className="h-4 w-4" />
-                                        </button>
+                                        {/* Overflow menu toggle */}
+                                        <div className="relative">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setOpenMenuId(openMenuId === app.id ? null : app.id);
+                                                }}
+                                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                                title="More actions"
+                                            >
+                                                <EllipsisHorizontalIcon className="h-5 w-5" />
+                                            </button>
+
+                                            {openMenuId === app.id && (
+                                                <>
+                                                    {/* Backdrop to close menu */}
+                                                    <div
+                                                        className="fixed inset-0 z-10"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setOpenMenuId(null);
+                                                        }}
+                                                    />
+                                                    <div className="absolute right-0 bottom-full mb-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-20">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                handleRegenerateDocuments(e, app);
+                                                                setOpenMenuId(null);
+                                                            }}
+                                                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                                        >
+                                                            <ArrowPathIcon className="h-4 w-4 text-indigo-500" />
+                                                            Regenerate Docs
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                handleArchiveApplication(e, app);
+                                                                setOpenMenuId(null);
+                                                            }}
+                                                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                                        >
+                                                            <ArchiveBoxIcon className="h-4 w-4 text-amber-500" />
+                                                            {app.isArchived ? 'Unarchive' : 'Archive'}
+                                                        </button>
+                                                        <div className="my-1 border-t border-gray-100" />
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleOpenReportModal(app);
+                                                                setOpenMenuId(null);
+                                                            }}
+                                                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                                                        >
+                                                            <FlagIcon className="h-4 w-4" />
+                                                            Report Job
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                handleDeleteApplication(e, app);
+                                                                setOpenMenuId(null);
+                                                            }}
+                                                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                                                        >
+                                                            <TrashIcon className="h-4 w-4" />
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             );
