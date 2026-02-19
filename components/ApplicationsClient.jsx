@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApplicationsInfinite, useUpdateApplicationStage } from '@/lib/hooks/useSWR';
-import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon, TrashIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon, TrashIcon, ArrowPathIcon, ArchiveBoxIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
 import OfflineBanner from '@/components/OfflineBanner';
@@ -100,6 +100,17 @@ export default function ApplicationsClient({ initialData }) {
             alert('Failed to trigger document regeneration');
         }
     }, []);
+
+    const handleArchiveApplication = useCallback(async (e, app) => {
+        e.stopPropagation();
+        try {
+            await applicationsApi.archiveApplication(app.id);
+            mutate();
+        } catch (err) {
+            console.error('Error archiving application:', err);
+            alert('Failed to archive application');
+        }
+    }, [mutate]);
 
     const getStageColor = (stage) => {
         const colors = {
@@ -329,6 +340,14 @@ export default function ApplicationsClient({ initialData }) {
                                         >
                                             <ArrowPathIcon className="h-3.5 w-3.5" />
                                             Regenerate
+                                        </button>
+                                        <button
+                                            onClick={(e) => handleArchiveApplication(e, app)}
+                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 rounded transition-colors"
+                                            title={app.isArchived ? 'Unarchive application' : 'Archive application'}
+                                        >
+                                            <ArchiveBoxIcon className="h-3.5 w-3.5" />
+                                            {app.isArchived ? 'Unarchive' : 'Archive'}
                                         </button>
                                         <button
                                             onClick={(e) => {

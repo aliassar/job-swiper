@@ -47,6 +47,12 @@ export default function HamburgerMenu() {
       description: 'Track your job applications',
     },
     {
+      name: 'Archived',
+      href: '/archived',
+      icon: ArrowPathIcon,
+      description: 'View archived applications',
+    },
+    {
       name: 'Skipped Jobs',
       href: '/skipped',
       icon: ArrowPathIcon,
