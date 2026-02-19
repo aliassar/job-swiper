@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApplicationsInfinite, useUpdateApplicationStage } from '@/lib/hooks/useSWR';
-import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon, TrashIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
 import OfflineBanner from '@/components/OfflineBanner';
@@ -88,6 +88,18 @@ export default function ApplicationsClient({ initialData }) {
             alert('Failed to delete application');
         }
     }, [mutate]);
+
+    const handleRegenerateDocuments = useCallback(async (e, app) => {
+        e.stopPropagation();
+        if (!confirm(`Regenerate resume and cover letter for ${app.position} at ${app.company}?`)) return;
+        try {
+            await applicationsApi.regenerateDocuments(app.id);
+            alert('Document regeneration triggered! It may take a minute to complete.');
+        } catch (err) {
+            console.error('Error regenerating documents:', err);
+            alert('Failed to trigger document regeneration');
+        }
+    }, []);
 
     const getStageColor = (stage) => {
         const colors = {
@@ -310,6 +322,14 @@ export default function ApplicationsClient({ initialData }) {
                                                 {app.applyLink ? 'Apply' : 'View Job'}
                                             </a>
                                         )}
+                                        <button
+                                            onClick={(e) => handleRegenerateDocuments(e, app)}
+                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded transition-colors"
+                                            title="Regenerate resume and cover letter"
+                                        >
+                                            <ArrowPathIcon className="h-3.5 w-3.5" />
+                                            Regenerate
+                                        </button>
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
