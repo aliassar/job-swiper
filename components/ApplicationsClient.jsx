@@ -41,11 +41,11 @@ export default function ApplicationsClient({ initialData }) {
     const handleMarkApplied = useCallback(async (e, app) => {
         e.stopPropagation();
         try {
-            await updateStage(app.id, 'Applied');
+            await updateStage(app.id, 'Applied', mutate);
         } catch (err) {
             console.error('Error marking as applied:', err);
         }
-    }, [updateStage]);
+    }, [updateStage, mutate]);
 
     // Intersection observer for infinite scroll
     useEffect(() => {
@@ -411,9 +411,9 @@ export default function ApplicationsClient({ initialData }) {
                                     {app.stage === 'Being Applied' && (
                                         <button
                                             onClick={(e) => handleMarkApplied(e, app)}
-                                            className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 rounded-xl shadow-sm hover:shadow-md active:scale-[0.98] transition-all duration-150"
+                                            className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors"
                                         >
-                                            <CheckIcon className="h-4.5 w-4.5" />
+                                            <CheckIcon className="h-3.5 w-3.5" />
                                             Mark as Applied
                                         </button>
                                     )}
