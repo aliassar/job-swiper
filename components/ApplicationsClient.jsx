@@ -3,12 +3,14 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApplicationsInfinite, useUpdateApplicationStage } from '@/lib/hooks/useSWR';
-import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon, TrashIcon, ArrowPathIcon, ArchiveBoxIcon, EllipsisHorizontalIcon } from '@heroicons/react/24/outline';
+import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon, TrashIcon, ArrowPathIcon, ArchiveBoxIcon, EllipsisHorizontalIcon, CheckIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
 import OfflineBanner from '@/components/OfflineBanner';
 import ReportModal from '@/components/ReportModal';
 import { reportedApi, applicationsApi } from '@/lib/api';
+
+
 
 const APPLICATION_STAGES = [
     'Being Applied',
@@ -28,12 +30,22 @@ export default function ApplicationsClient({ initialData }) {
     const [jobToReport, setJobToReport] = useState(null);
     const [openMenuId, setOpenMenuId] = useState(null);
 
+
     // Use SWR infinite for scroll-based pagination
     const { applications, isLoading, isLoadingMore, isOffline, hasMore, loadMore, mutate } = useApplicationsInfinite(searchQuery);
 
     const handleSearch = useCallback((query) => {
         setSearchQuery(query);
     }, []);
+
+    const handleMarkApplied = useCallback(async (e, app) => {
+        e.stopPropagation();
+        try {
+            await updateStage(app.id, 'Applied');
+        } catch (err) {
+            console.error('Error marking as applied:', err);
+        }
+    }, [updateStage]);
 
     // Intersection observer for infinite scroll
     useEffect(() => {
@@ -317,7 +329,7 @@ export default function ApplicationsClient({ initialData }) {
                                                 title={app.applyLink ? 'Apply to Job' : 'View Job Posting'}
                                             >
                                                 <ArrowTopRightOnSquareIcon className="h-4 w-4" />
-                                                Open
+                                                Apply
                                             </a>
                                         )}
 
@@ -394,6 +406,17 @@ export default function ApplicationsClient({ initialData }) {
                                             )}
                                         </div>
                                     </div>
+
+                                    {/* Quick mark-as-applied button */}
+                                    {app.stage === 'Being Applied' && (
+                                        <button
+                                            onClick={(e) => handleMarkApplied(e, app)}
+                                            className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 rounded-xl shadow-sm hover:shadow-md active:scale-[0.98] transition-all duration-150"
+                                        >
+                                            <CheckIcon className="h-4.5 w-4.5" />
+                                            Mark as Applied
+                                        </button>
+                                    )}
                                 </div>
                             );
                         })}
