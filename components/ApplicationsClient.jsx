@@ -217,6 +217,16 @@ export default function ApplicationsClient({ initialData }) {
                                                 </option>
                                             ))}
                                         </select>
+                                        {app.stage === 'Being Applied' && (
+                                            <button
+                                                onClick={(e) => handleMarkApplied(e, app)}
+                                                className="flex-shrink-0 inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors"
+                                                title="Mark as Applied"
+                                            >
+                                                <CheckIcon className="h-3 w-3" />
+                                                Applied
+                                            </button>
+                                        )}
                                     </div>
 
                                     {app.pendingSync && (
@@ -407,16 +417,7 @@ export default function ApplicationsClient({ initialData }) {
                                         </div>
                                     </div>
 
-                                    {/* Quick mark-as-applied button */}
-                                    {app.stage === 'Being Applied' && (
-                                        <button
-                                            onClick={(e) => handleMarkApplied(e, app)}
-                                            className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors"
-                                        >
-                                            <CheckIcon className="h-3.5 w-3.5" />
-                                            Mark as Applied
-                                        </button>
-                                    )}
+
                                 </div>
                             );
                         })}
