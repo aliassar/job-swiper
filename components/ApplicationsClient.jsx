@@ -217,7 +217,7 @@ export default function ApplicationsClient({ initialData }) {
                                                 </option>
                                             ))}
                                         </select>
-                                        {app.stage === 'Being Applied' && (
+                                        {app.stage !== 'Applied' && (
                                             <button
                                                 onClick={(e) => handleMarkApplied(e, app)}
                                                 className="flex-shrink-0 inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors"
