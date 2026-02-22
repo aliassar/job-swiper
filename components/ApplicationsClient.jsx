@@ -193,10 +193,10 @@ export default function ApplicationsClient({ initialData }) {
                                             className="w-11 h-11 rounded-xl flex-shrink-0 mt-0.5"
                                         />
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="text-sm font-semibold text-gray-900 truncate leading-tight">
+                                            <h3 className="text-sm font-semibold text-gray-900 leading-tight">
                                                 {app.position}
                                             </h3>
-                                            <p className="text-xs text-gray-500 truncate mt-0.5">
+                                            <p className="text-xs text-gray-500 mt-0.5">
                                                 {app.company} • {app.location}
                                             </p>
                                         </div>
