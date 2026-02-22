@@ -83,18 +83,19 @@ export default function ApplicationsClient({ initialData }) {
     const beingAppliedApps = applications
         .filter(app => app.stage === 'Being Applied')
         .sort((a, b) => {
-            const dateA = a.postedDate ? new Date(a.postedDate).getTime() : 0;
-            const dateB = b.postedDate ? new Date(b.postedDate).getTime() : 0;
-            return dateB - dateA; // newest posted first
+            const dateA = new Date(a.createdAt || a.lastUpdated).getTime();
+            const dateB = new Date(b.createdAt || b.lastUpdated).getTime();
+            return dateB - dateA; // newest created first
         });
 
     const otherApps = applications
         .filter(app => app.stage !== 'Being Applied')
         .sort((a, b) => {
-            const dateA = new Date(a.createdAt || a.appliedAt || a.lastUpdated).getTime();
-            const dateB = new Date(b.createdAt || b.appliedAt || b.lastUpdated).getTime();
+            const dateA = new Date(a.appliedAt || a.createdAt || a.lastUpdated).getTime();
+            const dateB = new Date(b.appliedAt || b.createdAt || b.lastUpdated).getTime();
             return dateB - dateA; // newest applied first
         });
+
 
     const displayedApps = activeTab === 'being-applied' ? beingAppliedApps : otherApps;
     const hasResults = displayedApps.length > 0;
