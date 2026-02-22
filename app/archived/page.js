@@ -24,6 +24,14 @@ export default function ArchivedPage() {
 
     const archivedApps = archivedData?.items || [];
     const savedApps = savedData?.items || [];
+
+    // Fetch server-side counts for tab badges
+    const { data: counts, mutate: mutateCounts } = useSWR(
+        'application-counts',
+        () => applicationsApi.getApplicationCounts(),
+        { revalidateOnFocus: false }
+    );
+
     const isLoading = activeTab === 'saved-for-later' ? savedLoading : archivedLoading;
     const displayedApps = activeTab === 'saved-for-later' ? savedApps : archivedApps;
 
@@ -36,6 +44,7 @@ export default function ArchivedPage() {
         try {
             await applicationsApi.archiveApplication(app.id);
             mutateArchived();
+            mutateCounts();
         } catch (err) {
             console.error('Error unarchiving application:', err);
             alert('Failed to unarchive application');
@@ -47,6 +56,7 @@ export default function ArchivedPage() {
         try {
             await applicationsApi.saveForLater(app.id);
             mutateSaved();
+            mutateCounts();
         } catch (err) {
             console.error('Error restoring application:', err);
             alert('Failed to restore application');
@@ -89,33 +99,33 @@ export default function ArchivedPage() {
                     <button
                         onClick={() => setActiveTab('saved-for-later')}
                         className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'saved-for-later'
-                                ? 'bg-white text-blue-700 shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700'
+                            ? 'bg-white text-blue-700 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
                             }`}
                     >
                         <BookmarkIcon className="h-4 w-4" />
                         Saved
                         <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'saved-for-later'
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-gray-200 text-gray-500'
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-gray-200 text-gray-500'
                             }`}>
-                            {savedApps.length}
+                            {counts?.savedForLater ?? savedApps.length}
                         </span>
                     </button>
                     <button
                         onClick={() => setActiveTab('archived')}
                         className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'archived'
-                                ? 'bg-white text-amber-700 shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700'
+                            ? 'bg-white text-amber-700 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
                             }`}
                     >
                         <ArchiveBoxIcon className="h-4 w-4" />
                         Archived
                         <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'archived'
-                                ? 'bg-amber-100 text-amber-700'
-                                : 'bg-gray-200 text-gray-500'
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-gray-200 text-gray-500'
                             }`}>
-                            {archivedApps.length}
+                            {counts?.archived ?? archivedApps.length}
                         </span>
                     </button>
                 </div>

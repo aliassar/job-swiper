@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApplicationsInfinite, useUpdateApplicationStage } from '@/lib/hooks/useSWR';
+import useSWR from 'swr';
 import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon, TrashIcon, ArrowPathIcon, ArchiveBoxIcon, EllipsisHorizontalIcon, CheckIcon, BookmarkIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
@@ -35,6 +36,13 @@ export default function ApplicationsClient({ initialData }) {
     // Use SWR infinite for scroll-based pagination
     const { applications, isLoading, isLoadingMore, isOffline, hasMore, loadMore, mutate } = useApplicationsInfinite(searchQuery);
 
+    // Fetch server-side counts for tab badges
+    const { data: counts, mutate: mutateCounts } = useSWR(
+        'application-counts',
+        () => applicationsApi.getApplicationCounts(),
+        { revalidateOnFocus: false }
+    );
+
     const handleSearch = useCallback((query) => {
         setSearchQuery(query);
     }, []);
@@ -43,6 +51,7 @@ export default function ApplicationsClient({ initialData }) {
         e.stopPropagation();
         try {
             await updateStage(app.id, 'Applied', mutate);
+            mutateCounts();
         } catch (err) {
             console.error('Error marking as applied:', err);
         }
@@ -116,6 +125,7 @@ export default function ApplicationsClient({ initialData }) {
         try {
             await applicationsApi.deleteApplication(app.id);
             mutate();
+            mutateCounts();
         } catch (err) {
             console.error('Error deleting application:', err);
             alert('Failed to delete application');
@@ -139,6 +149,7 @@ export default function ApplicationsClient({ initialData }) {
         try {
             await applicationsApi.archiveApplication(app.id);
             mutate();
+            mutateCounts();
         } catch (err) {
             console.error('Error archiving application:', err);
             alert('Failed to archive application');
@@ -150,6 +161,7 @@ export default function ApplicationsClient({ initialData }) {
         try {
             await applicationsApi.saveForLater(app.id);
             mutate();
+            mutateCounts();
         } catch (err) {
             console.error('Error saving application for later:', err);
             alert('Failed to save application for later');
@@ -201,7 +213,7 @@ export default function ApplicationsClient({ initialData }) {
                             ? 'bg-amber-100 text-amber-700'
                             : 'bg-gray-200 text-gray-500'
                             }`}>
-                            {beingAppliedApps.length}
+                            {counts?.beingApplied ?? beingAppliedApps.length}
                         </span>
                     </button>
                     <button
@@ -216,7 +228,7 @@ export default function ApplicationsClient({ initialData }) {
                             ? 'bg-blue-100 text-blue-700'
                             : 'bg-gray-200 text-gray-500'
                             }`}>
-                            {otherApps.length}
+                            {counts?.other ?? otherApps.length}
                         </span>
                     </button>
                 </div>
