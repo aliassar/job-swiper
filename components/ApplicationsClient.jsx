@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApplicationsInfinite, useUpdateApplicationStage } from '@/lib/hooks/useSWR';
-import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon, TrashIcon, ArrowPathIcon, ArchiveBoxIcon, EllipsisHorizontalIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon, TrashIcon, ArrowPathIcon, ArchiveBoxIcon, EllipsisHorizontalIcon, CheckIcon, BookmarkIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
 import OfflineBanner from '@/components/OfflineBanner';
@@ -29,6 +29,7 @@ export default function ApplicationsClient({ initialData }) {
     const [reportModalOpen, setReportModalOpen] = useState(false);
     const [jobToReport, setJobToReport] = useState(null);
     const [openMenuId, setOpenMenuId] = useState(null);
+    const [activeTab, setActiveTab] = useState('being-applied');
 
 
     // Use SWR infinite for scroll-based pagination
@@ -68,7 +69,26 @@ export default function ApplicationsClient({ initialData }) {
     // Only show loading when searching
     const showLoading = isLoading && searchQuery !== '';
     const hasApplications = applications.length > 0;
-    const hasResults = applications.length > 0;
+
+    // Split applications into two tabs
+    const beingAppliedApps = applications
+        .filter(app => app.stage === 'Being Applied')
+        .sort((a, b) => {
+            const dateA = a.postedDate ? new Date(a.postedDate).getTime() : 0;
+            const dateB = b.postedDate ? new Date(b.postedDate).getTime() : 0;
+            return dateB - dateA; // newest posted first
+        });
+
+    const otherApps = applications
+        .filter(app => app.stage !== 'Being Applied')
+        .sort((a, b) => {
+            const dateA = new Date(a.createdAt || a.appliedAt || a.lastUpdated).getTime();
+            const dateB = new Date(b.createdAt || b.appliedAt || b.lastUpdated).getTime();
+            return dateB - dateA; // newest applied first
+        });
+
+    const displayedApps = activeTab === 'being-applied' ? beingAppliedApps : otherApps;
+    const hasResults = displayedApps.length > 0;
 
     const handleOpenReportModal = useCallback((app) => {
         setJobToReport({
@@ -125,6 +145,17 @@ export default function ApplicationsClient({ initialData }) {
         }
     }, [mutate]);
 
+    const handleSaveForLater = useCallback(async (e, app) => {
+        e.stopPropagation();
+        try {
+            await applicationsApi.saveForLater(app.id);
+            mutate();
+        } catch (err) {
+            console.error('Error saving application for later:', err);
+            alert('Failed to save application for later');
+        }
+    }, [mutate]);
+
     const getStageColor = (stage) => {
         const colors = {
             'Being Applied': 'bg-amber-100 text-amber-700',
@@ -156,6 +187,40 @@ export default function ApplicationsClient({ initialData }) {
                     />
                 </div>
 
+                {/* Tab bar */}
+                <div className="flex gap-1 mb-4 bg-gray-100 rounded-xl p-1">
+                    <button
+                        onClick={() => setActiveTab('being-applied')}
+                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'being-applied'
+                            ? 'bg-white text-amber-700 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        Being Applied
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'being-applied'
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-gray-200 text-gray-500'
+                            }`}>
+                            {beingAppliedApps.length}
+                        </span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('all')}
+                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'all'
+                            ? 'bg-white text-blue-700 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        All Applications
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'all'
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-gray-200 text-gray-500'
+                            }`}>
+                            {otherApps.length}
+                        </span>
+                    </button>
+                </div>
+
                 {isOffline && <OfflineBanner />}
 
                 {showLoading && (
@@ -177,7 +242,7 @@ export default function ApplicationsClient({ initialData }) {
 
                 {hasResults && (
                     <div className="space-y-3">
-                        {applications.map((app) => {
+                        {displayedApps.map((app) => {
                             const logoUrl = app.logoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(app.company)}&size=48&background=0D8ABC&color=fff&bold=true`;
 
                             return (
@@ -217,7 +282,7 @@ export default function ApplicationsClient({ initialData }) {
                                                 </option>
                                             ))}
                                         </select>
-                                        {app.stage !== 'Applied' && (
+                                        {app.stage === 'Being Applied' && (
                                             <button
                                                 onClick={(e) => handleMarkApplied(e, app)}
                                                 className="flex-shrink-0 inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors"
@@ -388,6 +453,16 @@ export default function ApplicationsClient({ initialData }) {
                                                         >
                                                             <ArchiveBoxIcon className="h-4 w-4 text-amber-500" />
                                                             {app.isArchived ? 'Unarchive' : 'Archive'}
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                handleSaveForLater(e, app);
+                                                                setOpenMenuId(null);
+                                                            }}
+                                                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                                        >
+                                                            <BookmarkIcon className="h-4 w-4 text-blue-500" />
+                                                            Save for Later
                                                         </button>
                                                         <div className="my-1 border-t border-gray-100" />
                                                         <button

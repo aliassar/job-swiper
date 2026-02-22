@@ -2,20 +2,30 @@
 
 import { useState, useCallback } from 'react';
 import { applicationsApi } from '@/lib/api';
-import { ArchiveBoxIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { ArchiveBoxIcon, ArrowPathIcon, BookmarkIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 import useSWR from 'swr';
 
 export default function ArchivedPage() {
     const [searchQuery, setSearchQuery] = useState('');
+    const [activeTab, setActiveTab] = useState('saved-for-later');
 
-    const { data, isLoading, mutate } = useSWR(
+    const { data: archivedData, isLoading: archivedLoading, mutate: mutateArchived } = useSWR(
         ['archived-applications', searchQuery],
         () => applicationsApi.getArchivedApplications(searchQuery),
         { revalidateOnFocus: false }
     );
 
-    const applications = data?.items || [];
+    const { data: savedData, isLoading: savedLoading, mutate: mutateSaved } = useSWR(
+        ['saved-for-later-applications', searchQuery],
+        () => applicationsApi.getSavedForLaterApplications(searchQuery),
+        { revalidateOnFocus: false }
+    );
+
+    const archivedApps = archivedData?.items || [];
+    const savedApps = savedData?.items || [];
+    const isLoading = activeTab === 'saved-for-later' ? savedLoading : archivedLoading;
+    const displayedApps = activeTab === 'saved-for-later' ? savedApps : archivedApps;
 
     const handleSearch = useCallback((query) => {
         setSearchQuery(query);
@@ -25,12 +35,23 @@ export default function ArchivedPage() {
         e.stopPropagation();
         try {
             await applicationsApi.archiveApplication(app.id);
-            mutate();
+            mutateArchived();
         } catch (err) {
             console.error('Error unarchiving application:', err);
             alert('Failed to unarchive application');
         }
-    }, [mutate]);
+    }, [mutateArchived]);
+
+    const handleRestoreSaved = useCallback(async (e, app) => {
+        e.stopPropagation();
+        try {
+            await applicationsApi.saveForLater(app.id);
+            mutateSaved();
+        } catch (err) {
+            console.error('Error restoring application:', err);
+            alert('Failed to restore application');
+        }
+    }, [mutateSaved]);
 
     const getStageColor = (stage) => {
         const colors = {
@@ -49,40 +70,80 @@ export default function ArchivedPage() {
             <div className="max-w-md mx-auto">
                 <div className="mb-6">
                     <h1 className="text-2xl font-bold text-gray-900 mb-1">
-                        Archived Applications
+                        Saved & Archived
                     </h1>
                     <p className="text-sm text-gray-600">
-                        Applications you&apos;ve archived
+                        Applications you&apos;ve saved for later or archived
                     </p>
                 </div>
 
                 <div className="mb-4">
                     <SearchInput
-                        placeholder="Search archived applications..."
+                        placeholder="Search applications..."
                         onSearch={handleSearch}
                     />
+                </div>
+
+                {/* Tab bar */}
+                <div className="flex gap-1 mb-4 bg-gray-100 rounded-xl p-1">
+                    <button
+                        onClick={() => setActiveTab('saved-for-later')}
+                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'saved-for-later'
+                                ? 'bg-white text-blue-700 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        <BookmarkIcon className="h-4 w-4" />
+                        Saved
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'saved-for-later'
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-gray-200 text-gray-500'
+                            }`}>
+                            {savedApps.length}
+                        </span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('archived')}
+                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'archived'
+                                ? 'bg-white text-amber-700 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        <ArchiveBoxIcon className="h-4 w-4" />
+                        Archived
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'archived'
+                                ? 'bg-amber-100 text-amber-700'
+                                : 'bg-gray-200 text-gray-500'
+                            }`}>
+                            {archivedApps.length}
+                        </span>
+                    </button>
                 </div>
 
                 {isLoading && (
                     <div className="flex flex-col items-center justify-center px-6 text-center mt-20">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-                        <p className="text-gray-600">Loading archived applications...</p>
+                        <p className="text-gray-600">Loading applications...</p>
                     </div>
                 )}
 
-                {!isLoading && applications.length === 0 && (
+                {!isLoading && displayedApps.length === 0 && (
                     <div className="flex flex-col items-center justify-center px-6 text-center mt-20">
-                        <div className="text-6xl mb-4">📦</div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">No archived applications</h2>
+                        <div className="text-6xl mb-4">{activeTab === 'saved-for-later' ? '🔖' : '📦'}</div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                            {activeTab === 'saved-for-later' ? 'No saved applications' : 'No archived applications'}
+                        </h2>
                         <p className="text-gray-600">
-                            Archive applications from the Application Status page to see them here.
+                            {activeTab === 'saved-for-later'
+                                ? 'Save applications for later from the Application Status page.'
+                                : 'Archive applications from the Application Status page to see them here.'}
                         </p>
                     </div>
                 )}
 
-                {applications.length > 0 && (
+                {displayedApps.length > 0 && (
                     <div className="space-y-3">
-                        {applications.map((app) => {
+                        {displayedApps.map((app) => {
                             const logoUrl = app.logoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(app.company)}&size=48&background=0D8ABC&color=fff&bold=true`;
 
                             return (
@@ -97,10 +158,10 @@ export default function ArchivedPage() {
                                             className="w-10 h-10 rounded-lg flex-shrink-0"
                                         />
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="text-sm font-semibold text-gray-900 truncate">
+                                            <h3 className="text-sm font-semibold text-gray-900 leading-tight">
                                                 {app.position}
                                             </h3>
-                                            <p className="text-xs text-gray-600 truncate">{app.company} • {app.location}</p>
+                                            <p className="text-xs text-gray-600 mt-0.5">{app.company} • {app.location}</p>
                                         </div>
                                         <span className={`px-2 py-1 rounded-md text-xs font-medium ${getStageColor(app.stage)}`}>
                                             {app.stage}
@@ -116,14 +177,25 @@ export default function ArchivedPage() {
                                     </div>
 
                                     <div className="flex items-center flex-wrap gap-2 mt-2 pt-2 border-t border-gray-100">
-                                        <button
-                                            onClick={(e) => handleUnarchive(e, app)}
-                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 rounded transition-colors"
-                                            title="Unarchive application"
-                                        >
-                                            <ArrowPathIcon className="h-3.5 w-3.5" />
-                                            Unarchive
-                                        </button>
+                                        {activeTab === 'saved-for-later' ? (
+                                            <button
+                                                onClick={(e) => handleRestoreSaved(e, app)}
+                                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
+                                                title="Restore to applications"
+                                            >
+                                                <ArrowPathIcon className="h-3.5 w-3.5" />
+                                                Restore
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={(e) => handleUnarchive(e, app)}
+                                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 rounded transition-colors"
+                                                title="Unarchive application"
+                                            >
+                                                <ArrowPathIcon className="h-3.5 w-3.5" />
+                                                Unarchive
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             );
