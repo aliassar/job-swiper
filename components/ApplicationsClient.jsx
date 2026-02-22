@@ -320,7 +320,7 @@ export default function ApplicationsClient({ initialData }) {
                                     {/* Meta row: dates + badges */}
                                     <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-50">
                                         <span className="text-[11px] text-gray-400">
-                                            {app.postedDate && `Posted ${new Date(app.postedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · `}Applied {new Date(app.createdAt || app.appliedAt || app.lastUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{app.lastUpdated && ` · Updated ${new Date(app.lastUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                                            {app.postedDate && `Posted ${new Date(app.postedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · `}{app.stage === 'Being Applied' ? `Added ${new Date(app.createdAt || app.lastUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : `Applied ${new Date(app.appliedAt || app.createdAt || app.lastUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}{app.lastUpdated && ` · Updated ${new Date(app.lastUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
                                         </span>
                                         <div className="flex items-center gap-1.5">
                                             {app.srcName && (
