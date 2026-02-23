@@ -71,6 +71,7 @@ export default function SwipeContainer() {
     swipe,
     rollback,
     unlock,
+    removeCompanyJobs,
   } = useSwipeStateMachine();
 
   const {
@@ -437,10 +438,14 @@ export default function SwipeContainer() {
       setLocalReportedJobIds(prev => new Set([...prev, jobToReport.id]));
       // Call the actual report API with blockCompany flag
       reportJob(jobToReport, reason, blockCompany);
+      // If blocking the company, immediately remove all their jobs from the queue
+      if (blockCompany && jobToReport.company) {
+        removeCompanyJobs(jobToReport.company);
+      }
       setReportModalOpen(false);
       setJobToReport(null);
     }
-  }, [jobToReport, reportJob]);
+  }, [jobToReport, reportJob, removeCompanyJobs]);
 
   /**
    * Toggle auto-apply mode

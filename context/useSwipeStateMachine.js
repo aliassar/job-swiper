@@ -138,6 +138,16 @@ export function useSwipeStateMachine() {
   }, [clearUnlockTimeout]);
 
   /**
+   * Remove all jobs from a blocked company from the queue
+   */
+  const removeCompanyJobs = useCallback((company) => {
+    dispatch({
+      type: SWIPE_ACTIONS.REMOVE_COMPANY_JOBS,
+      payload: { company },
+    });
+  }, []);
+
+  /**
    * Side effect: Queue API calls when history grows (new swipe)
    * This runs AFTER the UI state has updated
    * API calls do NOT block the UI
@@ -191,6 +201,7 @@ export function useSwipeStateMachine() {
     swipe,
     rollback,
     unlock,
+    removeCompanyJobs,
 
     // Pagination
     hasMore: state.hasMore,

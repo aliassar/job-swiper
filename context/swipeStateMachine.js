@@ -26,6 +26,7 @@ export const SWIPE_ACTIONS = {
   INITIALIZE_JOBS: 'INITIALIZE_JOBS',
   APPEND_JOBS: 'APPEND_JOBS', // For pagination - add more jobs
   SET_TOTAL_COUNT: 'SET_TOTAL_COUNT',
+  REMOVE_COMPANY_JOBS: 'REMOVE_COMPANY_JOBS', // Remove all jobs from a blocked company
 
   // Loading states
   SET_LOADING: 'SET_LOADING',
@@ -177,6 +178,22 @@ export function swipeReducer(state, action) {
       return {
         ...state,
         isLocked: false,
+      };
+    }
+
+    case SWIPE_ACTIONS.REMOVE_COMPANY_JOBS: {
+      const { company } = action.payload;
+      const companyLower = company.toLowerCase();
+      // Keep already-swiped jobs (before cursor) intact, filter out matching company after cursor
+      const before = state.jobs.slice(0, state.cursor);
+      const after = state.jobs.slice(state.cursor).filter(
+        j => j.company?.toLowerCase() !== companyLower
+      );
+      const removed = state.jobs.length - before.length - after.length;
+      return {
+        ...state,
+        jobs: [...before, ...after],
+        totalJobCount: Math.max(0, state.totalJobCount - removed),
       };
     }
 

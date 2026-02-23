@@ -477,7 +477,6 @@ export default function ApplicationsClient({ initialData }) {
                                                             <BookmarkIcon className="h-4 w-4 text-blue-500" />
                                                             Save for Later
                                                         </button>
-                                                        <div className="my-1 border-t border-gray-100" />
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
@@ -489,6 +488,7 @@ export default function ApplicationsClient({ initialData }) {
                                                             <FlagIcon className="h-4 w-4" />
                                                             Report Job
                                                         </button>
+                                                        <div className="my-1 border-t border-gray-100" />
                                                         <button
                                                             onClick={(e) => {
                                                                 handleDeleteApplication(e, app);
