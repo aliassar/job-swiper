@@ -90,16 +90,18 @@ export default function JobCard({ job, style, onSwipe, onReportClick, isReported
               </div>
               <div className="flex items-center gap-2">
                 <p className="text-blue-100 text-sm">{job.location}</p>
+                <span className="text-blue-200">·</span>
                 <button
                   onClick={handleReportClick}
-                  className="p-1 rounded-full hover:bg-white/20 transition-colors pointer-events-auto"
+                  className="flex items-center gap-1 text-xs text-white/80 hover:text-red-300 transition-colors pointer-events-auto"
                   aria-label={isReported ? "Job reported" : "Report job"}
                 >
                   {isReported ? (
-                    <FlagIconSolid className="h-3.5 w-3.5 text-red-400" />
+                    <FlagIconSolid className="h-4 w-4 text-red-400" />
                   ) : (
-                    <FlagIcon className="h-3.5 w-3.5 text-white/60 hover:text-white" />
+                    <FlagIcon className="h-4 w-4" />
                   )}
+                  <span>{isReported ? "Reported" : "Report"}</span>
                 </button>
               </div>
             </div>
