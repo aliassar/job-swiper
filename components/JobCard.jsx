@@ -73,25 +73,13 @@ export default function JobCard({ job, style, onSwipe, onReportClick, isReported
       <div className="bg-white rounded-2xl shadow-2xl overflow-hidden h-full flex flex-col">
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 relative overflow-hidden">
-          {/* Report button - top right of header */}
-          <button
-            onClick={handleReportClick}
-            className="absolute top-3 right-3 z-10 p-2 rounded-full bg-white/20 hover:bg-white/40 transition-colors pointer-events-auto"
-            aria-label={isReported ? "Job reported" : "Report job"}
-          >
-            {isReported ? (
-              <FlagIconSolid className="h-4 w-4 text-red-400" />
-            ) : (
-              <FlagIcon className="h-4 w-4 text-white/80" />
-            )}
-          </button>
           <div className="flex items-center space-x-4">
             <img
               src={logoUrl}
               alt={`${job.company} logo`}
               className="w-20 h-20 rounded-2xl shadow-lg bg-white"
             />
-            <div className="flex-1 pr-8">
+            <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <h2 className="text-2xl font-bold text-white">{job.company}</h2>
                 {source && (
@@ -100,7 +88,20 @@ export default function JobCard({ job, style, onSwipe, onReportClick, isReported
                   </span>
                 )}
               </div>
-              <p className="text-blue-100 text-sm">{job.location}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-blue-100 text-sm">{job.location}</p>
+                <button
+                  onClick={handleReportClick}
+                  className="p-1 rounded-full hover:bg-white/20 transition-colors pointer-events-auto"
+                  aria-label={isReported ? "Job reported" : "Report job"}
+                >
+                  {isReported ? (
+                    <FlagIconSolid className="h-3.5 w-3.5 text-red-400" />
+                  ) : (
+                    <FlagIcon className="h-3.5 w-3.5 text-white/60 hover:text-white" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
