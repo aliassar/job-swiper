@@ -33,8 +33,19 @@ export default function ApplicationsClient({ initialData }) {
     const [activeTab, setActiveTab] = useState('being-applied');
 
 
-    // Use SWR infinite for scroll-based pagination
-    const { applications, isLoading, isLoadingMore, isOffline, hasMore, loadMore, mutate } = useApplicationsInfinite(searchQuery);
+    // Use two separate SWR infinite hooks - one per tab, server-sorted
+    const {
+        applications: beingAppliedApps, isLoading: isLoadingBA, isLoadingMore: isLoadingMoreBA,
+        isOffline, hasMore: hasMoreBA, loadMore: loadMoreBA, mutate: mutateBA
+    } = useApplicationsInfinite(searchQuery, { stage: 'Being Applied', sort: 'postedDate' });
+
+    const {
+        applications: otherApps, isLoading: isLoadingOther, isLoadingMore: isLoadingMoreOther,
+        hasMore: hasMoreOther, loadMore: loadMoreOther, mutate: mutateOther
+    } = useApplicationsInfinite(searchQuery, { stage: '!Being Applied', sort: 'appliedAt' });
+
+    // Unified mutate helper that refreshes both tabs
+    const mutate = useCallback(() => { mutateBA(); mutateOther(); }, [mutateBA, mutateOther]);
 
     // Fetch server-side counts for tab badges
     const { data: counts, mutate: mutateCounts } = useSWR(
@@ -57,12 +68,20 @@ export default function ApplicationsClient({ initialData }) {
         }
     }, [updateStage, mutate]);
 
+    // Active tab state
+    const isBA = activeTab === 'being-applied';
+    const displayedApps = isBA ? beingAppliedApps : otherApps;
+    const hasMore = isBA ? hasMoreBA : hasMoreOther;
+    const isLoadingMore = isBA ? isLoadingMoreBA : isLoadingMoreOther;
+    const isLoading = isBA ? isLoadingBA : isLoadingOther;
+    const loadMoreActive = isBA ? loadMoreBA : loadMoreOther;
+
     // Intersection observer for infinite scroll
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
                 if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
-                    loadMore();
+                    loadMoreActive();
                 }
             },
             { threshold: 0.1 }
@@ -73,31 +92,11 @@ export default function ApplicationsClient({ initialData }) {
         }
 
         return () => observer.disconnect();
-    }, [hasMore, isLoadingMore, loadMore]);
+    }, [hasMore, isLoadingMore, loadMoreActive]);
 
     // Only show loading when searching
     const showLoading = isLoading && searchQuery !== '';
-    const hasApplications = applications.length > 0;
-
-    // Split applications into two tabs
-    const beingAppliedApps = applications
-        .filter(app => app.stage === 'Being Applied')
-        .sort((a, b) => {
-            const dateA = new Date(a.createdAt || a.lastUpdated).getTime();
-            const dateB = new Date(b.createdAt || b.lastUpdated).getTime();
-            return dateB - dateA; // newest created first
-        });
-
-    const otherApps = applications
-        .filter(app => app.stage !== 'Being Applied')
-        .sort((a, b) => {
-            const dateA = new Date(a.appliedAt || a.createdAt || a.lastUpdated).getTime();
-            const dateB = new Date(b.appliedAt || b.createdAt || b.lastUpdated).getTime();
-            return dateB - dateA; // newest applied first
-        });
-
-
-    const displayedApps = activeTab === 'being-applied' ? beingAppliedApps : otherApps;
+    const hasApplications = displayedApps.length > 0;
     const hasResults = displayedApps.length > 0;
 
     const handleOpenReportModal = useCallback((app) => {
