@@ -134,15 +134,14 @@ export default function ApplicationsClient({ initialData }) {
 
     const handleRegenerateDocuments = useCallback(async (e, app) => {
         e.stopPropagation();
-        if (!confirm(`Regenerate resume and cover letter for ${app.position} at ${app.company}?`)) return;
         try {
             await applicationsApi.regenerateDocuments(app.id);
-            alert('Document regeneration triggered! It may take a minute to complete.');
+            mutate();
         } catch (err) {
             console.error('Error regenerating documents:', err);
             alert('Failed to trigger document regeneration');
         }
-    }, []);
+    }, [mutate]);
 
     const handleArchiveApplication = useCallback(async (e, app) => {
         e.stopPropagation();
