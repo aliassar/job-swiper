@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApplicationsInfinite, useUpdateApplicationStage } from '@/lib/hooks/useSWR';
 import useSWR from 'swr';
-import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon, TrashIcon, ArrowPathIcon, ArchiveBoxIcon, EllipsisHorizontalIcon, CheckIcon, BookmarkIcon } from '@heroicons/react/24/outline';
+import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon, TrashIcon, ArrowPathIcon, ArchiveBoxIcon, EllipsisHorizontalIcon, CheckIcon, BookmarkIcon, Squares2X2Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
 import OfflineBanner from '@/components/OfflineBanner';
@@ -31,6 +31,9 @@ export default function ApplicationsClient({ initialData }) {
     const [jobToReport, setJobToReport] = useState(null);
     const [openMenuId, setOpenMenuId] = useState(null);
     const [activeTab, setActiveTab] = useState('being-applied');
+    const [selectMode, setSelectMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState(new Set());
+    const [bulkLoading, setBulkLoading] = useState(false);
 
 
     // Use two separate SWR infinite hooks - one per tab, server-sorted
@@ -167,6 +170,46 @@ export default function ApplicationsClient({ initialData }) {
         }
     }, [mutate]);
 
+    // --- Multi-select helpers ---
+    const exitSelectMode = useCallback(() => {
+        setSelectMode(false);
+        setSelectedIds(new Set());
+    }, []);
+
+    const toggleSelect = useCallback((id) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    }, []);
+
+    const toggleSelectAll = useCallback(() => {
+        if (selectedIds.size === displayedApps.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(displayedApps.map((a) => a.id)));
+        }
+    }, [selectedIds, displayedApps]);
+
+    const handleBulkAction = useCallback(async (actionFn, confirmMsg) => {
+        if (selectedIds.size === 0) return;
+        if (confirmMsg && !confirm(confirmMsg)) return;
+        setBulkLoading(true);
+        try {
+            await actionFn(Array.from(selectedIds));
+            mutate();
+            mutateCounts();
+        } catch (err) {
+            console.error('Bulk action failed:', err);
+            alert('Some operations may have failed. Please check the results.');
+        } finally {
+            setBulkLoading(false);
+            exitSelectMode();
+        }
+    }, [selectedIds, mutate, mutateCounts, exitSelectMode]);
+
     const getStageColor = (stage) => {
         const colors = {
             'Being Applied': 'bg-amber-100 text-amber-700',
@@ -183,12 +226,54 @@ export default function ApplicationsClient({ initialData }) {
         <div className="h-full overflow-y-auto p-4 pb-8">
             <div className="max-w-md mx-auto">
                 <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-1">
-                        Application Status
-                    </h1>
-                    <p className="text-sm text-gray-600">
-                        Track and update your job application progress
-                    </p>
+                    {selectMode ? (
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={toggleSelectAll}
+                                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selectedIds.size === displayedApps.length && displayedApps.length > 0
+                                            ? 'bg-blue-500 border-blue-500 text-white'
+                                            : 'border-gray-300 hover:border-blue-400'
+                                        }`}
+                                >
+                                    {selectedIds.size === displayedApps.length && displayedApps.length > 0 && (
+                                        <CheckIcon className="h-3.5 w-3.5" />
+                                    )}
+                                </button>
+                                <span className="text-sm font-medium text-gray-700">
+                                    {selectedIds.size} selected
+                                </span>
+                            </div>
+                            <button
+                                onClick={exitSelectMode}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                <XMarkIcon className="h-4 w-4" />
+                                Cancel
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h1 className="text-2xl font-bold text-gray-900 mb-1">
+                                    Application Status
+                                </h1>
+                                <p className="text-sm text-gray-600">
+                                    Track and update your job application progress
+                                </p>
+                            </div>
+                            {hasApplications && (
+                                <button
+                                    onClick={() => setSelectMode(true)}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                    title="Select multiple applications"
+                                >
+                                    <Squares2X2Icon className="h-4 w-4" />
+                                    Select
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className="mb-4">
@@ -259,10 +344,25 @@ export default function ApplicationsClient({ initialData }) {
                             return (
                                 <div
                                     key={app.id}
-                                    className="bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-all border border-gray-100"
+                                    className={`bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-all border ${selectMode && selectedIds.has(app.id)
+                                            ? 'border-blue-400 ring-1 ring-blue-200 bg-blue-50/30'
+                                            : 'border-gray-100'
+                                        }`}
+                                    onClick={selectMode ? () => toggleSelect(app.id) : undefined}
+                                    style={selectMode ? { cursor: 'pointer' } : undefined}
                                 >
                                     {/* Header: Logo + Info + Stage */}
                                     <div className="flex items-start gap-3">
+                                        {selectMode && (
+                                            <div
+                                                className={`flex-shrink-0 w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center transition-all ${selectedIds.has(app.id)
+                                                        ? 'bg-blue-500 border-blue-500 text-white'
+                                                        : 'border-gray-300'
+                                                    }`}
+                                            >
+                                                {selectedIds.has(app.id) && <CheckIcon className="h-3.5 w-3.5" />}
+                                            </div>
+                                        )}
                                         <img
                                             src={logoUrl}
                                             alt={`${app.company} logo`}
@@ -343,165 +443,167 @@ export default function ApplicationsClient({ initialData }) {
                                         </div>
                                     </div>
 
-                                    {/* Action buttons — primary actions */}
-                                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-                                        {(app.customResumeUrl || app.generatedResumeUrl) && (
-                                            <button
-                                                onClick={async (e) => {
-                                                    e.stopPropagation();
-                                                    try {
-                                                        const token = localStorage.getItem('auth_token');
-                                                        const response = await fetch(
-                                                            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/application-history/${app.id}/download/resume`,
-                                                            { headers: { Authorization: `Bearer ${token}` } }
-                                                        );
-                                                        if (!response.ok) throw new Error('Download failed');
-                                                        const blob = await response.blob();
-                                                        const url = window.URL.createObjectURL(blob);
-                                                        const a = document.createElement('a');
-                                                        a.href = url;
-                                                        a.download = `resume_${app.company.replace(/\s+/g, '_')}.pdf`;
-                                                        a.click();
-                                                        window.URL.revokeObjectURL(url);
-                                                    } catch (err) {
-                                                        console.error('Download error:', err);
-                                                        alert('Failed to download resume');
-                                                    }
-                                                }}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-                                                title="Download Resume"
-                                            >
-                                                <DocumentArrowDownIcon className="h-4 w-4" />
-                                                Resume
-                                            </button>
-                                        )}
-                                        {(app.customCoverLetterUrl || app.generatedCoverLetterUrl) && (
-                                            <button
-                                                onClick={async (e) => {
-                                                    e.stopPropagation();
-                                                    try {
-                                                        const token = localStorage.getItem('auth_token');
-                                                        const response = await fetch(
-                                                            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/application-history/${app.id}/download/cover-letter`,
-                                                            { headers: { Authorization: `Bearer ${token}` } }
-                                                        );
-                                                        if (!response.ok) throw new Error('Download failed');
-                                                        const blob = await response.blob();
-                                                        const url = window.URL.createObjectURL(blob);
-                                                        const a = document.createElement('a');
-                                                        a.href = url;
-                                                        a.download = `cover_letter_${app.company.replace(/\s+/g, '_')}.pdf`;
-                                                        a.click();
-                                                        window.URL.revokeObjectURL(url);
-                                                    } catch (err) {
-                                                        console.error('Download error:', err);
-                                                        alert('Failed to download cover letter');
-                                                    }
-                                                }}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
-                                                title="Download Cover Letter"
-                                            >
-                                                <DocumentArrowDownIcon className="h-4 w-4" />
-                                                Cover Letter
-                                            </button>
-                                        )}
-                                        {(app.applyLink || app.jobUrl || app.url) && (
-                                            <a
-                                                href={app.applyLink || app.jobUrl || app.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
-                                                title={app.applyLink ? 'Apply to Job' : 'View Job Posting'}
-                                            >
-                                                <ArrowTopRightOnSquareIcon className="h-4 w-4" />
-                                                Apply
-                                            </a>
-                                        )}
+                                    {/* Action buttons — hidden in select mode */}
+                                    {!selectMode && (
+                                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                                            {(app.customResumeUrl || app.generatedResumeUrl) && (
+                                                <button
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        try {
+                                                            const token = localStorage.getItem('auth_token');
+                                                            const response = await fetch(
+                                                                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/application-history/${app.id}/download/resume`,
+                                                                { headers: { Authorization: `Bearer ${token}` } }
+                                                            );
+                                                            if (!response.ok) throw new Error('Download failed');
+                                                            const blob = await response.blob();
+                                                            const url = window.URL.createObjectURL(blob);
+                                                            const a = document.createElement('a');
+                                                            a.href = url;
+                                                            a.download = `resume_${app.company.replace(/\s+/g, '_')}.pdf`;
+                                                            a.click();
+                                                            window.URL.revokeObjectURL(url);
+                                                        } catch (err) {
+                                                            console.error('Download error:', err);
+                                                            alert('Failed to download resume');
+                                                        }
+                                                    }}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                                                    title="Download Resume"
+                                                >
+                                                    <DocumentArrowDownIcon className="h-4 w-4" />
+                                                    Resume
+                                                </button>
+                                            )}
+                                            {(app.customCoverLetterUrl || app.generatedCoverLetterUrl) && (
+                                                <button
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        try {
+                                                            const token = localStorage.getItem('auth_token');
+                                                            const response = await fetch(
+                                                                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/application-history/${app.id}/download/cover-letter`,
+                                                                { headers: { Authorization: `Bearer ${token}` } }
+                                                            );
+                                                            if (!response.ok) throw new Error('Download failed');
+                                                            const blob = await response.blob();
+                                                            const url = window.URL.createObjectURL(blob);
+                                                            const a = document.createElement('a');
+                                                            a.href = url;
+                                                            a.download = `cover_letter_${app.company.replace(/\s+/g, '_')}.pdf`;
+                                                            a.click();
+                                                            window.URL.revokeObjectURL(url);
+                                                        } catch (err) {
+                                                            console.error('Download error:', err);
+                                                            alert('Failed to download cover letter');
+                                                        }
+                                                    }}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
+                                                    title="Download Cover Letter"
+                                                >
+                                                    <DocumentArrowDownIcon className="h-4 w-4" />
+                                                    Cover Letter
+                                                </button>
+                                            )}
+                                            {(app.applyLink || app.jobUrl || app.url) && (
+                                                <a
+                                                    href={app.applyLink || app.jobUrl || app.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                                                    title={app.applyLink ? 'Apply to Job' : 'View Job Posting'}
+                                                >
+                                                    <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                                                    Apply
+                                                </a>
+                                            )}
 
-                                        <div className="flex-1" />
+                                            <div className="flex-1" />
 
-                                        {/* Overflow menu toggle */}
-                                        <div className="relative">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setOpenMenuId(openMenuId === app.id ? null : app.id);
-                                                }}
-                                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                                                title="More actions"
-                                            >
-                                                <EllipsisHorizontalIcon className="h-5 w-5" />
-                                            </button>
+                                            {/* Overflow menu toggle */}
+                                            <div className="relative">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setOpenMenuId(openMenuId === app.id ? null : app.id);
+                                                    }}
+                                                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                                    title="More actions"
+                                                >
+                                                    <EllipsisHorizontalIcon className="h-5 w-5" />
+                                                </button>
 
-                                            {openMenuId === app.id && (
-                                                <>
-                                                    {/* Backdrop to close menu */}
-                                                    <div
-                                                        className="fixed inset-0 z-10"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setOpenMenuId(null);
-                                                        }}
-                                                    />
-                                                    <div className="absolute right-0 bottom-full mb-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-20">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                handleRegenerateDocuments(e, app);
-                                                                setOpenMenuId(null);
-                                                            }}
-                                                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                                                        >
-                                                            <ArrowPathIcon className="h-4 w-4 text-indigo-500" />
-                                                            Regenerate Docs
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                handleArchiveApplication(e, app);
-                                                                setOpenMenuId(null);
-                                                            }}
-                                                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                                                        >
-                                                            <ArchiveBoxIcon className="h-4 w-4 text-amber-500" />
-                                                            {app.isArchived ? 'Unarchive' : 'Archive'}
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                handleSaveForLater(e, app);
-                                                                setOpenMenuId(null);
-                                                            }}
-                                                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                                                        >
-                                                            <BookmarkIcon className="h-4 w-4 text-blue-500" />
-                                                            Save for Later
-                                                        </button>
-                                                        <button
+                                                {openMenuId === app.id && (
+                                                    <>
+                                                        {/* Backdrop to close menu */}
+                                                        <div
+                                                            className="fixed inset-0 z-10"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                handleOpenReportModal(app);
                                                                 setOpenMenuId(null);
                                                             }}
-                                                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
-                                                        >
-                                                            <FlagIcon className="h-4 w-4" />
-                                                            Report Job
-                                                        </button>
-                                                        <div className="my-1 border-t border-gray-100" />
-                                                        <button
-                                                            onClick={(e) => {
-                                                                handleDeleteApplication(e, app);
-                                                                setOpenMenuId(null);
-                                                            }}
-                                                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
-                                                        >
-                                                            <TrashIcon className="h-4 w-4" />
-                                                            Delete
-                                                        </button>
-                                                    </div>
-                                                </>
-                                            )}
+                                                        />
+                                                        <div className="absolute right-0 bottom-full mb-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-20">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    handleRegenerateDocuments(e, app);
+                                                                    setOpenMenuId(null);
+                                                                }}
+                                                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                                            >
+                                                                <ArrowPathIcon className="h-4 w-4 text-indigo-500" />
+                                                                Regenerate Docs
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    handleArchiveApplication(e, app);
+                                                                    setOpenMenuId(null);
+                                                                }}
+                                                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                                            >
+                                                                <ArchiveBoxIcon className="h-4 w-4 text-amber-500" />
+                                                                {app.isArchived ? 'Unarchive' : 'Archive'}
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    handleSaveForLater(e, app);
+                                                                    setOpenMenuId(null);
+                                                                }}
+                                                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                                            >
+                                                                <BookmarkIcon className="h-4 w-4 text-blue-500" />
+                                                                Save for Later
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleOpenReportModal(app);
+                                                                    setOpenMenuId(null);
+                                                                }}
+                                                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                                                            >
+                                                                <FlagIcon className="h-4 w-4" />
+                                                                Report Job
+                                                            </button>
+                                                            <div className="my-1 border-t border-gray-100" />
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    handleDeleteApplication(e, app);
+                                                                    setOpenMenuId(null);
+                                                                }}
+                                                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                                                            >
+                                                                <TrashIcon className="h-4 w-4" />
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
 
 
                                 </div>
@@ -517,6 +619,54 @@ export default function ApplicationsClient({ initialData }) {
                     )}
                 </div>
             </div>
+
+            {/* Floating bulk action bar */}
+            {selectMode && selectedIds.size > 0 && (
+                <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-30 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 px-4 py-3 flex items-center gap-2 max-w-md w-[calc(100%-2rem)]">
+                    {bulkLoading ? (
+                        <div className="flex items-center justify-center w-full gap-2 py-1">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                            <span className="text-sm text-gray-600">Processing...</span>
+                        </div>
+                    ) : (
+                        <>
+                            <span className="text-xs font-semibold text-gray-500 mr-1 flex-shrink-0">{selectedIds.size}</span>
+                            <button
+                                onClick={() => handleBulkAction(applicationsApi.bulkRegenerate)}
+                                className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                                title="Regenerate documents for selected"
+                            >
+                                <ArrowPathIcon className="h-3.5 w-3.5" />
+                                Regen
+                            </button>
+                            <button
+                                onClick={() => handleBulkAction(applicationsApi.bulkArchive)}
+                                className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 text-xs font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
+                                title="Archive selected"
+                            >
+                                <ArchiveBoxIcon className="h-3.5 w-3.5" />
+                                Archive
+                            </button>
+                            <button
+                                onClick={() => handleBulkAction(applicationsApi.bulkSaveForLater)}
+                                className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                                title="Save selected for later"
+                            >
+                                <BookmarkIcon className="h-3.5 w-3.5" />
+                                Save
+                            </button>
+                            <button
+                                onClick={() => handleBulkAction(applicationsApi.bulkDelete, `Delete ${selectedIds.size} application(s)? The jobs will be reverted to pending.`)}
+                                className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                title="Delete selected"
+                            >
+                                <TrashIcon className="h-3.5 w-3.5" />
+                                Delete
+                            </button>
+                        </>
+                    )}
+                </div>
+            )}
 
             <ReportModal
                 isOpen={reportModalOpen}
