@@ -457,15 +457,11 @@ export default function ApplicationsClient({ initialData }) {
                                                                 { headers: { Authorization: `Bearer ${token}` } }
                                                             );
                                                             if (!response.ok) throw new Error('Download failed');
-                                                            // Get filename from backend Content-Disposition header
-                                                            const disposition = response.headers.get('Content-Disposition');
-                                                            const match = disposition && disposition.match(/filename="?([^"]+)"?/);
-                                                            const filename = match ? match[1] : `resume_${app.company.replace(/\s+/g, '_')}.pdf`;
                                                             const blob = await response.blob();
                                                             const url = window.URL.createObjectURL(blob);
                                                             const a = document.createElement('a');
                                                             a.href = url;
-                                                            a.download = filename;
+                                                            a.download = `Ali Haji Amou Asar CV - ${app.company}.pdf`;
                                                             a.click();
                                                             window.URL.revokeObjectURL(url);
                                                         } catch (err) {
@@ -491,15 +487,11 @@ export default function ApplicationsClient({ initialData }) {
                                                                 { headers: { Authorization: `Bearer ${token}` } }
                                                             );
                                                             if (!response.ok) throw new Error('Download failed');
-                                                            // Get filename from backend Content-Disposition header
-                                                            const disposition = response.headers.get('Content-Disposition');
-                                                            const match = disposition && disposition.match(/filename="?([^"]+)"?/);
-                                                            const filename = match ? match[1] : `cover_letter_${app.company.replace(/\s+/g, '_')}.pdf`;
                                                             const blob = await response.blob();
                                                             const url = window.URL.createObjectURL(blob);
                                                             const a = document.createElement('a');
                                                             a.href = url;
-                                                            a.download = filename;
+                                                            a.download = `Ali Haji Amou Asar Cover Letter - ${app.company}.pdf`;
                                                             a.click();
                                                             window.URL.revokeObjectURL(url);
                                                         } catch (err) {
