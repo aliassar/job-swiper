@@ -457,10 +457,10 @@ export default function ApplicationsClient({ initialData }) {
                                                                 { headers: { Authorization: `Bearer ${token}` } }
                                                             );
                                                             if (!response.ok) throw new Error('Download failed');
-                                                            // Extract original filename from Content-Disposition header
-                                                            const disposition = response.headers.get('Content-Disposition');
-                                                            const filenameMatch = disposition && disposition.match(/filename="?([^"]+)"?/);
-                                                            const filename = filenameMatch ? filenameMatch[1] : `resume_${app.company.replace(/\s+/g, '_')}.pdf`;
+                                                            // Use original filename from the stored URL
+                                                            const resumeUrl = app.customResumeUrl || app.generatedResumeUrl || '';
+                                                            const originalName = decodeURIComponent(resumeUrl.split('/').pop() || '');
+                                                            const filename = originalName && originalName.includes('.') ? originalName : `resume_${app.company.replace(/\s+/g, '_')}.pdf`;
                                                             const blob = await response.blob();
                                                             const url = window.URL.createObjectURL(blob);
                                                             const a = document.createElement('a');
@@ -491,10 +491,10 @@ export default function ApplicationsClient({ initialData }) {
                                                                 { headers: { Authorization: `Bearer ${token}` } }
                                                             );
                                                             if (!response.ok) throw new Error('Download failed');
-                                                            // Extract original filename from Content-Disposition header
-                                                            const disposition = response.headers.get('Content-Disposition');
-                                                            const filenameMatch = disposition && disposition.match(/filename="?([^"]+)"?/);
-                                                            const filename = filenameMatch ? filenameMatch[1] : `cover_letter_${app.company.replace(/\s+/g, '_')}.pdf`;
+                                                            // Use original filename from the stored URL
+                                                            const clUrl = app.customCoverLetterUrl || app.generatedCoverLetterUrl || '';
+                                                            const originalName = decodeURIComponent(clUrl.split('/').pop() || '');
+                                                            const filename = originalName && originalName.includes('.') ? originalName : `cover_letter_${app.company.replace(/\s+/g, '_')}.pdf`;
                                                             const blob = await response.blob();
                                                             const url = window.URL.createObjectURL(blob);
                                                             const a = document.createElement('a');
