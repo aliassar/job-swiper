@@ -232,8 +232,8 @@ export default function ApplicationsClient({ initialData }) {
                                 <button
                                     onClick={toggleSelectAll}
                                     className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selectedIds.size === displayedApps.length && displayedApps.length > 0
-                                            ? 'bg-blue-500 border-blue-500 text-white'
-                                            : 'border-gray-300 hover:border-blue-400'
+                                        ? 'bg-blue-500 border-blue-500 text-white'
+                                        : 'border-gray-300 hover:border-blue-400'
                                         }`}
                                 >
                                     {selectedIds.size === displayedApps.length && displayedApps.length > 0 && (
@@ -345,8 +345,8 @@ export default function ApplicationsClient({ initialData }) {
                                 <div
                                     key={app.id}
                                     className={`bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-all border ${selectMode && selectedIds.has(app.id)
-                                            ? 'border-blue-400 ring-1 ring-blue-200 bg-blue-50/30'
-                                            : 'border-gray-100'
+                                        ? 'border-blue-400 ring-1 ring-blue-200 bg-blue-50/30'
+                                        : 'border-gray-100'
                                         }`}
                                     onClick={selectMode ? () => toggleSelect(app.id) : undefined}
                                     style={selectMode ? { cursor: 'pointer' } : undefined}
@@ -356,8 +356,8 @@ export default function ApplicationsClient({ initialData }) {
                                         {selectMode && (
                                             <div
                                                 className={`flex-shrink-0 w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center transition-all ${selectedIds.has(app.id)
-                                                        ? 'bg-blue-500 border-blue-500 text-white'
-                                                        : 'border-gray-300'
+                                                    ? 'bg-blue-500 border-blue-500 text-white'
+                                                    : 'border-gray-300'
                                                     }`}
                                             >
                                                 {selectedIds.has(app.id) && <CheckIcon className="h-3.5 w-3.5" />}
@@ -457,11 +457,15 @@ export default function ApplicationsClient({ initialData }) {
                                                                 { headers: { Authorization: `Bearer ${token}` } }
                                                             );
                                                             if (!response.ok) throw new Error('Download failed');
+                                                            // Extract original filename from Content-Disposition header
+                                                            const disposition = response.headers.get('Content-Disposition');
+                                                            const filenameMatch = disposition && disposition.match(/filename="?([^"]+)"?/);
+                                                            const filename = filenameMatch ? filenameMatch[1] : `resume_${app.company.replace(/\s+/g, '_')}.pdf`;
                                                             const blob = await response.blob();
                                                             const url = window.URL.createObjectURL(blob);
                                                             const a = document.createElement('a');
                                                             a.href = url;
-                                                            a.download = `resume_${app.company.replace(/\s+/g, '_')}.pdf`;
+                                                            a.download = filename;
                                                             a.click();
                                                             window.URL.revokeObjectURL(url);
                                                         } catch (err) {
@@ -487,11 +491,15 @@ export default function ApplicationsClient({ initialData }) {
                                                                 { headers: { Authorization: `Bearer ${token}` } }
                                                             );
                                                             if (!response.ok) throw new Error('Download failed');
+                                                            // Extract original filename from Content-Disposition header
+                                                            const disposition = response.headers.get('Content-Disposition');
+                                                            const filenameMatch = disposition && disposition.match(/filename="?([^"]+)"?/);
+                                                            const filename = filenameMatch ? filenameMatch[1] : `cover_letter_${app.company.replace(/\s+/g, '_')}.pdf`;
                                                             const blob = await response.blob();
                                                             const url = window.URL.createObjectURL(blob);
                                                             const a = document.createElement('a');
                                                             a.href = url;
-                                                            a.download = `cover_letter_${app.company.replace(/\s+/g, '_')}.pdf`;
+                                                            a.download = filename;
                                                             a.click();
                                                             window.URL.revokeObjectURL(url);
                                                         } catch (err) {
