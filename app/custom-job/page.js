@@ -46,7 +46,7 @@ export default function CustomJobPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 sm:p-6">
+        <div className="h-full overflow-y-auto bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 sm:p-6">
             <div className="max-w-2xl mx-auto pt-8">
                 {/* Header */}
                 <motion.div
@@ -117,8 +117,8 @@ export default function CustomJobPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -8 }}
                                 className={`rounded-xl px-4 py-3 text-sm font-medium ${feedback.type === 'success'
-                                        ? 'bg-green-50 text-green-700 border border-green-200'
-                                        : 'bg-red-50 text-red-700 border border-red-200'
+                                    ? 'bg-green-50 text-green-700 border border-green-200'
+                                    : 'bg-red-50 text-red-700 border border-red-200'
                                     }`}
                             >
                                 {feedback.message}
