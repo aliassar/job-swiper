@@ -237,11 +237,11 @@ export default function ApplicationDetailClient({ applicationId }) {
                             </select>
                         </div>
                         <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-                            {job.postedDate && (
-                                <span>📅 Posted {getRelativeTime(job.postedDate)}</span>
-                            )}
                             {app.appliedAt && (
                                 <span>✅ Applied {new Date(app.appliedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                            )}
+                            {job.postedDate && (
+                                <span>📅 Posted {new Date(job.postedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                             )}
                             {app.createdAt && (
                                 <span>➕ Added {new Date(app.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>

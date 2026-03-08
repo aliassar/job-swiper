@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApplicationsInfinite, useUpdateApplicationStage } from '@/lib/hooks/useSWR';
 import useSWR from 'swr';
-import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon, TrashIcon, ArrowPathIcon, ArchiveBoxIcon, EllipsisHorizontalIcon, CheckIcon, BookmarkIcon, Squares2X2Icon, XMarkIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { BriefcaseIcon, CheckCircleIcon, DocumentArrowDownIcon, ArrowTopRightOnSquareIcon, FlagIcon, TrashIcon, ArrowPathIcon, ArchiveBoxIcon, EllipsisHorizontalIcon, CheckIcon, BookmarkIcon, Squares2X2Icon, XMarkIcon, EyeIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
 import OfflineBanner from '@/components/OfflineBanner';
@@ -378,11 +378,11 @@ export default function ApplicationsClient({ initialData }) {
                             return (
                                 <div
                                     key={app.id}
-                                    className={`bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-all border cursor-pointer ${selectMode && selectedIds.has(app.id)
+                                    className={`bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-all border ${selectMode && selectedIds.has(app.id)
                                         ? 'border-blue-400 ring-1 ring-blue-200 bg-blue-50/30'
                                         : 'border-gray-100'
-                                        }`}
-                                    onClick={selectMode ? () => toggleSelect(app.id) : () => router.push(`/applications/${app.id}`)}
+                                        } ${selectMode ? 'cursor-pointer' : ''}`}
+                                    onClick={selectMode ? () => toggleSelect(app.id) : undefined}
                                 >
                                     {/* Header: Logo + Info + Stage */}
                                     <div className="flex items-start gap-3">
@@ -409,28 +409,23 @@ export default function ApplicationsClient({ initialData }) {
                                                 {app.company} • {app.location}
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            <select
-                                                value={app.stage}
-                                                onChange={(e) => {
-                                                    e.stopPropagation();
-                                                    updateStage(app.id, e.target.value, mutate);
-                                                    mutate();
-                                                }}
-                                                onClick={(e) => e.stopPropagation()}
-                                                disabled={app.pendingSync}
-                                                className={`flex-shrink-0 px-2 py-1 rounded-lg text-xs font-medium border-0 ${app.pendingSync ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'} ${getStageColor(app.stage)}`}
-                                            >
-                                                {APPLICATION_STAGES.map((stage) => (
-                                                    <option key={stage} value={stage}>
-                                                        {stage}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {!selectMode && (
-                                                <ChevronRightIcon className="h-4 w-4 text-gray-300 flex-shrink-0" />
-                                            )}
-                                        </div>
+                                        <select
+                                            value={app.stage}
+                                            onChange={(e) => {
+                                                e.stopPropagation();
+                                                updateStage(app.id, e.target.value, mutate);
+                                                mutate();
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            disabled={app.pendingSync}
+                                            className={`flex-shrink-0 px-2 py-1 rounded-lg text-xs font-medium border-0 ${app.pendingSync ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'} ${getStageColor(app.stage)}`}
+                                        >
+                                            {APPLICATION_STAGES.map((stage) => (
+                                                <option key={stage} value={stage}>
+                                                    {stage}
+                                                </option>
+                                            ))}
+                                        </select>
                                         {app.stage === 'Being Applied' && (
                                             <button
                                                 onClick={(e) => handleMarkApplied(e, app)}
@@ -480,6 +475,17 @@ export default function ApplicationsClient({ initialData }) {
                                             )}
                                         </div>
                                     </div>
+
+                                    {/* Required Skills */}
+                                    {Array.isArray(app.requiredSkills) && app.requiredSkills.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5 mt-2.5">
+                                            {app.requiredSkills.map((skill, i) => (
+                                                <span key={i} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md text-[10px] font-medium">
+                                                    {skill}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
 
                                     {/* Action buttons — hidden in select mode */}
                                     {!selectMode && (
@@ -584,6 +590,17 @@ export default function ApplicationsClient({ initialData }) {
                                                             }}
                                                         />
                                                         <div className="absolute right-0 bottom-full mb-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-20">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    router.push(`/applications/${app.id}`);
+                                                                    setOpenMenuId(null);
+                                                                }}
+                                                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                                            >
+                                                                <EyeIcon className="h-4 w-4 text-blue-500" />
+                                                                View Details
+                                                            </button>
                                                             <button
                                                                 onClick={(e) => {
                                                                     handleRegenerateDocuments(e, app);
