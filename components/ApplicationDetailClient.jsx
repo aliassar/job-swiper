@@ -13,6 +13,11 @@ import {
     ArchiveBoxIcon,
     TrashIcon,
     CheckIcon,
+    MapPinIcon,
+    CalendarDaysIcon,
+    BriefcaseIcon,
+    CurrencyDollarIcon,
+    ClockIcon,
 } from '@heroicons/react/24/outline';
 
 const APPLICATION_STAGES = [
@@ -25,12 +30,12 @@ const APPLICATION_STAGES = [
 ];
 
 const stageColors = {
-    'Being Applied': { bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-500' },
-    'Applied': { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500' },
-    'In Review': { bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-500' },
-    'Accepted': { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-    'Rejected': { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
-    'Withdrawn': { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500' },
+    'Being Applied': { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' },
+    'Applied': { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500' },
+    'In Review': { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', dot: 'bg-purple-500' },
+    'Accepted': { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+    'Rejected': { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', dot: 'bg-red-500' },
+    'Withdrawn': { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200', dot: 'bg-gray-500' },
 };
 
 const sourceConfig = {
@@ -181,10 +186,13 @@ export default function ApplicationDetailClient({ applicationId }) {
     const hasLongDescription = description.length > 400;
     const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
 
+    const hasDocuments = (app.customResumeUrl || app.generatedResume?.fileUrl) || (app.customCoverLetterUrl || app.generatedCoverLetter?.fileUrl);
+    const hasInfoTags = job.salary || job.jobType || job.germanRequirement || job.yearsOfExperience;
+
     return (
         <div className="h-full overflow-y-auto bg-gray-50/70">
             <div className="max-w-lg mx-auto">
-                {/* Sticky top bar */}
+                {/* Minimal sticky back bar */}
                 <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 py-2.5 flex items-center gap-3">
                     <button
                         onClick={() => router.push('/applications')}
@@ -192,83 +200,116 @@ export default function ApplicationDetailClient({ applicationId }) {
                     >
                         <ArrowLeftIcon className="h-5 w-5" />
                     </button>
-                    <div className="flex-1 min-w-0">
-                        <h1 className="text-sm font-semibold text-gray-900 truncate">{job.position || 'Application'}</h1>
-                        <p className="text-[11px] text-gray-400 truncate">{job.company}</p>
-                    </div>
-                    <select
-                        value={stage}
-                        onChange={(e) => handleStageChange(e.target.value)}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border-0 cursor-pointer ${colors.bg} ${colors.text}`}
-                    >
-                        {APPLICATION_STAGES.map((s) => (
-                            <option key={s} value={s}>{s}</option>
-                        ))}
-                    </select>
+                    <span className="text-sm font-medium text-gray-500">Application Details</span>
+                    <div className="flex-1" />
+                    {/* Action icons in header */}
+                    <button onClick={handleRegenerate} className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors" title="Regenerate Docs">
+                        <ArrowPathIcon className="h-4 w-4" />
+                    </button>
+                    <button onClick={handleArchive} className="p-1.5 text-gray-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors" title={app.isArchived ? 'Unarchive' : 'Archive'}>
+                        <ArchiveBoxIcon className="h-4 w-4" />
+                    </button>
+                    <button onClick={handleDelete} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                        <TrashIcon className="h-4 w-4" />
+                    </button>
                 </div>
 
                 <div className="p-4 space-y-3">
-                    {/* Company card */}
-                    <div className="bg-white rounded-2xl border border-gray-100 p-4">
-                        <div className="flex items-center gap-3 mb-3">
-                            <img src={logoUrl} alt={job.company} className="w-11 h-11 rounded-xl bg-gray-100 flex-shrink-0" />
+                    {/* Hero section — Job title + company + stage */}
+                    <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                        <div className="flex items-start gap-3.5">
+                            <img src={logoUrl} alt={job.company} className="w-12 h-12 rounded-xl bg-gray-100 flex-shrink-0 mt-0.5" />
                             <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-sm font-bold text-gray-900">{job.company || 'Company'}</span>
+                                {/* Job position — primary */}
+                                <h1 className="text-[15px] font-bold text-gray-900 leading-snug">{job.position || 'Position'}</h1>
+                                {/* Company — secondary */}
+                                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                    <span className="text-sm text-gray-600">{job.company || 'Company'}</span>
                                     {source && (
                                         <span className={`px-1.5 py-0.5 text-[9px] font-semibold rounded-full ${source.className}`}>{source.label}</span>
                                     )}
                                 </div>
-                                <p className="text-xs text-gray-500 mt-0.5">{job.position}</p>
-                                {job.location && <p className="text-[11px] text-gray-400">{job.location}</p>}
+                                {/* Location */}
+                                {job.location && (
+                                    <div className="flex items-center gap-1 mt-1">
+                                        <MapPinIcon className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                                        <span className="text-xs text-gray-400">{job.location}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        {/* Dates */}
-                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-gray-400 mb-3">
-                            {app.appliedAt && <span>Applied {fmtDate(app.appliedAt)}</span>}
-                            {job.postedDate && <span>Posted {fmtDate(job.postedDate)}</span>}
-                            {app.createdAt && (!app.appliedAt || fmtDate(app.createdAt) !== fmtDate(app.appliedAt)) && <span>Added {fmtDate(app.createdAt)}</span>}
-                        </div>
-
-                        {/* Inline actions */}
-                        <div className="flex items-center gap-0.5 pt-2.5 border-t border-gray-50">
-                            {(app.customResumeUrl || app.generatedResume?.fileUrl) && (
-                                <button onClick={() => downloadFile('resume')} className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
-                                    <DocumentArrowDownIcon className="h-3.5 w-3.5" /> Resume
-                                </button>
-                            )}
-                            {(app.customCoverLetterUrl || app.generatedCoverLetter?.fileUrl) && (
-                                <button onClick={() => downloadFile('cover-letter')} className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors">
-                                    <DocumentArrowDownIcon className="h-3.5 w-3.5" /> Letter
-                                </button>
-                            )}
-                            {(job.applyLink || job.jobUrl) && (
-                                <a href={job.applyLink || job.jobUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors">
-                                    <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" /> {job.applyLink ? 'Apply' : 'Job'}
-                                </a>
-                            )}
-                            <div className="flex-1" />
-                            <button onClick={handleRegenerate} className="p-1 text-gray-300 hover:text-indigo-500 rounded transition-colors" title="Regenerate Docs">
-                                <ArrowPathIcon className="h-3.5 w-3.5" />
-                            </button>
-                            <button onClick={handleArchive} className="p-1 text-gray-300 hover:text-amber-500 rounded transition-colors" title={app.isArchived ? 'Unarchive' : 'Archive'}>
-                                <ArchiveBoxIcon className="h-3.5 w-3.5" />
-                            </button>
-                            <button onClick={handleDelete} className="p-1 text-gray-300 hover:text-red-500 rounded transition-colors" title="Delete">
-                                <TrashIcon className="h-3.5 w-3.5" />
-                            </button>
+                        {/* Stage selector + dates row */}
+                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-50">
+                            <select
+                                value={stage}
+                                onChange={(e) => handleStageChange(e.target.value)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer ${colors.bg} ${colors.text} ${colors.border}`}
+                            >
+                                {APPLICATION_STAGES.map((s) => (
+                                    <option key={s} value={s}>{s}</option>
+                                ))}
+                            </select>
+                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-gray-400 justify-end">
+                                {app.appliedAt && (
+                                    <span className="inline-flex items-center gap-1">
+                                        <CalendarDaysIcon className="h-3 w-3" />
+                                        Applied {fmtDate(app.appliedAt)}
+                                    </span>
+                                )}
+                                {job.postedDate && (
+                                    <span className="inline-flex items-center gap-1">
+                                        <ClockIcon className="h-3 w-3" />
+                                        Posted {fmtDate(job.postedDate)}
+                                    </span>
+                                )}
+                                {app.createdAt && (!app.appliedAt || fmtDate(app.createdAt) !== fmtDate(app.appliedAt)) && (
+                                    <span>Added {fmtDate(app.createdAt)}</span>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Info tags */}
-                    {(job.salary || job.jobType || job.germanRequirement || job.yearsOfExperience) && (
+                    {/* Quick info tags */}
+                    {hasInfoTags && (
                         <div className="flex flex-wrap gap-1.5">
-                            {job.salary && <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg text-[11px] font-medium">💰 {job.salary}</span>}
-                            {job.jobType && <span className="px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-100 rounded-lg text-[11px] font-medium">💼 {job.jobType}</span>}
+                            {job.salary && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg text-[11px] font-medium">
+                                    <CurrencyDollarIcon className="h-3 w-3" /> {job.salary}
+                                </span>
+                            )}
+                            {job.jobType && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-100 rounded-lg text-[11px] font-medium">
+                                    <BriefcaseIcon className="h-3 w-3" /> {job.jobType}
+                                </span>
+                            )}
                             {job.germanRequirement === 'required' && <span className="px-2.5 py-1 bg-red-50 text-red-700 border border-red-100 rounded-lg text-[11px] font-medium">🇩🇪 Required</span>}
                             {(job.germanRequirement === 'optional' || job.germanRequirement === 'nice_to_have') && <span className="px-2.5 py-1 bg-yellow-50 text-yellow-700 border border-yellow-100 rounded-lg text-[11px] font-medium">🇩🇪 Preferred</span>}
                             {job.yearsOfExperience && <span className="px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg text-[11px] font-medium">{job.yearsOfExperience}+ yr exp</span>}
+                        </div>
+                    )}
+
+                    {/* Documents & Links */}
+                    {(hasDocuments || job.applyLink || job.jobUrl) && (
+                        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5">Documents & Links</p>
+                            <div className="flex flex-wrap gap-2">
+                                {(app.customResumeUrl || app.generatedResume?.fileUrl) && (
+                                    <button onClick={() => downloadFile('resume')} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                                        <DocumentArrowDownIcon className="h-3.5 w-3.5" /> Resume
+                                    </button>
+                                )}
+                                {(app.customCoverLetterUrl || app.generatedCoverLetter?.fileUrl) && (
+                                    <button onClick={() => downloadFile('cover-letter')} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
+                                        <DocumentArrowDownIcon className="h-3.5 w-3.5" /> Cover Letter
+                                    </button>
+                                )}
+                                {(job.applyLink || job.jobUrl) && (
+                                    <a href={job.applyLink || job.jobUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
+                                        <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" /> {job.applyLink ? 'Apply Link' : 'Job Posting'}
+                                    </a>
+                                )}
+                            </div>
                         </div>
                     )}
 
