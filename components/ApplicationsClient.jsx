@@ -31,6 +31,7 @@ export default function ApplicationsClient({ initialData }) {
     const [jobToReport, setJobToReport] = useState(null);
     const [openMenuId, setOpenMenuId] = useState(null);
     const [activeTab, setActiveTab] = useState('being-applied');
+    const [stageFilter, setStageFilter] = useState(null);
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [bulkLoading, setBulkLoading] = useState(false);
@@ -45,7 +46,7 @@ export default function ApplicationsClient({ initialData }) {
     const {
         applications: otherApps, isLoading: isLoadingOther, isLoadingMore: isLoadingMoreOther,
         hasMore: hasMoreOther, loadMore: loadMoreOther, mutate: mutateOther
-    } = useApplicationsInfinite(searchQuery, { stage: '!Being Applied', sort: 'appliedAt' });
+    } = useApplicationsInfinite(searchQuery, { stage: stageFilter || '!Being Applied', sort: 'appliedAt' });
 
     // Unified mutate helper that refreshes both tabs
     const mutate = useCallback(() => { mutateBA(); mutateOther(); }, [mutateBA, mutateOther]);
@@ -286,7 +287,7 @@ export default function ApplicationsClient({ initialData }) {
                 {/* Tab bar */}
                 <div className="flex gap-1 mb-4 bg-gray-100 rounded-xl p-1">
                     <button
-                        onClick={() => setActiveTab('being-applied')}
+                        onClick={() => { setActiveTab('being-applied'); setStageFilter(null); }}
                         className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'being-applied'
                             ? 'bg-white text-amber-700 shadow-sm'
                             : 'text-gray-500 hover:text-gray-700'
@@ -301,7 +302,7 @@ export default function ApplicationsClient({ initialData }) {
                         </span>
                     </button>
                     <button
-                        onClick={() => setActiveTab('all')}
+                        onClick={() => { setActiveTab('all'); setStageFilter(null); }}
                         className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'all'
                             ? 'bg-white text-blue-700 shadow-sm'
                             : 'text-gray-500 hover:text-gray-700'
@@ -316,6 +317,39 @@ export default function ApplicationsClient({ initialData }) {
                         </span>
                     </button>
                 </div>
+
+                {/* Stage filter chips for All Applications tab */}
+                {!isBA && (
+                    <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+                        {[
+                            { key: null, label: 'All', count: counts?.other },
+                            { key: 'Applied', label: 'Applied', count: counts?.applied },
+                            { key: 'In Review', label: 'In Review', count: counts?.inReview },
+                            { key: 'Accepted', label: 'Accepted', count: counts?.accepted },
+                            { key: 'Rejected', label: 'Rejected', count: counts?.rejected },
+                            { key: 'Withdrawn', label: 'Withdrawn', count: counts?.withdrawn },
+                        ].map(({ key, label, count }) => (
+                            <button
+                                key={label}
+                                onClick={() => setStageFilter(key)}
+                                className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${stageFilter === key
+                                        ? 'bg-blue-600 text-white shadow-sm'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                            >
+                                {label}
+                                {count != null && (
+                                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${stageFilter === key
+                                            ? 'bg-blue-500 text-white'
+                                            : 'bg-gray-200 text-gray-500'
+                                        }`}>
+                                        {count}
+                                    </span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 {isOffline && <OfflineBanner />}
 
