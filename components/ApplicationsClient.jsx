@@ -318,36 +318,22 @@ export default function ApplicationsClient({ initialData }) {
                     </button>
                 </div>
 
-                {/* Stage filter chips for All Applications tab */}
+                {/* Stage filter for All Applications tab */}
                 {!isBA && (
-                    <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-                        {[
-                            { key: null, label: 'All', count: counts?.other },
-                            { key: 'Applied', label: 'Applied', count: counts?.applied },
-                            { key: 'In Review', label: 'In Review', count: counts?.inReview },
-                            { key: 'Accepted', label: 'Accepted', count: counts?.accepted },
-                            { key: 'Rejected', label: 'Rejected', count: counts?.rejected },
-                            { key: 'Withdrawn', label: 'Withdrawn', count: counts?.withdrawn },
-                        ].map(({ key, label, count }) => (
-                            <button
-                                key={label}
-                                onClick={() => setStageFilter(key)}
-                                className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${stageFilter === key
-                                    ? 'bg-blue-600 text-white shadow-sm'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                    }`}
-                            >
-                                {label}
-                                {count != null && (
-                                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${stageFilter === key
-                                        ? 'bg-blue-500 text-white'
-                                        : 'bg-gray-200 text-gray-500'
-                                        }`}>
-                                        {count}
-                                    </span>
-                                )}
-                            </button>
-                        ))}
+                    <div className="flex items-center gap-2 mb-4">
+                        <span className="text-xs font-medium text-gray-500">Filter:</span>
+                        <select
+                            value={stageFilter || ''}
+                            onChange={(e) => setStageFilter(e.target.value || null)}
+                            className="px-3 py-1.5 text-xs font-medium bg-white border border-gray-200 rounded-lg text-gray-700 focus:ring-1 focus:ring-blue-200 focus:border-blue-300 cursor-pointer"
+                        >
+                            <option value="">All stages ({counts?.other ?? otherApps.length})</option>
+                            <option value="Applied">Applied ({counts?.applied ?? 0})</option>
+                            <option value="In Review">In Review ({counts?.inReview ?? 0})</option>
+                            <option value="Accepted">Accepted ({counts?.accepted ?? 0})</option>
+                            <option value="Rejected">Rejected ({counts?.rejected ?? 0})</option>
+                            <option value="Withdrawn">Withdrawn ({counts?.withdrawn ?? 0})</option>
+                        </select>
                     </div>
                 )}
 
