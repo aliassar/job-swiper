@@ -65,7 +65,7 @@ export default function HistoryPage() {
   const handleExportCSV = useCallback(() => {
     const headers = ['Date', 'Job Title', 'Company', 'Location', 'Stage'];
     const rows = applications.map(app => [
-      new Date(app.appliedAt).toLocaleDateString(),
+      new Date(app.appliedAt || app.createdAt).toLocaleDateString(),
       app.position,
       app.company,
       app.location,
@@ -119,7 +119,7 @@ export default function HistoryPage() {
             <tbody>
               ${applications.map(app => `
                 <tr>
-                  <td>${new Date(app.appliedAt).toLocaleDateString()}</td>
+                  <td>${new Date(app.appliedAt || app.createdAt).toLocaleDateString()}</td>
                   <td>${app.position}</td>
                   <td>${app.company}</td>
                   <td>${app.location}</td>
@@ -272,7 +272,7 @@ export default function HistoryPage() {
                   {applications.map((app) => (
                     <tr key={app.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {formatDate(app.appliedAt)}
+                        {formatDate(app.appliedAt || app.createdAt)}
                       </td>
                       <td className="px-4 py-4 text-sm font-medium text-gray-900">
                         {app.position}
@@ -319,7 +319,7 @@ export default function HistoryPage() {
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">
-                      {formatDate(app.appliedAt)}
+                      {formatDate(app.appliedAt || app.createdAt)}
                     </span>
                     <button
                       onClick={() => window.location.href = `/application/${app.id}`}

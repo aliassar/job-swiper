@@ -63,8 +63,8 @@ export default function ReportedJobsPage() {
           <button
             onClick={() => setActiveTab('reported')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium text-sm transition-all ${activeTab === 'reported'
-                ? 'bg-red-100 text-red-700 border-2 border-red-300'
-                : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+              ? 'bg-red-100 text-red-700 border-2 border-red-300'
+              : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
               }`}
           >
             <FlagIcon className="h-4 w-4" />
@@ -79,8 +79,8 @@ export default function ReportedJobsPage() {
           <button
             onClick={() => setActiveTab('blocked')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium text-sm transition-all ${activeTab === 'blocked'
-                ? 'bg-orange-100 text-orange-700 border-2 border-orange-300'
-                : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+              ? 'bg-orange-100 text-orange-700 border-2 border-orange-300'
+              : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
               }`}
           >
             <NoSymbolIcon className="h-4 w-4" />
@@ -144,7 +144,7 @@ export default function ReportedJobsPage() {
                               <p className="text-xs text-gray-500 mt-1">{job.location}</p>
                               {report.reportedAt && (
                                 <p className="text-xs text-gray-400 mt-1">
-                                  Reported {new Date(report.reportedAt).toLocaleDateString()}
+                                  Reported {new Date(report.reportedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                 </p>
                               )}
 
@@ -228,7 +228,7 @@ export default function ReportedJobsPage() {
                           )}
                           {company.blockedAt && (
                             <p className="text-xs text-gray-400 mt-1">
-                              Blocked {new Date(company.blockedAt).toLocaleDateString()}
+                              Blocked {new Date(company.blockedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                             </p>
                           )}
                         </div>

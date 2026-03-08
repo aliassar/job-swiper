@@ -133,7 +133,7 @@ export default function SkippedJobsPage() {
                           <p className="text-xs text-gray-500 mt-1 truncate">{job.location}</p>
                           {job.skippedAt && (
                             <p className="text-xs text-gray-400 mt-1">
-                              Skipped {new Date(job.skippedAt).toLocaleDateString()}
+                              Skipped {new Date(job.skippedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                             </p>
                           )}
 

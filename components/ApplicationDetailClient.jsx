@@ -228,7 +228,7 @@ export default function ApplicationDetailClient({ applicationId }) {
                         <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-gray-400 mb-3">
                             {app.appliedAt && <span>Applied {fmtDate(app.appliedAt)}</span>}
                             {job.postedDate && <span>Posted {fmtDate(job.postedDate)}</span>}
-                            {app.createdAt && <span>Added {fmtDate(app.createdAt)}</span>}
+                            {app.createdAt && (!app.appliedAt || fmtDate(app.createdAt) !== fmtDate(app.appliedAt)) && <span>Added {fmtDate(app.createdAt)}</span>}
                         </div>
 
                         {/* Inline actions */}

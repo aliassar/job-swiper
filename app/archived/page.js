@@ -180,9 +180,16 @@ export default function ArchivedPage() {
 
                                     <div className="mt-2 pt-2 border-t border-gray-100">
                                         <div className="flex items-center justify-between text-xs text-gray-500">
-                                            <span>
-                                                Applied {new Date(app.createdAt || app.appliedAt || app.lastUpdated).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                                            </span>
+                                            <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                                                <span>
+                                                    {activeTab === 'saved-for-later' ? 'Saved' : 'Archived'} {new Date(app.updatedAt || app.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric' })}
+                                                </span>
+                                                {app.appliedAt && (
+                                                    <span>
+                                                        Applied {new Date(app.appliedAt).toLocaleString('en-US', { month: 'short', day: 'numeric' })}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
