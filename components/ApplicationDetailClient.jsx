@@ -264,7 +264,7 @@ export default function ApplicationDetailClient({ applicationId }) {
                                     </span>
                                 )}
                                 {app.createdAt && (!app.appliedAt || fmtDate(app.createdAt) !== fmtDate(app.appliedAt)) && (
-                                    <span>Added {fmtDate(app.createdAt)}</span>
+                                    <span>Applied {fmtDate(app.createdAt)}</span>
                                 )}
                             </div>
                         </div>
