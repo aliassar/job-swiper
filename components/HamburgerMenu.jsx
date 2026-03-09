@@ -133,11 +133,11 @@ export default function HamburgerMenu() {
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed top-0 left-0 bottom-0 w-80 bg-white z-50 shadow-2xl overflow-y-auto"
+            className="fixed top-0 left-0 bottom-0 w-80 bg-white z-50 shadow-2xl flex flex-col"
           >
             {/* User Info Section */}
             {status === 'authenticated' && session?.user && (
-              <div className="p-4 pt-6 border-b border-gray-200">
+              <div className="p-4 pt-6 border-b border-gray-200 flex-shrink-0">
                 <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
                   {session.user.image ? (
                     <img
@@ -160,8 +160,8 @@ export default function HamburgerMenu() {
               </div>
             )}
 
-            {/* Menu Items - no header, just navigation */}
-            <nav className="p-4 pt-6">
+            {/* Menu Items - scrollable area */}
+            <nav className="p-4 pt-6 flex-1 overflow-y-auto">
               <ul className="space-y-2">
                 {menuItems.map((item) => {
                   const isActive = pathname === item.href;
@@ -189,8 +189,8 @@ export default function HamburgerMenu() {
               </ul>
             </nav>
 
-            {/* Footer */}
-            <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-gray-50">
+            {/* Footer - stays at bottom, never overlaps */}
+            <div className="flex-shrink-0 border-t border-gray-200 bg-gray-50">
               {/* Auth Section */}
               <div className="p-4">
                 {status === 'authenticated' ? (
