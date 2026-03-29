@@ -27,6 +27,7 @@ export default function ApplicationsClient({ initialData }) {
     const { updateStage } = useUpdateApplicationStage();
     const [searchQuery, setSearchQuery] = useState('');
     const loadMoreRef = useRef(null);
+    const lastSelectedIndex = useRef(null);
     const [reportModalOpen, setReportModalOpen] = useState(false);
     const [jobToReport, setJobToReport] = useState(null);
     const [openMenuId, setOpenMenuId] = useState(null);
@@ -175,16 +176,35 @@ export default function ApplicationsClient({ initialData }) {
     const exitSelectMode = useCallback(() => {
         setSelectMode(false);
         setSelectedIds(new Set());
+        lastSelectedIndex.current = null;
     }, []);
 
-    const toggleSelect = useCallback((id) => {
-        setSelectedIds((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-        });
-    }, []);
+    const toggleSelect = useCallback((id, event) => {
+        const currentIndex = displayedApps.findIndex((a) => a.id === id);
+
+        if (event?.shiftKey && lastSelectedIndex.current !== null && currentIndex !== -1) {
+            // Shift+click: select range between last selected and current
+            const start = Math.min(lastSelectedIndex.current, currentIndex);
+            const end = Math.max(lastSelectedIndex.current, currentIndex);
+            setSelectedIds((prev) => {
+                const next = new Set(prev);
+                for (let i = start; i <= end; i++) {
+                    next.add(displayedApps[i].id);
+                }
+                return next;
+            });
+        } else {
+            // Normal click: toggle single item
+            setSelectedIds((prev) => {
+                const next = new Set(prev);
+                if (next.has(id)) next.delete(id);
+                else next.add(id);
+                return next;
+            });
+        }
+
+        lastSelectedIndex.current = currentIndex;
+    }, [displayedApps]);
 
     const toggleSelectAll = useCallback(() => {
         if (selectedIds.size === displayedApps.length) {
@@ -368,7 +388,7 @@ export default function ApplicationsClient({ initialData }) {
                                         ? 'border-blue-400 ring-1 ring-blue-200 bg-blue-50/30'
                                         : 'border-gray-100'
                                         } ${selectMode ? 'cursor-pointer' : ''}`}
-                                    onClick={selectMode ? () => toggleSelect(app.id) : undefined}
+                                    onClick={selectMode ? (e) => toggleSelect(app.id, e) : undefined}
                                 >
                                     {/* Header: Logo + Info + Stage */}
                                     <div className="flex items-start gap-3">
