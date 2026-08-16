@@ -13,11 +13,16 @@ export default function JobCard({ job, style, onSwipe, onReportClick, isReported
   if (!job || typeof job !== 'object') return null;
 
   const getRelativeTime = (dateString) => {
+    // new Date(null) is the epoch, which rendered as "Posted 20681 days ago".
+    if (!dateString) return null;
     const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return null;
+
     const now = new Date();
     const diffInMs = now - date;
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
+    if (diffInDays < 0) return 'Posted today';
     if (diffInDays === 0) return 'Posted today';
     if (diffInDays === 1) return 'Posted 1 day ago';
     return `Posted ${diffInDays} days ago`;
@@ -115,9 +120,11 @@ export default function JobCard({ job, style, onSwipe, onReportClick, isReported
           </h3>
 
           <div className="mb-4">
-            <p className="text-sm text-gray-500 mb-3">
-              {getRelativeTime(job.postedDate)}
-            </p>
+            {getRelativeTime(job.postedDate) && (
+              <p className="text-sm text-gray-500 mb-3">
+                {getRelativeTime(job.postedDate)}
+              </p>
+            )}
             <div className="flex flex-wrap gap-2">
               {job.salary && (
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg">
@@ -200,7 +207,8 @@ JobCard.propTypes = {
     optionalSkills: PropTypes.arrayOf(PropTypes.string),
     description: PropTypes.string,
     shortDescription: PropTypes.string,
-    postedDate: PropTypes.string.isRequired,
+    // Nullable: some scraped listings arrive without a date.
+    postedDate: PropTypes.string,
     logo: PropTypes.string,
     logoUrl: PropTypes.string,
     srcName: PropTypes.string,
