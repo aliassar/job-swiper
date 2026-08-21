@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { applicationsApi } from '@/lib/api';
 import { ArchiveBoxIcon, ArrowPathIcon, BookmarkIcon } from '@heroicons/react/24/outline';
 import SearchInput from '@/components/SearchInput';
+import CompanyLogo from '@/components/CompanyLogo';
 import useSWR from 'swr';
 
 export default function ArchivedPage() {
@@ -154,17 +155,16 @@ export default function ArchivedPage() {
                 {displayedApps.length > 0 && (
                     <div className="space-y-3">
                         {displayedApps.map((app) => {
-                            const logoUrl = app.logoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(app.company)}&size=48&background=0D8ABC&color=fff&bold=true`;
-
                             return (
                                 <div
                                     key={app.id}
                                     className="bg-white rounded-xl shadow-sm p-3 hover:shadow-md transition-shadow border border-gray-100 opacity-80"
                                 >
                                     <div className="flex items-center gap-3 mb-2">
-                                        <img
-                                            src={logoUrl}
-                                            alt={`${app.company} logo`}
+                                        <CompanyLogo
+                                            company={app.company}
+                                            logoUrl={app.logoUrl}
+                                            size={48}
                                             className="w-10 h-10 rounded-lg flex-shrink-0"
                                         />
                                         <div className="flex-1 min-w-0">

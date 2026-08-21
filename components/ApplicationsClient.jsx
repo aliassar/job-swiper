@@ -9,6 +9,7 @@ import SearchInput from '@/components/SearchInput';
 import ApplicationTimeline from '@/components/ApplicationTimeline';
 import OfflineBanner from '@/components/OfflineBanner';
 import ReportModal from '@/components/ReportModal';
+import CompanyLogo from '@/components/CompanyLogo';
 import { reportedApi, applicationsApi } from '@/lib/api';
 
 
@@ -379,8 +380,6 @@ export default function ApplicationsClient({ initialData }) {
                 {hasResults && (
                     <div className="space-y-3">
                         {displayedApps.map((app) => {
-                            const logoUrl = app.logoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(app.company)}&size=48&background=0D8ABC&color=fff&bold=true`;
-
                             return (
                                 <div
                                     key={app.id}
@@ -402,9 +401,10 @@ export default function ApplicationsClient({ initialData }) {
                                                 {selectedIds.has(app.id) && <CheckIcon className="h-3.5 w-3.5" />}
                                             </div>
                                         )}
-                                        <img
-                                            src={logoUrl}
-                                            alt={`${app.company} logo`}
+                                        <CompanyLogo
+                                            company={app.company}
+                                            logoUrl={app.logoUrl}
+                                            size={48}
                                             className="w-11 h-11 rounded-xl flex-shrink-0 mt-0.5"
                                         />
                                         <div className="flex-1 min-w-0">

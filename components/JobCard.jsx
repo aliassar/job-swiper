@@ -5,6 +5,7 @@ import { FlagIcon } from '@heroicons/react/24/outline';
 import { FlagIcon as FlagIconSolid } from '@heroicons/react/24/solid';
 import { useSwipe } from '@/context/SwipeContext';
 import ReactMarkdown from 'react-markdown';
+import CompanyLogo from '@/components/CompanyLogo';
 
 export default function JobCard({ job, style, onSwipe, onReportClick, isReported = false }) {
   const { unreportJob } = useSwipe();
@@ -50,8 +51,6 @@ export default function JobCard({ job, style, onSwipe, onReportClick, isReported
         : job.description)
       : 'No description available');
 
-  // Use logoUrl from database, fallback to ui-avatars if not available
-  const logoUrl = job.logoUrl || job.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&size=80&background=0D8ABC&color=fff&bold=true`;
 
   // Source badge configuration
   const sourceConfig = {
@@ -79,9 +78,10 @@ export default function JobCard({ job, style, onSwipe, onReportClick, isReported
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 relative overflow-hidden">
           <div className="flex items-center space-x-4">
-            <img
-              src={logoUrl}
-              alt={`${job.company} logo`}
+            <CompanyLogo
+              company={job.company}
+              logoUrl={job.logoUrl || job.logo}
+              size={80}
               className="w-20 h-20 rounded-2xl shadow-lg bg-white"
             />
             <div className="flex-1">

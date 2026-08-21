@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import ReactMarkdown from 'react-markdown';
 import { applicationsApi } from '@/lib/api';
+import CompanyLogo from '@/components/CompanyLogo';
 import {
     ArrowLeftIcon,
     DocumentArrowDownIcon,
@@ -178,7 +179,6 @@ export default function ApplicationDetailClient({ applicationId }) {
 
     const stage = app.stage || 'Being Applied';
     const colors = stageColors[stage] || stageColors['Being Applied'];
-    const logoUrl = job.logoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company || 'N/A')}&size=80&background=0D8ABC&color=fff&bold=true`;
     const source = job.srcName ? sourceConfig[job.srcName.toLowerCase()] : null;
     const requiredSkills = Array.isArray(job.requiredSkills) ? job.requiredSkills : [];
     const optionalSkills = Array.isArray(job.optionalSkills) ? job.optionalSkills : [];
@@ -218,7 +218,7 @@ export default function ApplicationDetailClient({ applicationId }) {
                     {/* Hero section — Job title + company + stage */}
                     <div className="bg-white rounded-2xl border border-gray-100 p-5">
                         <div className="flex items-start gap-3.5">
-                            <img src={logoUrl} alt={job.company} className="w-12 h-12 rounded-xl bg-gray-100 flex-shrink-0 mt-0.5" />
+                            <CompanyLogo company={job.company} logoUrl={job.logoUrl} size={80} className="w-12 h-12 rounded-xl bg-gray-100 flex-shrink-0 mt-0.5" />
                             <div className="flex-1 min-w-0">
                                 {/* Job position — primary */}
                                 <h1 className="text-[15px] font-bold text-gray-900 leading-snug">{job.position || 'Position'}</h1>
