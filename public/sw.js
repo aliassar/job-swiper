@@ -3,7 +3,10 @@
  * Handles offline caching and navigation for Next.js App Router
  */
 
-const CACHE_NAME = 'job-swiper-v8';
+// Bumped to v9 to purge API responses cached by v8. The activate handler
+// deletes every cache whose name is not CACHE_NAME, so raising the version is
+// what evicts the per-user API data v8 should never have stored.
+const CACHE_NAME = 'job-swiper-v9';
 const OFFLINE_FALLBACK = '/';
 
 // Pages to pre-cache for offline navigation
@@ -70,9 +73,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // API requests - network first, then cache
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(networkFirstStrategy(request));
+  // Never intercept API traffic, and never intercept another origin.
+  //
+  // The backend runs on its own host, and `url.pathname` for
+  // https://<api-host>/api/jobs is "/api/jobs", so the old check matched
+  // cross-origin API calls too and ran them through networkFirstStrategy.
+  // That cached authenticated, per-user responses in the Cache API, which keys
+  // on URL alone and ignores the Authorization header - two accounts on one
+  // browser share an entry - and it served stale job lists back after a swipe.
+  // On any network error it also fabricated a 200-shaped 503 body the app
+  // could not tell apart from a real server reply.
+  //
+  // Offline support for API data already lives in the app, in IndexedDB via
+  // CACHE_KEYS/useCachedData, so nothing is lost by letting these go straight
+  // to the network.
+  if (url.pathname.startsWith('/api/') || url.origin !== self.location.origin) {
     return;
   }
 
