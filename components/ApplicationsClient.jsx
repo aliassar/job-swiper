@@ -10,6 +10,7 @@ import ApplicationTimeline from '@/components/ApplicationTimeline';
 import OfflineBanner from '@/components/OfflineBanner';
 import ReportModal from '@/components/ReportModal';
 import CompanyLogo from '@/components/CompanyLogo';
+import DocumentButtons from '@/components/DocumentButtons';
 import { reportedApi, applicationsApi } from '@/lib/api';
 
 
@@ -59,6 +60,30 @@ export default function ApplicationsClient({ initialData }) {
         () => applicationsApi.getApplicationCounts(),
         { revalidateOnFocus: false }
     );
+
+    // Shared by the Resume and Cover Letter buttons; the two differed only in
+    // endpoint and filename before.
+    const downloadDocument = useCallback(async (app, type) => {
+        const label = type === 'resume' ? 'CV' : 'Cover Letter';
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/application-history/${app.id}/download/${type}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (!response.ok) throw new Error('Download failed');
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Ali Haji Amou Asar ${label} - ${app.company}.pdf`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Download error:', err);
+            alert(`Failed to download ${type === 'resume' ? 'resume' : 'cover letter'}`);
+        }
+    }, []);
 
     const handleSearch = useCallback((query) => {
         setSearchQuery(query);
@@ -500,66 +525,14 @@ export default function ApplicationsClient({ initialData }) {
                                     {/* Action buttons — hidden in select mode */}
                                     {!selectMode && (
                                         <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-                                            {(app.customResumeUrl || app.generatedResumeUrl) && (
-                                                <button
-                                                    onClick={async (e) => {
-                                                        e.stopPropagation();
-                                                        try {
-                                                            const token = localStorage.getItem('auth_token');
-                                                            const response = await fetch(
-                                                                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/application-history/${app.id}/download/resume`,
-                                                                { headers: { Authorization: `Bearer ${token}` } }
-                                                            );
-                                                            if (!response.ok) throw new Error('Download failed');
-                                                            const blob = await response.blob();
-                                                            const url = window.URL.createObjectURL(blob);
-                                                            const a = document.createElement('a');
-                                                            a.href = url;
-                                                            a.download = `Ali Haji Amou Asar CV - ${app.company}.pdf`;
-                                                            a.click();
-                                                            window.URL.revokeObjectURL(url);
-                                                        } catch (err) {
-                                                            console.error('Download error:', err);
-                                                            alert('Failed to download resume');
-                                                        }
-                                                    }}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-                                                    title="Download Resume"
-                                                >
-                                                    <DocumentArrowDownIcon className="h-4 w-4" />
-                                                    Resume
-                                                </button>
-                                            )}
-                                            {(app.customCoverLetterUrl || app.generatedCoverLetterUrl) && (
-                                                <button
-                                                    onClick={async (e) => {
-                                                        e.stopPropagation();
-                                                        try {
-                                                            const token = localStorage.getItem('auth_token');
-                                                            const response = await fetch(
-                                                                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/application-history/${app.id}/download/cover-letter`,
-                                                                { headers: { Authorization: `Bearer ${token}` } }
-                                                            );
-                                                            if (!response.ok) throw new Error('Download failed');
-                                                            const blob = await response.blob();
-                                                            const url = window.URL.createObjectURL(blob);
-                                                            const a = document.createElement('a');
-                                                            a.href = url;
-                                                            a.download = `Ali Haji Amou Asar Cover Letter - ${app.company}.pdf`;
-                                                            a.click();
-                                                            window.URL.revokeObjectURL(url);
-                                                        } catch (err) {
-                                                            console.error('Download error:', err);
-                                                            alert('Failed to download cover letter');
-                                                        }
-                                                    }}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
-                                                    title="Download Cover Letter"
-                                                >
-                                                    <DocumentArrowDownIcon className="h-4 w-4" />
-                                                    Cover Letter
-                                                </button>
-                                            )}
+                                            <DocumentButtons
+                                                generation={app.generation}
+                                                hasResume={Boolean(app.customResumeUrl || app.generatedResumeUrl)}
+                                                hasCoverLetter={Boolean(app.customCoverLetterUrl || app.generatedCoverLetterUrl)}
+                                                onDownloadResume={(e) => { e.stopPropagation(); downloadDocument(app, 'resume'); }}
+                                                onDownloadCoverLetter={(e) => { e.stopPropagation(); downloadDocument(app, 'cover-letter'); }}
+                                                onRetry={() => handleRegenerateDocuments({ stopPropagation() {} }, app)}
+                                            />
                                             {(app.applyLink || app.jobUrl || app.url) && (
                                                 <a
                                                     href={app.applyLink || app.jobUrl || app.url}
