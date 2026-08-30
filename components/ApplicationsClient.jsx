@@ -522,9 +522,10 @@ export default function ApplicationsClient({ initialData }) {
                                         </div>
                                     )}
 
-                                    {/* Action buttons — hidden in select mode */}
-                                    {!selectMode && (
-                                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                                    {/* Action buttons stay visible in select mode: hiding them made
+                                        the generation state disappear the moment you started selecting.
+                                        Each control stops propagation so it never toggles selection. */}
+                                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
                                             <DocumentButtons
                                                 generation={app.generation}
                                                 hasResume={Boolean(app.customResumeUrl || app.generatedResumeUrl)}
@@ -640,8 +641,7 @@ export default function ApplicationsClient({ initialData }) {
                                                     </>
                                                 )}
                                             </div>
-                                        </div>
-                                    )}
+                                    </div>
 
 
                                 </div>
