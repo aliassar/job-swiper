@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // A self-contained server in .next/standalone for the Docker image (Dockerfile)
+  output: 'standalone',
   // Enable PWA support
   // Headers for service worker and manifest
   async headers() {
